@@ -1,0 +1,154 @@
+create_task:
+  name: Create Task
+  description: Create a new IntelliKeep maintenance task.
+  fields:
+    name:
+      name: Name
+      description: Task name.
+      required: true
+      selector:
+        text:
+    description:
+      name: Description
+      description: Optional task description.
+      selector:
+        text:
+    priority:
+      name: Priority
+      description: Task priority level.
+      default: medium
+      selector:
+        select:
+          options:
+            - low
+            - medium
+            - high
+            - critical
+    frequency:
+      name: Frequency
+      description: How often the task repeats.
+      default: one_time
+      selector:
+        select:
+          options:
+            - one_time
+            - daily
+            - weekly
+            - monthly
+            - yearly
+            - custom
+    custom_days_interval:
+      name: Custom Interval (days)
+      description: Days between occurrences when frequency is "custom".
+      selector:
+        number:
+          min: 1
+          max: 3650
+          unit_of_measurement: days
+    due_date:
+      name: Due Date
+      description: When the task is due.
+      selector:
+        datetime:
+    linked_entity_ids:
+      name: Linked Entities
+      description: Home Assistant entity IDs associated with this task.
+      selector:
+        entity:
+          multiple: true
+    notify_days_before:
+      name: Notify Days Before
+      description: How many days before due date to send a reminder.
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 365
+          unit_of_measurement: days
+    notify_on_overdue:
+      name: Notify When Overdue
+      description: Send a notification when the task becomes overdue.
+      default: true
+      selector:
+        boolean:
+
+complete_task:
+  name: Complete Task
+  description: Mark an IntelliKeep task as completed.
+  fields:
+    task_id:
+      name: Task ID
+      description: The unique ID of the task to complete.
+      required: true
+      selector:
+        text:
+    completed_by:
+      name: Completed By
+      description: Name or identifier of who completed the task.
+      selector:
+        text:
+    notes:
+      name: Notes
+      description: Optional completion notes.
+      selector:
+        text:
+          multiline: true
+
+delete_task:
+  name: Delete Task
+  description: Permanently delete an IntelliKeep task.
+  fields:
+    task_id:
+      name: Task ID
+      description: The unique ID of the task to delete.
+      required: true
+      selector:
+        text:
+
+update_task:
+  name: Update Task
+  description: Update fields of an existing IntelliKeep task.
+  fields:
+    task_id:
+      name: Task ID
+      description: The unique ID of the task to update.
+      required: true
+      selector:
+        text:
+    name:
+      name: Name
+      selector:
+        text:
+    description:
+      name: Description
+      selector:
+        text:
+    priority:
+      name: Priority
+      selector:
+        select:
+          options: [low, medium, high, critical]
+    frequency:
+      name: Frequency
+      selector:
+        select:
+          options: [one_time, daily, weekly, monthly, yearly, custom]
+    due_date:
+      name: Due Date
+      selector:
+        datetime:
+    linked_entity_ids:
+      name: Linked Entities
+      selector:
+        entity:
+          multiple: true
+    notify_days_before:
+      name: Notify Days Before
+      selector:
+        number:
+          min: 0
+          max: 365
+    enabled:
+      name: Enabled
+      selector:
+        boolean:
