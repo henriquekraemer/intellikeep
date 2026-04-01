@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "IntelliKeep Setup",
+        "description": "Configure your IntelliKeep home maintenance system.",
+        "data": {
+          "instance_name": "Instance Name",
+          "notify_days_before_default": "Default Notification Lead Time (days)",
+          "notification_service": "Notification Service (optional)"
+        },
+        "data_description": {
+          "notification_service": "e.g. notify.mobile_app_my_phone — leave empty to use only persistent notifications"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Only one IntelliKeep instance is allowed."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "IntelliKeep Options",
+        "data": {
+          "instance_name": "Instance Name",
+          "notify_days_before_default": "Default Notification Lead Time (days)",
+          "notification_service": "Notification Service (optional)"
+        }
+      }
+    }
+  }
+}

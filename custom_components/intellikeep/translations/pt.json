@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configuração do IntelliKeep",
+        "description": "Configure seu sistema de manutenção doméstica IntelliKeep.",
+        "data": {
+          "instance_name": "Nome da Instância",
+          "notify_days_before_default": "Antecedência Padrão para Notificações (dias)",
+          "notification_service": "Serviço de Notificação (opcional)"
+        },
+        "data_description": {
+          "notification_service": "ex: notify.mobile_app_meu_celular — deixe vazio para usar apenas notificações persistentes"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Apenas uma instância do IntelliKeep é permitida."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opções do IntelliKeep",
+        "data": {
+          "instance_name": "Nome da Instância",
+          "notify_days_before_default": "Antecedência Padrão para Notificações (dias)",
+          "notification_service": "Serviço de Notificação (opcional)"
+        }
+      }
+    }
+  }
+}
