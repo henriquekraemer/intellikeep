@@ -58,6 +58,13 @@ export async function completeTask(
   });
 }
 
+export async function reopenTask(
+  hass: HomeAssistant,
+  taskId: string
+): Promise<void> {
+  await hass.callService(DOMAIN, "reopen_task", { task_id: taskId });
+}
+
 export async function deleteTask(
   hass: HomeAssistant,
   taskId: string

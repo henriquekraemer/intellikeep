@@ -2,6 +2,7 @@
   "name": "intellikeep-panel",
   "version": "1.0.0",
   "description": "IntelliKeep Panel for Home Assistant sidebar",
+  "type": "module",
   "scripts": {
     "build": "rollup -c rollup.config.js",
     "dev": "rollup -c rollup.config.js --watch"

@@ -2,6 +2,7 @@ import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant, Route, Task } from "./types";
 import { subscribeTasks } from "./api";
+import { t } from "./translations";
 import "./views/task-list-view";
 import "./views/task-form-view";
 import "./views/task-history-view";
@@ -126,7 +127,7 @@ export class IntelliKeepPanel extends LitElement {
 
   private _navigate(path: string) {
     this._currentPath = path;
-    history.pushState(null, "", `#${path}`);
+    history.replaceState(null, "", location.pathname + "#" + path);
   }
 
   private _getEditTask(): Task | null {
@@ -142,6 +143,7 @@ export class IntelliKeepPanel extends LitElement {
 
   protected render() {
     const path = this._currentPath;
+    const tr = t(this.hass?.language);
 
     const isNew = path === "/new";
     const isEdit = path.startsWith("/edit/");
@@ -158,22 +160,22 @@ export class IntelliKeepPanel extends LitElement {
         <div class="appbar-actions">
           <button class="appbar-btn" @click=${() => this._navigate("/new")}>
             <ha-icon icon="mdi:plus" style="--mdc-icon-size:16px"></ha-icon>
-            New task
+            ${tr.newTask}
           </button>
         </div>
       </div>
 
       <div class="tabs">
         <div class="tab ${isTasks ? "active" : ""}" @click=${() => this._navigate("/tasks")}>
-          Tasks
+          ${tr.tasks}
           ${dueCount > 0 ? html`<span style="background:var(--error-color,#f44336);color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:5px;font-weight:700">${dueCount}</span>` : nothing}
         </div>
-        <div class="tab ${isSettings ? "active" : ""}" @click=${() => this._navigate("/settings")}>Settings</div>
+        <div class="tab ${isSettings ? "active" : ""}" @click=${() => this._navigate("/settings")}>${tr.settings}</div>
       </div>
 
       <div class="content" @navigate=${(e: CustomEvent) => this._navigate(e.detail)}>
         ${this._loading
-          ? html`<p>Loading IntelliKeep…</p>`
+          ? html`<p>${tr.loading}</p>`
           : isTasks
           ? html`
               <ik-task-list-view
@@ -184,7 +186,7 @@ export class IntelliKeepPanel extends LitElement {
             `
           : isNew
           ? html`
-              <div class="page-title">New Task</div>
+              <div class="page-title">${tr.newTaskTitle}</div>
               <ik-task-form-view
                 .hass=${this.hass}
                 @navigate=${(e: CustomEvent) => this._navigate(e.detail)}
@@ -192,7 +194,7 @@ export class IntelliKeepPanel extends LitElement {
             `
           : isEdit
           ? html`
-              <div class="page-title">Edit Task</div>
+              <div class="page-title">${tr.editTask}</div>
               <ik-task-form-view
                 .hass=${this.hass}
                 .task=${this._getEditTask()}
@@ -209,7 +211,7 @@ export class IntelliKeepPanel extends LitElement {
             `
           : isSettings
           ? html`
-              <div class="page-title">Settings</div>
+              <div class="page-title">${tr.settingsTitle}</div>
               <ik-settings-view .hass=${this.hass}></ik-settings-view>
             `
           : nothing}

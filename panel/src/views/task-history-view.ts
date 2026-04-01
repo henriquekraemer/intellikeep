@@ -1,7 +1,8 @@
-import { LitElement, html, css, nothing } from "lit";
+import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant, Task, TaskExecution } from "../types";
 import { getTask } from "../api";
+import { t } from "../translations";
 
 @customElement("ik-task-history-view")
 export class IkTaskHistoryView extends LitElement {
@@ -67,27 +68,28 @@ export class IkTaskHistoryView extends LitElement {
   }
 
   render() {
-    if (this._loading) return html`<p>Loading…</p>`;
+    const tr = t(this.hass?.language);
+    if (this._loading) return html`<p>${tr.historyLoading}</p>`;
     if (this._error) return html`<p style="color:var(--error-color)">${this._error}</p>`;
-    if (!this._task) return html`<p>Task not found.</p>`;
+    if (!this._task) return html`<p>${tr.taskNotFound}</p>`;
 
     const executions = [...(this._task.executions || [])].reverse();
 
     return html`
-      <button class="back-btn" @click=${() => this._navigate("/tasks")}>← Back</button>
+      <button class="back-btn" @click=${() => this._navigate("/tasks")}>${tr.back}</button>
       <h2>${this._task.name}</h2>
-      <div class="subtitle">Execution history — ${executions.length} record${executions.length !== 1 ? "s" : ""}</div>
+      <div class="subtitle">${tr.executionHistory(executions.length)}</div>
 
       <ha-card>
         ${executions.length === 0
-          ? html`<div class="empty">No executions recorded yet.</div>`
+          ? html`<div class="empty">${tr.noExecutions}</div>`
           : html`
               <table>
                 <thead>
                   <tr>
-                    <th>Completed at</th>
-                    <th>Completed by</th>
-                    <th>Notes</th>
+                    <th>${tr.completedAt}</th>
+                    <th>${tr.completedBy}</th>
+                    <th>${tr.notes}</th>
                   </tr>
                 </thead>
                 <tbody>

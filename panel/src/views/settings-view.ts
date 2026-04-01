@@ -1,6 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { HomeAssistant } from "../types";
+import { t } from "../translations";
 
 @customElement("ik-settings-view")
 export class IkSettingsView extends LitElement {
@@ -24,13 +25,11 @@ export class IkSettingsView extends LitElement {
   `;
 
   render() {
+    const tr = t(this.hass?.language);
     return html`
       <ha-card>
-        <h3>IntelliKeep Settings</h3>
-        <p>
-          To change notification service, default lead time, or instance name,
-          go to <strong>Settings → Devices & Services → IntelliKeep → Configure</strong>.
-        </p>
+        <h3>${tr.settingsHeading}</h3>
+        <p>${tr.settingsBody}</p>
 
         <div style="margin-top:16px">
           <div class="info-row">

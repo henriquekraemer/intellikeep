@@ -1,7 +1,8 @@
-import { LitElement, html, css, nothing } from "lit";
+import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { HomeAssistant, Task, TaskPriority, TaskStatus } from "../types";
-import { completeTask, deleteTask } from "../api";
+import { HomeAssistant, Task, TaskPriority } from "../types";
+import { completeTask, reopenTask, deleteTask } from "../api";
+import { t } from "../translations";
 import "../components/task-card";
 import "../components/confirm-dialog";
 
@@ -10,10 +11,12 @@ export class IkTaskListView extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) tasks: Task[] = [];
 
-  @state() private _filterStatus: TaskStatus | "all" = "all";
+  @state() private _filterGroup: "pending" | "completed" = "pending";
+  @state() private _filterUrgency: "overdue" | "due" | "all" = "all";
   @state() private _filterPriority: TaskPriority | "all" = "all";
   @state() private _deleteTarget: string | null = null;
   @state() private _completing: Set<string> = new Set();
+  @state() private _reopening: Set<string> = new Set();
 
   static styles = css`
     :host { display: block; }
@@ -71,7 +74,13 @@ export class IkTaskListView extends LitElement {
 
   private get _filtered(): Task[] {
     return this.tasks.filter((t) => {
-      if (this._filterStatus !== "all" && t.status !== this._filterStatus) return false;
+      // Group: pending = not completed, completed = completed
+      if (this._filterGroup === "pending" && t.status === "completed") return false;
+      if (this._filterGroup === "completed" && t.status !== "completed") return false;
+      // Urgency subfiltro (só aplicável em pending)
+      if (this._filterGroup === "pending" && this._filterUrgency !== "all") {
+        if (t.status !== this._filterUrgency) return false;
+      }
       if (this._filterPriority !== "all" && t.priority !== this._filterPriority) return false;
       return true;
     });
@@ -81,10 +90,25 @@ export class IkTaskListView extends LitElement {
     this.dispatchEvent(new CustomEvent("navigate", { detail: path, bubbles: true, composed: true }));
   }
 
+  private async _reopen(taskId: string) {
+    this._reopening = new Set([...this._reopening, taskId]);
+    try {
+      await reopenTask(this.hass, taskId);
+    } catch (err) {
+      console.error("[IntelliKeep] reopen_task failed:", err);
+      alert(`Failed to reopen task: ${err}`);
+    } finally {
+      this._reopening = new Set([...this._reopening].filter((id) => id !== taskId));
+    }
+  }
+
   private async _complete(taskId: string) {
     this._completing = new Set([...this._completing, taskId]);
     try {
       await completeTask(this.hass, taskId);
+    } catch (err) {
+      console.error("[IntelliKeep] complete_task failed:", err);
+      alert(`Failed to complete task: ${err}`);
     } finally {
       this._completing = new Set([...this._completing].filter((id) => id !== taskId));
     }
@@ -99,37 +123,41 @@ export class IkTaskListView extends LitElement {
 
   render() {
     const tasks = this._filtered;
+    const tr = t(this.hass?.language);
     return html`
       <div class="toolbar">
-        <select @change=${(e: Event) => { this._filterStatus = (e.target as HTMLSelectElement).value as TaskStatus | "all"; }}>
-          <option value="all">All statuses</option>
-          <option value="overdue">Overdue</option>
-          <option value="due">Due today</option>
-          <option value="pending">Pending</option>
-          <option value="completed">Completed</option>
+        <select @change=${(e: Event) => { this._filterGroup = (e.target as HTMLSelectElement).value as "pending" | "completed"; this._filterUrgency = "all"; }}>
+          <option value="pending">${tr.pending}</option>
+          <option value="completed">${tr.completed}</option>
         </select>
+        ${this._filterGroup === "pending" ? html`
+        <select @change=${(e: Event) => { this._filterUrgency = (e.target as HTMLSelectElement).value as "overdue" | "due" | "all"; }}>
+          <option value="all">${tr.allUrgencies}</option>
+          <option value="overdue">${tr.overdue}</option>
+          <option value="due">${tr.dueToday}</option>
+        </select>` : ""}
         <select @change=${(e: Event) => { this._filterPriority = (e.target as HTMLSelectElement).value as TaskPriority | "all"; }}>
-          <option value="all">All priorities</option>
-          <option value="critical">Critical</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
+          <option value="all">${tr.allPriorities}</option>
+          <option value="critical">${tr.critical}</option>
+          <option value="high">${tr.high}</option>
+          <option value="medium">${tr.medium}</option>
+          <option value="low">${tr.low}</option>
         </select>
         <span class="count">${tasks.length} task${tasks.length !== 1 ? "s" : ""}</span>
       </div>
 
       <ha-card>
         ${tasks.length === 0
-          ? html`<div class="empty">No tasks match the current filters.</div>`
+          ? html`<div class="empty">${tr.noTasks}</div>`
           : tasks.map(
               (task) => html`
-                <ik-task-card .task=${task}>
+                <ik-task-card .task=${task} .hass=${this.hass}>
                   <div class="task-actions" slot="actions">
                     ${task.status !== "completed"
-                      ? html`<button class="btn primary" ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}>Done</button>`
-                      : nothing}
-                    <button class="btn" @click=${() => this._navigateTo(`/edit/${task.task_id}`)}>Edit</button>
-                    <button class="btn danger" @click=${() => { this._deleteTarget = task.task_id; }}>Del</button>
+                      ? html`<button class="btn primary" ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}>${tr.done}</button>`
+                      : html`<button class="btn" ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}>${tr.undo}</button>`}
+                    <button class="btn" @click=${() => this._navigateTo(`/edit/${task.task_id}`)}>${tr.edit}</button>
+                    <button class="btn danger" @click=${() => { this._deleteTarget = task.task_id; }}>${tr.del}</button>
                   </div>
                 </ik-task-card>
               `
@@ -137,11 +165,11 @@ export class IkTaskListView extends LitElement {
       </ha-card>
 
       <ik-confirm-dialog
-        heading="Delete task?"
+        heading=${tr.deleteHeading}
         .open=${this._deleteTarget !== null}
         @dialog-closed=${(e: CustomEvent) => this._confirmDelete(e.detail.confirmed)}
       >
-        This action cannot be undone.
+        ${tr.deleteBody}
       </ik-confirm-dialog>
     `;
   }

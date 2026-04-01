@@ -18,7 +18,7 @@ _build() {
     -v "$SCRIPT_DIR:/work" \
     -w "$workdir" \
     "$NODE_IMAGE" \
-    sh -c "npm ci --prefer-offline && npm run build"
+    sh -c "npm install --cache /tmp/npm-cache && npm run build"
   echo "✔ $name built"
 }
 

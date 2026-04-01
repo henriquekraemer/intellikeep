@@ -100,9 +100,9 @@ def async_register_websocket_commands(
     ) -> None:
         connection.send_result(msg["id"], {"version": VERSION})
 
-    hass.components.websocket_api.async_register_command(ws_get_tasks)
-    hass.components.websocket_api.async_register_command(ws_get_task)
-    hass.components.websocket_api.async_register_command(ws_subscribe)
-    hass.components.websocket_api.async_register_command(ws_get_version)
+    websocket_api.async_register_command(hass, ws_get_tasks)
+    websocket_api.async_register_command(hass, ws_get_task)
+    websocket_api.async_register_command(hass, ws_subscribe)
+    websocket_api.async_register_command(hass, ws_get_version)
 
     _LOGGER.debug("IntelliKeep WebSocket commands registered")
