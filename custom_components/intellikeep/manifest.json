@@ -4,10 +4,20 @@
   "version": "1.0.0",
   "documentation": "https://github.com/intellilar/intellikeep",
   "issue_tracker": "https://github.com/intellilar/intellikeep/issues",
-  "codeowners": ["@intellilar"],
+  "codeowners": [
+    "@intellilar",
+    "@henriquekraemer"
+  ],
   "requirements": [],
-  "dependencies": ["frontend", "http", "panel_custom", "persistent_notification"],
-  "after_dependencies": ["notify"],
+  "dependencies": [
+    "frontend",
+    "http",
+    "panel_custom",
+    "persistent_notification"
+  ],
+  "after_dependencies": [
+    "notify"
+  ],
   "config_flow": true,
   "single_config_entry": true,
   "iot_class": "local_push",
