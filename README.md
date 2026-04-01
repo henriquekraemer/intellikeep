@@ -1,8 +1,6 @@
 # IntelliKeep
 
-**Home maintenance task management for Home Assistant.**
-
-An [Intellilar](https://intellilar.com.br) product.
+IntelliKeep is a home maintenance task management system built as a custom integration for Home Assistant. It is an open-source product by [Intellilar](https://intellilar.com), a Brazilian smart home company.
 
 ---
 
