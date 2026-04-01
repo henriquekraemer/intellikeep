@@ -56,22 +56,39 @@ class TaskManager:
             _LOGGER.warning("Complete called for unknown task_id: %s", task_id)
             return None
 
+        now = dt_util.utcnow()
         execution = TaskExecution(
             task_id=task_id,
-            completed_at=dt_util.utcnow(),
+            completed_at=now,
             completed_by=completed_by,
             notes=notes,
         )
         task.executions.append(execution)
-        task.last_completed_at = execution.completed_at
-
-        if task.frequency == TaskFrequency.ONE_TIME:
-            task.enabled = False
-        else:
-            task.due_date = self._calculate_next_due(task)
-
-        task.updated_at = dt_util.utcnow()
+        task.last_completed_at = now
+        task.enabled = False
+        task.updated_at = now
         self._storage.upsert_task(task)
+
+        if task.frequency != TaskFrequency.ONE_TIME:
+            next_due = self._calculate_next_due(task)
+            next_task = Task(
+                name=task.name,
+                description=task.description,
+                priority=task.priority,
+                frequency=task.frequency,
+                custom_days_interval=task.custom_days_interval,
+                due_date=next_due,
+                linked_entity_ids=list(task.linked_entity_ids),
+                notify_days_before=task.notify_days_before,
+                notify_on_overdue=task.notify_on_overdue,
+                enabled=True,
+            )
+            self._storage.upsert_task(next_task)
+            _LOGGER.debug(
+                "Created next occurrence %s for recurring task %s (due %s)",
+                next_task.task_id, task_id, next_due.isoformat(),
+            )
+
         await self._storage.async_save()
         _LOGGER.debug("Completed task %s by %s", task_id, completed_by or "unknown")
         return task
