@@ -3,11 +3,13 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
+from homeassistant.util import dt as dt_util
+
 from .models import Task, TaskFrequency, TaskPriority
 
 
 def _due(days: int) -> datetime:
-    return datetime.utcnow() + timedelta(days=days)
+    return dt_util.utcnow() + timedelta(days=days)
 
 
 SAMPLE_TASKS: list[dict] = [
