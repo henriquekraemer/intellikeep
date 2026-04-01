@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 
 from .models import Task, TaskExecution, TaskFrequency, TaskStatus
 from .storage import IntelliKeepStorage
@@ -39,7 +40,7 @@ class TaskManager:
         for key, value in kwargs.items():
             if hasattr(task, key):
                 setattr(task, key, value)
-        task.updated_at = datetime.utcnow()
+        task.updated_at = dt_util.utcnow()
         self._storage.upsert_task(task)
         await self._storage.async_save()
         return task
@@ -57,7 +58,7 @@ class TaskManager:
 
         execution = TaskExecution(
             task_id=task_id,
-            completed_at=datetime.utcnow(),
+            completed_at=dt_util.utcnow(),
             completed_by=completed_by,
             notes=notes,
         )
@@ -69,7 +70,7 @@ class TaskManager:
         else:
             task.due_date = self._calculate_next_due(task)
 
-        task.updated_at = datetime.utcnow()
+        task.updated_at = dt_util.utcnow()
         self._storage.upsert_task(task)
         await self._storage.async_save()
         _LOGGER.debug("Completed task %s by %s", task_id, completed_by or "unknown")
@@ -82,7 +83,7 @@ class TaskManager:
             return None
         task.enabled = True
         task.last_completed_at = None
-        task.updated_at = datetime.utcnow()
+        task.updated_at = dt_util.utcnow()
         self._storage.upsert_task(task)
         await self._storage.async_save()
         _LOGGER.debug("Reopened task %s", task_id)
@@ -102,7 +103,7 @@ class TaskManager:
     def get_task_status(self, task: Task) -> TaskStatus:
         if not task.enabled:
             return TaskStatus.COMPLETED
-        now = datetime.utcnow()
+        now = dt_util.utcnow()
         if task.due_date is None:
             return TaskStatus.PENDING
         days_until_due = (task.due_date.date() - now.date()).days
@@ -113,7 +114,7 @@ class TaskManager:
         return TaskStatus.PENDING
 
     def get_tasks_due_today(self) -> list[Task]:
-        now = datetime.utcnow()
+        now = dt_util.utcnow()
         return [
             t
             for t in self._storage.get_all_tasks()
@@ -131,7 +132,7 @@ class TaskManager:
 
     def get_tasks_approaching_due(self) -> list[Task]:
         """Return tasks within their notify_days_before window (but not yet due)."""
-        now = datetime.utcnow()
+        now = dt_util.utcnow()
         result = []
         for task in self._storage.get_all_tasks():
             if not task.enabled or task.due_date is None:
@@ -163,7 +164,7 @@ class TaskManager:
 
     def _calculate_next_due(self, task: Task) -> datetime:
         """Calculate next due date based on task frequency."""
-        base = task.last_completed_at or datetime.utcnow()
+        base = task.last_completed_at or dt_util.utcnow()
         match task.frequency:
             case TaskFrequency.DAILY:
                 return base + timedelta(days=1)

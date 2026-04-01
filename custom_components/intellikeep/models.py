@@ -7,6 +7,8 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
+from homeassistant.util import dt as dt_util
+
 
 class TaskFrequency(StrEnum):
     ONE_TIME = "one_time"
@@ -36,7 +38,7 @@ class TaskStatus(StrEnum):
 class TaskExecution:
     execution_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     task_id: str = ""
-    completed_at: datetime = field(default_factory=datetime.utcnow)
+    completed_at: datetime = field(default_factory=dt_util.utcnow)
     completed_by: str = ""
     notes: str = ""
 
@@ -54,7 +56,7 @@ class TaskExecution:
         return cls(
             execution_id=data["execution_id"],
             task_id=data["task_id"],
-            completed_at=datetime.fromisoformat(data["completed_at"]),
+            completed_at=dt_util.as_utc(datetime.fromisoformat(data["completed_at"])),
             completed_by=data.get("completed_by", ""),
             notes=data.get("notes", ""),
         )
@@ -72,8 +74,8 @@ class Task:
     linked_entity_ids: list[str] = field(default_factory=list)
     notify_days_before: int = 1
     notify_on_overdue: bool = True
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=dt_util.utcnow)
+    updated_at: datetime = field(default_factory=dt_util.utcnow)
     last_completed_at: datetime | None = None
     executions: list[TaskExecution] = field(default_factory=list)
     enabled: bool = True
@@ -109,17 +111,17 @@ class Task:
             frequency=TaskFrequency(data.get("frequency", TaskFrequency.ONE_TIME)),
             custom_days_interval=data.get("custom_days_interval"),
             due_date=(
-                datetime.fromisoformat(data["due_date"])
+                dt_util.as_utc(datetime.fromisoformat(data["due_date"]))
                 if data.get("due_date")
                 else None
             ),
             linked_entity_ids=data.get("linked_entity_ids", []),
             notify_days_before=data.get("notify_days_before", 1),
             notify_on_overdue=data.get("notify_on_overdue", True),
-            created_at=datetime.fromisoformat(data["created_at"]),
-            updated_at=datetime.fromisoformat(data["updated_at"]),
+            created_at=dt_util.as_utc(datetime.fromisoformat(data["created_at"])),
+            updated_at=dt_util.as_utc(datetime.fromisoformat(data["updated_at"])),
             last_completed_at=(
-                datetime.fromisoformat(data["last_completed_at"])
+                dt_util.as_utc(datetime.fromisoformat(data["last_completed_at"]))
                 if data.get("last_completed_at")
                 else None
             ),
