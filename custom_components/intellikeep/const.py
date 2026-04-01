@@ -21,7 +21,9 @@ SENSOR_NEXT_DUE = "next_due_task"
 
 # Service names
 SERVICE_CREATE_TASK = "create_task"
+SERVICE_LOAD_SAMPLE_DATA = "load_sample_data"
 SERVICE_COMPLETE_TASK = "complete_task"
+SERVICE_REOPEN_TASK = "reopen_task"
 SERVICE_DELETE_TASK = "delete_task"
 SERVICE_UPDATE_TASK = "update_task"
 
@@ -39,8 +41,9 @@ EVENT_TASK_UPDATED = f"{DOMAIN}_task_updated"
 PLATFORMS = ["sensor"]
 
 # Frontend
-FRONTEND_CARD_URL = f"/{DOMAIN}/intellikeep-card.js"
-FRONTEND_PANEL_URL = f"/{DOMAIN}/intellikeep-panel.js"
+FRONTEND_STATIC_PATH = "intellikeep_static"
+FRONTEND_CARD_URL = f"/{FRONTEND_STATIC_PATH}/intellikeep-card.js"
+FRONTEND_PANEL_URL = f"/{FRONTEND_STATIC_PATH}/intellikeep-panel.js"
 PANEL_URL = DOMAIN
 PANEL_TITLE = "IntelliKeep"
 PANEL_ICON = "mdi:clipboard-check-multiple-outline"

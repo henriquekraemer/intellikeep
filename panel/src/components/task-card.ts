@@ -1,6 +1,7 @@
-import { LitElement, html, css, nothing } from "lit";
+import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import { Task, TaskStatus } from "../types";
+import { HomeAssistant, Task } from "../types";
+import { t } from "../translations";
 
 function priorityColor(p: string): string {
   const m: Record<string, string> = {
@@ -23,21 +24,10 @@ function statusColor(s: string): string {
   return m[s] ?? "var(--secondary-text-color)";
 }
 
-function relativeDue(iso: string | null): string {
-  if (!iso) return "No due date";
-  const days = Math.round(
-    (new Date(iso).getTime() - Date.now()) / 86400000
-  );
-  if (days === 0) return "Due today";
-  if (days === 1) return "Due tomorrow";
-  if (days === -1) return "1 day overdue";
-  if (days > 0) return `Due in ${days} days`;
-  return `${Math.abs(days)} days overdue`;
-}
-
 @customElement("ik-task-card")
 export class IkTaskCard extends LitElement {
   @property({ attribute: false }) task!: Task;
+  @property({ attribute: false }) hass!: HomeAssistant;
   @property({ type: Boolean }) completing = false;
 
   static styles = css`
@@ -87,6 +77,17 @@ export class IkTaskCard extends LitElement {
     }
   `;
 
+  private _relativeDue(iso: string | null): string {
+    const tr = t(this.hass?.language);
+    if (!iso) return tr.noDueDate;
+    const days = Math.round((new Date(iso).getTime() - Date.now()) / 86400000);
+    if (days === 0) return tr.dueTodayCard;
+    if (days === 1) return tr.dueTomorrow;
+    if (days === -1) return tr.daysOverdue(1);
+    if (days > 0) return tr.dueInDays(days);
+    return tr.daysOverdue(Math.abs(days));
+  }
+
   render() {
     const { task } = this;
     return html`
@@ -95,10 +96,10 @@ export class IkTaskCard extends LitElement {
           <div class="name">${task.name}</div>
           <div class="meta">
             <span class="badge" style="background:${priorityColor(task.priority)}">${task.priority}</span>
-            <span style="color:${statusColor(task.status)}">${relativeDue(task.due_date)}</span>
+            <span style="color:${statusColor(task.status)}">${this._relativeDue(task.due_date)}</span>
             ${task.linked_entity_ids.length
-              ? html`<span>· ${task.linked_entity_ids.length} entity${task.linked_entity_ids.length > 1 ? "ies" : ""}</span>`
-              : nothing}
+              ? html`<span>· ${task.linked_entity_ids.length} entit${task.linked_entity_ids.length > 1 ? "ies" : "y"}</span>`
+              : ""}
           </div>
         </div>
         <div class="actions">

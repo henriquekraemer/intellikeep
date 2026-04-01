@@ -72,7 +72,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][f"{entry.entry_id}_notifications"] = notification_manager
 
     # --- Frontend: register static path + Lovelace card resource ---
-    async_register_frontend(hass, DOMAIN)
+    await async_register_frontend(hass, DOMAIN)
 
     # --- Panel: register IntelliKeep in HA sidebar ---
     await _async_register_panel(hass)
@@ -121,7 +121,7 @@ async def _async_register_panel(hass: HomeAssistant) -> None:
             hass,
             webcomponent_name="intellikeep-panel",
             frontend_url_path=PANEL_URL,
-            module_url=f"/{DOMAIN}/intellikeep-panel.js",
+            module_url="/intellikeep_static/intellikeep-panel.js",
             sidebar_title=PANEL_TITLE,
             sidebar_icon=PANEL_ICON,
             require_admin=False,

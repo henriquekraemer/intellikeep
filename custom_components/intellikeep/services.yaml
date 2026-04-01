@@ -1,3 +1,7 @@
+load_sample_data:
+  name: Load Sample Data
+  description: Populate IntelliKeep with sample home maintenance tasks for testing and demonstration.
+
 create_task:
   name: Create Task
   description: Create a new IntelliKeep maintenance task.
@@ -44,6 +48,8 @@ create_task:
         number:
           min: 1
           max: 3650
+          step: 1
+          mode: box
           unit_of_measurement: days
     due_date:
       name: Due Date
@@ -93,6 +99,17 @@ complete_task:
       selector:
         text:
           multiline: true
+
+reopen_task:
+  name: Reopen Task
+  description: Reopen a completed IntelliKeep task, marking it as pending again.
+  fields:
+    task_id:
+      name: Task ID
+      description: The unique ID of the task to reopen.
+      required: true
+      selector:
+        text:
 
 delete_task:
   name: Delete Task

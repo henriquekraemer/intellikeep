@@ -2,11 +2,12 @@ import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant, Task, TaskFrequency, TaskPriority } from "../types";
 import { createTask, updateTask } from "../api";
+import { t } from "../translations";
 
 @customElement("ik-task-form-view")
 export class IkTaskFormView extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
-  @property({ attribute: false }) task: Task | null = null; // null = create mode
+  @property({ attribute: false }) task: Task | null = null;
 
   @state() private _name = "";
   @state() private _description = "";
@@ -28,9 +29,7 @@ export class IkTaskFormView extends LitElement {
       this._priority = this.task.priority;
       this._frequency = this.task.frequency;
       this._customDays = this.task.custom_days_interval;
-      this._dueDate = this.task.due_date
-        ? this.task.due_date.substring(0, 16)
-        : "";
+      this._dueDate = this.task.due_date ? this.task.due_date.substring(0, 16) : "";
       this._linkedEntities = [...this.task.linked_entity_ids];
       this._notifyDaysBefore = this.task.notify_days_before;
       this._notifyOnOverdue = this.task.notify_on_overdue;
@@ -78,8 +77,9 @@ export class IkTaskFormView extends LitElement {
   }
 
   private async _save() {
+    const tr = t(this.hass?.language);
     if (!this._name.trim()) {
-      this._error = "Task name is required.";
+      this._error = tr.taskNameRequired;
       return;
     }
     this._saving = true;
@@ -112,38 +112,39 @@ export class IkTaskFormView extends LitElement {
 
   render() {
     const isEdit = this.task !== null;
+    const tr = t(this.hass?.language);
     return html`
       <div class="form">
         <label>
-          Task name *
-          <input .value=${this._name} @input=${(e: Event) => { this._name = (e.target as HTMLInputElement).value; }} placeholder="e.g. Replace HVAC filter" />
+          ${tr.taskName}
+          <input .value=${this._name} @input=${(e: Event) => { this._name = (e.target as HTMLInputElement).value; }} placeholder=${tr.taskNamePlaceholder} />
         </label>
 
         <label>
-          Description
-          <textarea .value=${this._description} @input=${(e: Event) => { this._description = (e.target as HTMLTextAreaElement).value; }} placeholder="Optional details…"></textarea>
+          ${tr.description}
+          <textarea .value=${this._description} @input=${(e: Event) => { this._description = (e.target as HTMLTextAreaElement).value; }} placeholder=${tr.descriptionPlaceholder}></textarea>
         </label>
 
         <div class="row">
           <label>
-            Priority
+            ${tr.priority}
             <select .value=${this._priority} @change=${(e: Event) => { this._priority = (e.target as HTMLSelectElement).value as TaskPriority; }}>
-              <option value="low">Low</option>
-              <option value="medium" selected>Medium</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
+              <option value="low">${tr.low}</option>
+              <option value="medium">${tr.medium}</option>
+              <option value="high">${tr.high}</option>
+              <option value="critical">${tr.critical}</option>
             </select>
           </label>
 
           <label>
-            Frequency
+            ${tr.frequency}
             <select .value=${this._frequency} @change=${(e: Event) => { this._frequency = (e.target as HTMLSelectElement).value as TaskFrequency; }}>
-              <option value="one_time">One-time</option>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-              <option value="custom">Custom interval</option>
+              <option value="one_time">${tr.freqOneTime}</option>
+              <option value="daily">${tr.freqDaily}</option>
+              <option value="weekly">${tr.freqWeekly}</option>
+              <option value="monthly">${tr.freqMonthly}</option>
+              <option value="yearly">${tr.freqYearly}</option>
+              <option value="custom">${tr.freqCustom}</option>
             </select>
           </label>
         </div>
@@ -151,19 +152,19 @@ export class IkTaskFormView extends LitElement {
         ${this._frequency === "custom"
           ? html`
               <label>
-                Interval (days)
+                ${tr.intervalDays}
                 <input type="number" min="1" .value=${String(this._customDays ?? 30)} @input=${(e: Event) => { this._customDays = parseInt((e.target as HTMLInputElement).value, 10); }} />
               </label>
             `
           : nothing}
 
         <label>
-          Due date
+          ${tr.dueDate}
           <input type="datetime-local" .value=${this._dueDate} @change=${(e: Event) => { this._dueDate = (e.target as HTMLInputElement).value; }} />
         </label>
 
         <div>
-          <div style="font-size:13px;color:var(--secondary-text-color);margin-bottom:6px;">Linked entities</div>
+          <div style="font-size:13px;color:var(--secondary-text-color);margin-bottom:6px;">${tr.linkedEntities}</div>
           <div class="entity-list">
             ${this._linkedEntities.map(
               (eid, i) => html`
@@ -177,18 +178,18 @@ export class IkTaskFormView extends LitElement {
                 </div>
               `
             )}
-            <button class="add-entity" @click=${() => { this._linkedEntities = [...this._linkedEntities, ""]; }}>+ Add entity</button>
+            <button class="add-entity" @click=${() => { this._linkedEntities = [...this._linkedEntities, ""]; }}>${tr.addEntity}</button>
           </div>
         </div>
 
         <div class="row">
           <label>
-            Notify N days before due
+            ${tr.notifyBefore}
             <input type="number" min="0" max="365" .value=${String(this._notifyDaysBefore)} @input=${(e: Event) => { this._notifyDaysBefore = parseInt((e.target as HTMLInputElement).value, 10); }} />
           </label>
           <label class="checkbox-label">
             <input type="checkbox" .checked=${this._notifyOnOverdue} @change=${(e: Event) => { this._notifyOnOverdue = (e.target as HTMLInputElement).checked; }} />
-            Notify when overdue
+            ${tr.notifyOverdue}
           </label>
         </div>
 
@@ -196,9 +197,9 @@ export class IkTaskFormView extends LitElement {
 
         <div class="actions">
           <button class="save" ?disabled=${this._saving} @click=${this._save}>
-            ${this._saving ? "Saving…" : isEdit ? "Save changes" : "Create task"}
+            ${this._saving ? tr.saving : isEdit ? tr.saveChanges : tr.createTask}
           </button>
-          <button class="cancel" @click=${() => this._navigate("/tasks")}>Cancel</button>
+          <button class="cancel" @click=${() => this._navigate("/tasks")}>${tr.cancel}</button>
         </div>
       </div>
     `;

@@ -75,6 +75,19 @@ class TaskManager:
         _LOGGER.debug("Completed task %s by %s", task_id, completed_by or "unknown")
         return task
 
+    async def async_reopen_task(self, task_id: str) -> Task | None:
+        task = self._storage.get_task(task_id)
+        if task is None:
+            _LOGGER.warning("Reopen called for unknown task_id: %s", task_id)
+            return None
+        task.enabled = True
+        task.last_completed_at = None
+        task.updated_at = datetime.utcnow()
+        self._storage.upsert_task(task)
+        await self._storage.async_save()
+        _LOGGER.debug("Reopened task %s", task_id)
+        return task
+
     async def async_delete_task(self, task_id: str) -> bool:
         deleted = self._storage.delete_task(task_id)
         if deleted:

@@ -1,6 +1,6 @@
 # IntelliKeep
 
-IntelliKeep is a home maintenance task management system built as a custom integration for Home Assistant. It is an open-source product by [Intellilar](https://intellilar.com), a Brazilian smart home company.
+IntelliKeep is a home maintenance task management system built as a custom integration for Home Assistant.
 
 ---
 
@@ -11,8 +11,9 @@ IntelliKeep is a home maintenance task management system built as a custom integ
 - **Notifications** via persistent notifications + optional mobile push service
 - Full **execution history** with timestamps and notes
 - **Lovelace card** for dashboards
-- **Sidebar panel** (full management UI embedded in HA)
+- **Sidebar panel** (full management UI embedded in HA) with pt-BR / en support
 - Three **sensor entities**: `tasks_due_count`, `tasks_overdue_count`, `next_due_task`
+- Sample data action to quickly populate tasks for testing
 
 ---
 
@@ -44,19 +45,21 @@ During setup you can configure:
 
 ---
 
-## Services
+## Actions (Services)
 
-| Service | Description |
+| Action | Description |
 |---|---|
 | `intellikeep.create_task` | Create a new task |
 | `intellikeep.complete_task` | Mark a task as done (records execution) |
+| `intellikeep.reopen_task` | Reopen a completed task, marking it as pending again |
 | `intellikeep.update_task` | Update task fields |
 | `intellikeep.delete_task` | Permanently delete a task |
+| `intellikeep.load_sample_data` | Populate with sample home maintenance tasks |
 
 ### Example: create a monthly recurring task
 
 ```yaml
-service: intellikeep.create_task
+action: intellikeep.create_task
 data:
   name: Replace HVAC filter
   priority: high
@@ -65,6 +68,14 @@ data:
   linked_entity_ids:
     - climate.living_room
   notify_days_before: 3
+```
+
+### Example: reopen a completed task
+
+```yaml
+action: intellikeep.reopen_task
+data:
+  task_id: "<task_id>"
 ```
 
 ---
@@ -79,26 +90,55 @@ show_linked_entities: true
 show_description: false
 ```
 
-### Build the card
-
-```bash
-cd lovelace-card
-npm install
-npm run build
-```
-
 ---
 
 ## Panel
 
-The IntelliKeep panel appears automatically in the HA sidebar after installation.
+The IntelliKeep panel appears automatically in the HA sidebar after installation. It supports **pt-BR** and **en** — the language follows your HA profile setting.
 
-### Build the panel
+---
+
+## Building the Frontend
+
+The frontend bundles (Lovelace card and sidebar panel) are built via a Docker-based script — no local Node.js required.
+
+### Requirements
+
+- Docker running locally
+
+### Build all (card + panel)
 
 ```bash
-cd panel
-npm install
-npm run build
+./build-frontend.sh
+```
+
+### Build only the card or panel
+
+```bash
+./build-frontend.sh card
+./build-frontend.sh panel
+```
+
+The script uses `node:20-alpine` to run `npm install` and `rollup` inside a container. Built files are written to:
+
+```
+custom_components/intellikeep/frontend/intellikeep-card.js
+custom_components/intellikeep/frontend/intellikeep-panel.js
+```
+
+### Deploying to a Docker-based HA instance
+
+After building, copy the updated files into the running container:
+
+```bash
+# Copy the entire integration
+docker cp custom_components/intellikeep/ homeassistant:/config/custom_components/
+
+# Or copy only specific files, e.g. after a frontend-only change:
+docker cp custom_components/intellikeep/frontend/intellikeep-panel.js \
+  homeassistant:/config/custom_components/intellikeep/frontend/intellikeep-panel.js
+
+docker restart homeassistant
 ```
 
 ---

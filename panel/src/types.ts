@@ -51,6 +51,7 @@ export interface HomeAssistant {
   states: Record<string, { state: string; attributes: Record<string, unknown> }>;
   themes: unknown;
   user: { id: string; name: string; is_admin: boolean };
+  language: string;
 }
 
 export type Route = { prefix: string; path: string };
