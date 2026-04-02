@@ -19,6 +19,7 @@ export class IntelliKeepPanel extends LitElement {
   @state() private _currentPath = "/tasks";
   @state() private _loading = true;
   @state() private _enableAnimations = true;
+  @state() private _modalTaskId: string | null = null;
 
   private _unsubscribe?: () => void;
 
@@ -97,6 +98,50 @@ export class IntelliKeepPanel extends LitElement {
       padding: var(--ik-padding);
     }
 
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.48);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    .modal-container {
+      background: var(--card-background-color);
+      border-radius: 12px;
+      padding: 24px;
+      width: 100%;
+      max-width: 640px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.28);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .modal-title {
+      font-size: 18px;
+      font-weight: 500;
+      flex: 1;
+      color: var(--primary-text-color);
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--secondary-text-color);
+      padding: 4px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+    }
+    .modal-close:hover { background: var(--secondary-background-color); }
+
     .page-title {
       font-size: 22px;
       font-weight: 500;
@@ -152,6 +197,7 @@ export class IntelliKeepPanel extends LitElement {
   protected render() {
     const path = this._currentPath;
     const tr = t(this.hass?.language);
+    const isMobile = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
 
     const isNew = path === "/new";
     const isEdit = path.startsWith("/edit/");
@@ -166,22 +212,30 @@ export class IntelliKeepPanel extends LitElement {
         <ha-icon icon="mdi:clipboard-check-multiple-outline"></ha-icon>
         <span class="appbar-title">IntelliKeep</span>
         <div class="appbar-actions">
-          <button class="appbar-btn" @click=${() => this._navigate("/new")}>
+          <button class="appbar-btn" @click=${() => {
+            if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+              this._modalTaskId = "__new__";
+            } else {
+              this._navigate("/new");
+            }
+          }}>
             <ha-icon icon="mdi:plus" style="--mdc-icon-size:16px"></ha-icon>
             ${tr.newTask}
           </button>
         </div>
       </div>
 
-      <div class="tabs">
-        <div class="tab ${isTasks ? "active" : ""}" @click=${() => this._navigate("/tasks")}>
-          ${tr.tasks}
-          ${dueCount > 0 ? html`<span style="background:var(--error-color,#f44336);color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:5px;font-weight:700">${dueCount}</span>` : nothing}
+      ${!(isMobile && (isNew || isEdit)) ? html`
+        <div class="tabs">
+          <div class="tab ${isTasks ? "active" : ""}" @click=${() => this._navigate("/tasks")}>
+            ${tr.tasks}
+            ${dueCount > 0 ? html`<span style="background:var(--error-color,#f44336);color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:5px;font-weight:700">${dueCount}</span>` : nothing}
+          </div>
+          <div class="tab ${isSettings ? "active" : ""}" @click=${() => this._navigate("/settings")}>${tr.settings}</div>
         </div>
-        <div class="tab ${isSettings ? "active" : ""}" @click=${() => this._navigate("/settings")}>${tr.settings}</div>
-      </div>
+      ` : nothing}
 
-      <div class="content" @navigate=${(e: CustomEvent) => this._navigate(e.detail)}>
+      <div class="content" @navigate=${(e: CustomEvent) => this._navigate(e.detail)} @open-task-modal=${(e: CustomEvent) => { this._modalTaskId = e.detail; }}>
         ${isTasks && !this._loading
           ? html`
               <ik-task-list-view
@@ -199,6 +253,7 @@ export class IntelliKeepPanel extends LitElement {
                   <div class="page-title">${tr.newTaskTitle}</div>
                   <ik-task-form-view
                     .hass=${this.hass}
+                    .enableAnimations=${this._enableAnimations}
                     @navigate=${(e: CustomEvent) => this._navigate(e.detail)}
                   ></ik-task-form-view>
                 `
@@ -208,6 +263,7 @@ export class IntelliKeepPanel extends LitElement {
                   <ik-task-form-view
                     .hass=${this.hass}
                     .task=${this._getEditTask()}
+                    .enableAnimations=${this._enableAnimations}
                     @navigate=${(e: CustomEvent) => this._navigate(e.detail)}
                   ></ik-task-form-view>
                 `
@@ -234,6 +290,23 @@ export class IntelliKeepPanel extends LitElement {
               : nothing}
           </div>`}
       </div>
+
+      ${this._modalTaskId !== null ? html`
+        <div class="modal-overlay" @click=${(e: MouseEvent) => { if (e.target === e.currentTarget) this._modalTaskId = null; }}>
+          <div class="modal-container">
+            <div class="modal-header">
+              <span class="modal-title">${this._modalTaskId === "__new__" ? tr.newTaskTitle : tr.editTask}</span>
+              <button class="modal-close" @click=${() => { this._modalTaskId = null; }}><ha-icon icon="mdi:close" style="--mdc-icon-size:20px"></ha-icon></button>
+            </div>
+            <ik-task-form-view
+              .hass=${this.hass}
+              .task=${this._modalTaskId === "__new__" ? null : (this._tasks.find(t => t.task_id === this._modalTaskId) ?? null)}
+              .enableAnimations=${this._enableAnimations}
+              @navigate=${(e: CustomEvent) => { e.stopPropagation(); this._modalTaskId = null; }}
+            ></ik-task-form-view>
+          </div>
+        </div>
+      ` : nothing}
     `;
   }
 }

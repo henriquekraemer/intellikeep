@@ -241,31 +241,46 @@ export class IkTaskListView extends LitElement {
       font-size: 14px;
       font-weight: 500;
     }
-    .task-actions {
-      display: flex;
-      gap: 6px;
-      justify-content: flex-end;
-      align-items: center;
-    }
     .icon-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 34px;
-      height: 34px;
-      border-radius: 8px;
+      width: 44px;
+      align-self: stretch;
+      border-radius: 0;
       border: none;
       cursor: pointer;
       transition: filter 0.15s, opacity 0.15s;
-      --mdc-icon-size: 18px;
+      --mdc-icon-size: 20px;
       color: #fff;
     }
-    .icon-btn:hover { filter: brightness(1.15); }
+    .icon-btn + .icon-btn { border-left: 1px solid rgba(255,255,255,0.2); }
+    .icon-btn:hover { filter: brightness(1.12); }
     .icon-btn:disabled { opacity: 0.4; cursor: default; }
     .icon-btn.primary { background: var(--primary-color); }
     .icon-btn.undo    { background: var(--warning-color, #ff9800); }
     .icon-btn.edit    { background: var(--secondary-text-color, #757575); }
     .icon-btn.danger  { background: var(--error-color, #f44336); }
+    .task-actions {
+      display: flex;
+      align-self: stretch;
+      flex-shrink: 0;
+      opacity: 0;
+      transition: opacity 0.18s ease;
+      border-left: 1px solid var(--divider-color, rgba(0,0,0,0.08));
+    }
+    @media (hover: hover) {
+      .task-wrapper:hover .task-actions { opacity: 1; }
+    }
+    :host([no-animations]) *, :host([no-animations]) *::before, :host([no-animations]) *::after {
+      transition: none !important;
+      animation: none !important;
+    }
+    :host([no-animations]) .icon-btn:hover,
+    :host([no-animations]) .icon-btn:active {
+      filter: none !important;
+      transform: none !important;
+    }
     .task-divider {
       border: none;
       border-top: 1px solid var(--divider-color);
@@ -322,10 +337,36 @@ export class IkTaskListView extends LitElement {
       padding: 8px;
     }
     .list-item {
+      position: relative;
       border: 1.5px solid var(--divider-color);
       border-radius: 10px;
       overflow: hidden;
+    }
+    .swipe-bg {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      --mdc-icon-size: 26px;
+    }
+    .swipe-bg-done {
+      justify-content: flex-start;
+      padding-left: 18px;
+    }
+    .swipe-bg-delete {
+      background: var(--error-color, #f44336);
+      justify-content: flex-end;
+      padding-right: 18px;
+    }
+    .swipe-bg ha-icon { color: #fff; }
+    .swipe-content {
+      position: relative;
       background: var(--card-background-color);
+      touch-action: pan-y;
+      will-change: transform;
+      cursor: pointer;
     }
     .task-wrapper.exiting-done {
       animation: ik-done-exit 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
@@ -355,6 +396,65 @@ export class IkTaskListView extends LitElement {
     }
   `;
 
+  private _swipeData = new Map<string, { startX: number; startY: number; decided: boolean; canceled: boolean }>();
+  private _swipeMoved = new Set<string>();
+
+  private _onPointerDown(id: string, e: PointerEvent) {
+    if (e.pointerType !== "touch") return;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    this._swipeData.set(id, { startX: e.clientX, startY: e.clientY, decided: false, canceled: false });
+  }
+
+  private _onPointerMove(id: string, e: PointerEvent) {
+    if (e.pointerType !== "touch") return;
+    const s = this._swipeData.get(id);
+    if (!s || s.canceled) return;
+    const dx = e.clientX - s.startX;
+    const dy = e.clientY - s.startY;
+    if (!s.decided) {
+      if (Math.abs(dy) > Math.abs(dx) + 8) {
+        s.canceled = true;
+        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+        return;
+      }
+      if (Math.abs(dx) < 8) return;
+      s.decided = true;
+    }
+    const el = e.currentTarget as HTMLElement;
+    const clamped = Math.max(-120, Math.min(120, dx));
+    el.style.transform = `translateX(${clamped}px)`;
+    el.style.transition = "none";
+    const container = el.parentElement;
+    if (container) {
+      const bgDone = container.querySelector<HTMLElement>(".swipe-bg-done");
+      const bgDel  = container.querySelector<HTMLElement>(".swipe-bg-delete");
+      if (bgDone) bgDone.style.opacity = dx > 0 ? String(Math.min(1, dx / 80)) : "0";
+      if (bgDel)  bgDel.style.opacity  = dx < 0 ? String(Math.min(1, -dx / 80)) : "0";
+    }
+  }
+
+  private _onPointerUp(id: string, task: Task, e: PointerEvent) {
+    if (e.pointerType !== "touch") return;
+    const s = this._swipeData.get(id);
+    this._swipeData.delete(id);
+    const el = e.currentTarget as HTMLElement;
+    const match = el.style.transform.match(/translateX\((-?\d+\.?\d*)px\)/);
+    const offset = match ? parseFloat(match[1]) : 0;
+    el.style.transition = "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)";
+    el.style.transform = "translateX(0)";
+    const container = el.parentElement;
+    if (container) {
+      const bgDone = container.querySelector<HTMLElement>(".swipe-bg-done");
+      const bgDel  = container.querySelector<HTMLElement>(".swipe-bg-delete");
+      if (bgDone) { bgDone.style.transition = "opacity 0.25s"; bgDone.style.opacity = "0"; }
+      if (bgDel)  { bgDel.style.transition  = "opacity 0.25s"; bgDel.style.opacity  = "0"; }
+    }
+    if (s?.decided) this._swipeMoved.add(id);
+    if (!s || s.canceled || !s.decided) return;
+    if (offset >= 80)  { task.status !== "completed" ? this._complete(id) : this._reopen(id); }
+    else if (offset <= -80) { this._deleteTarget = id; }
+  }
+
   private _resetPage() {
     this._page = 0;
   }
@@ -371,6 +471,11 @@ export class IkTaskListView extends LitElement {
   }
 
   private async _edit(taskId: string) {
+    const isDesktop = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    if (isDesktop) {
+      this.dispatchEvent(new CustomEvent("open-task-modal", { detail: taskId, bubbles: true, composed: true }));
+      return;
+    }
     if (this.enableAnimations) {
       this._exitingEdit = new Set([...this._exitingEdit, taskId]);
       await new Promise((r) => setTimeout(r, 320));
@@ -433,6 +538,11 @@ export class IkTaskListView extends LitElement {
   }
 
   render() {
+    if (!this.enableAnimations) {
+      this.setAttribute("no-animations", "");
+    } else {
+      this.removeAttribute("no-animations");
+    }
     const tr = t(this.hass?.language);
     const q = this._searchQuery.trim().toLowerCase();
     const matchesQ = (task: Task) =>
@@ -453,17 +563,36 @@ export class IkTaskListView extends LitElement {
       </button>
     `;
 
+    const swipeDoneColor = (task: Task) =>
+      task.status !== "completed"
+        ? "var(--success-color, #4caf50)"
+        : "var(--warning-color, #ff9800)";
+    const swipeDoneIcon = (task: Task) =>
+      task.status !== "completed" ? "mdi:check-bold" : "mdi:undo";
+
     const taskItem = (task: Task) => html`
       <div class="list-item task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : this._exitingUndo.has(task.task_id) ? "exiting-undo" : this._exitingEdit.has(task.task_id) ? "exiting-edit" : ""}">
-        <ik-task-card .task=${task} .hass=${this.hass}>
-          <div class="task-actions" slot="actions">
-            ${task.status !== "completed"
-              ? html`<button class="icon-btn primary" title=${tr.done} ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}><ha-icon icon="mdi:check"></ha-icon></button>`
-              : html`<button class="icon-btn undo" title=${tr.undo} ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}><ha-icon icon="mdi:undo"></ha-icon></button>`}
-            <button class="icon-btn edit" title=${tr.edit} @click=${() => this._edit(task.task_id)}><ha-icon icon="mdi:pencil"></ha-icon></button>
-            <button class="icon-btn danger" title=${tr.del} @click=${() => { this._deleteTarget = task.task_id; }}><ha-icon icon="mdi:delete"></ha-icon></button>
-          </div>
-        </ik-task-card>
+        <div class="swipe-bg swipe-bg-done" style="background:${swipeDoneColor(task)}">
+          <ha-icon icon=${swipeDoneIcon(task)}></ha-icon>
+        </div>
+        <div class="swipe-bg swipe-bg-delete">
+          <ha-icon icon="mdi:trash-can"></ha-icon>
+        </div>
+        <div class="swipe-content"
+          @pointerdown=${(e: PointerEvent) => this._onPointerDown(task.task_id, e)}
+          @pointermove=${(e: PointerEvent) => this._onPointerMove(task.task_id, e)}
+          @pointerup=${(e: PointerEvent) => this._onPointerUp(task.task_id, task, e)}
+          @pointercancel=${(e: PointerEvent) => this._onPointerUp(task.task_id, task, e)}
+          @click=${() => { if (!this._swipeMoved.delete(task.task_id)) this._edit(task.task_id); }}>
+          <ik-task-card .task=${task} .hass=${this.hass}>
+            <div class="task-actions" slot="actions">
+              <button class="icon-btn danger" title=${tr.del} @click=${(e: Event) => { e.stopPropagation(); this._deleteTarget = task.task_id; }}><ha-icon icon="mdi:delete"></ha-icon></button>
+              ${task.status !== "completed"
+                ? html`<button class="icon-btn primary" title=${tr.done} ?disabled=${this._completing.has(task.task_id)} @click=${(e: Event) => { e.stopPropagation(); this._complete(task.task_id); }}><ha-icon icon="mdi:check"></ha-icon></button>`
+                : html`<button class="icon-btn undo" title=${tr.undo} ?disabled=${this._reopening.has(task.task_id)} @click=${(e: Event) => { e.stopPropagation(); this._reopen(task.task_id); }}><ha-icon icon="mdi:undo"></ha-icon></button>`}
+            </div>
+          </ik-task-card>
+        </div>
       </div>
     `;
 
