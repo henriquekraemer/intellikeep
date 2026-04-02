@@ -340,6 +340,7 @@ let IkTaskCard = class IkTaskCard extends i {
       <div class="row">
         <div class="body">
           <div class="name">${task.name}</div>
+          ${task.description ? b `<div class="desc">${task.description}</div>` : ""}
           <div class="meta">
             <span class="badge" style="background:${priorityColor(task.priority)}">${task.priority}</span>
             <span style="color:${statusColor(task.status)}">${this._relativeDue(task.due_date)}</span>
@@ -379,6 +380,14 @@ IkTaskCard.styles = i$3 `
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+    .desc {
+      font-size: 12px;
+      color: var(--secondary-text-color);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
     }
     .meta {
       display: flex;
@@ -792,7 +801,13 @@ let IkTaskListView = class IkTaskListView extends i {
     }
 };
 IkTaskListView.styles = i$3 `
-    :host { display: block; }
+    :host {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: var(--ik-padding, 20px);
+      box-sizing: border-box;
+    }
     .filter-bar {
       display: flex;
       align-items: center;
@@ -882,7 +897,7 @@ IkTaskListView.styles = i$3 `
       gap: 12px;
       padding: 8px;
     }
-    ha-card { overflow: hidden; }
+    ha-card { flex: 1; min-height: 0; overflow-y: auto; }
     .empty {
       text-align: center;
       padding: 40px 24px;
@@ -1082,6 +1097,7 @@ let IkTaskFormView = class IkTaskFormView extends i {
         this._frequency = "one_time";
         this._customDays = null;
         this._dueDate = "";
+        this._dueTime = "";
         this._linkedEntities = [];
         this._notifyDaysBefore = 1;
         this._notifyOnOverdue = true;
@@ -1096,10 +1112,19 @@ let IkTaskFormView = class IkTaskFormView extends i {
             this._priority = this.task.priority;
             this._frequency = this.task.frequency;
             this._customDays = this.task.custom_days_interval;
-            this._dueDate = this.task.due_date ? this.task.due_date.substring(0, 16) : "";
+            this._dueDate = this.task.due_date ? this.task.due_date.substring(0, 10) : "";
+            this._dueTime = this.task.due_date ? this.task.due_date.substring(11, 16) : "";
             this._linkedEntities = [...this.task.linked_entity_ids];
             this._notifyDaysBefore = this.task.notify_days_before;
             this._notifyOnOverdue = this.task.notify_on_overdue;
+        }
+        else {
+            // Pre-fill due date with current local date/time for new tasks
+            const now = new Date();
+            now.setSeconds(0, 0);
+            const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString();
+            this._dueDate = local.substring(0, 10);
+            this._dueTime = local.substring(11, 16);
         }
     }
     _navigate(path) {
@@ -1120,7 +1145,7 @@ let IkTaskFormView = class IkTaskFormView extends i {
                 priority: this._priority,
                 frequency: this._frequency,
                 custom_days_interval: this._frequency === "custom" ? this._customDays : null,
-                due_date: this._dueDate ? new Date(this._dueDate).toISOString() : null,
+                due_date: this._dueDate ? new Date(`${this._dueDate}T${this._dueTime || "00:00"}`).toISOString() : null,
                 linked_entity_ids: this._linkedEntities.filter(Boolean),
                 notify_days_before: this._notifyDaysBefore,
                 notify_on_overdue: this._notifyOnOverdue,
@@ -1190,7 +1215,10 @@ let IkTaskFormView = class IkTaskFormView extends i {
 
         <label>
           ${tr.dueDate}
-          <input type="datetime-local" .value=${this._dueDate} @change=${(e) => { this._dueDate = e.target.value; }} />
+          <div style="display:flex;gap:8px;">
+            <input type="date" style="flex:1" .value=${this._dueDate} @change=${(e) => { this._dueDate = e.target.value; }} />
+            <input type="time" style="width:110px" .value=${this._dueTime} @change=${(e) => { this._dueTime = e.target.value; }} />
+          </div>
         </label>
 
         <div>
@@ -1292,6 +1320,9 @@ __decorate([
 __decorate([
     r()
 ], IkTaskFormView.prototype, "_dueDate", void 0);
+__decorate([
+    r()
+], IkTaskFormView.prototype, "_dueTime", void 0);
 __decorate([
     r()
 ], IkTaskFormView.prototype, "_linkedEntities", void 0);
@@ -1631,10 +1662,8 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
       </div>
 
       <div class="content" @navigate=${(e) => this._navigate(e.detail)}>
-        ${this._loading
-            ? b `<p>${tr.loading}</p>`
-            : isTasks
-                ? b `
+        ${isTasks && !this._loading
+            ? b `
               <ik-task-list-view
                 .hass=${this.hass}
                 .tasks=${this._tasks}
@@ -1642,44 +1671,48 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
                 @navigate=${(e) => this._navigate(e.detail)}
               ></ik-task-list-view>
             `
+            : b `<div class="content-scroll">
+            ${this._loading
+                ? b `<p>${tr.loading}</p>`
                 : isNew
                     ? b `
-              <div class="page-title">${tr.newTaskTitle}</div>
-              <ik-task-form-view
-                .hass=${this.hass}
-                @navigate=${(e) => this._navigate(e.detail)}
-              ></ik-task-form-view>
-            `
+                  <div class="page-title">${tr.newTaskTitle}</div>
+                  <ik-task-form-view
+                    .hass=${this.hass}
+                    @navigate=${(e) => this._navigate(e.detail)}
+                  ></ik-task-form-view>
+                `
                     : isEdit
                         ? b `
-              <div class="page-title">${tr.editTask}</div>
-              <ik-task-form-view
-                .hass=${this.hass}
-                .task=${this._getEditTask()}
-                @navigate=${(e) => this._navigate(e.detail)}
-              ></ik-task-form-view>
-            `
+                  <div class="page-title">${tr.editTask}</div>
+                  <ik-task-form-view
+                    .hass=${this.hass}
+                    .task=${this._getEditTask()}
+                    @navigate=${(e) => this._navigate(e.detail)}
+                  ></ik-task-form-view>
+                `
                         : isHistory
                             ? b `
-              <ik-task-history-view
-                .hass=${this.hass}
-                .taskId=${this._getHistoryTaskId()}
-                @navigate=${(e) => this._navigate(e.detail)}
-              ></ik-task-history-view>
-            `
+                  <ik-task-history-view
+                    .hass=${this.hass}
+                    .taskId=${this._getHistoryTaskId()}
+                    @navigate=${(e) => this._navigate(e.detail)}
+                  ></ik-task-history-view>
+                `
                             : isSettings
                                 ? b `
-              <div class="page-title">${tr.settingsTitle}</div>
-              <ik-settings-view
-                .hass=${this.hass}
-                .enableAnimations=${this._enableAnimations}
-                @animations-changed=${(e) => {
+                  <div class="page-title">${tr.settingsTitle}</div>
+                  <ik-settings-view
+                    .hass=${this.hass}
+                    .enableAnimations=${this._enableAnimations}
+                    @animations-changed=${(e) => {
                                     this._enableAnimations = e.detail;
                                     localStorage.setItem("intellikeep.animations", String(e.detail));
                                 }}
-              ></ik-settings-view>
-            `
+                  ></ik-settings-view>
+                `
                                 : A}
+          </div>`}
       </div>
     `;
     }
@@ -1748,6 +1781,12 @@ IntelliKeepPanel.styles = i$3 `
 
     /* Content */
     .content {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .content-scroll {
       flex: 1;
       overflow-y: auto;
       padding: var(--ik-padding);

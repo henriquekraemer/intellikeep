@@ -15,6 +15,7 @@ export class IkTaskFormView extends LitElement {
   @state() private _frequency: TaskFrequency = "one_time";
   @state() private _customDays: number | null = null;
   @state() private _dueDate = "";
+  @state() private _dueTime = "";
   @state() private _linkedEntities: string[] = [];
   @state() private _notifyDaysBefore = 1;
   @state() private _notifyOnOverdue = true;
@@ -29,10 +30,18 @@ export class IkTaskFormView extends LitElement {
       this._priority = this.task.priority;
       this._frequency = this.task.frequency;
       this._customDays = this.task.custom_days_interval;
-      this._dueDate = this.task.due_date ? this.task.due_date.substring(0, 16) : "";
+      this._dueDate = this.task.due_date ? this.task.due_date.substring(0, 10) : "";
+      this._dueTime = this.task.due_date ? this.task.due_date.substring(11, 16) : "";
       this._linkedEntities = [...this.task.linked_entity_ids];
       this._notifyDaysBefore = this.task.notify_days_before;
       this._notifyOnOverdue = this.task.notify_on_overdue;
+    } else {
+      // Pre-fill due date with current local date/time for new tasks
+      const now = new Date();
+      now.setSeconds(0, 0);
+      const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString();
+      this._dueDate = local.substring(0, 10);
+      this._dueTime = local.substring(11, 16);
     }
   }
 
@@ -91,7 +100,7 @@ export class IkTaskFormView extends LitElement {
         priority: this._priority,
         frequency: this._frequency,
         custom_days_interval: this._frequency === "custom" ? this._customDays : null,
-        due_date: this._dueDate ? new Date(this._dueDate).toISOString() : null,
+        due_date: this._dueDate ? new Date(`${this._dueDate}T${this._dueTime || "00:00"}`).toISOString() : null,
         linked_entity_ids: this._linkedEntities.filter(Boolean),
         notify_days_before: this._notifyDaysBefore,
         notify_on_overdue: this._notifyOnOverdue,
@@ -160,7 +169,10 @@ export class IkTaskFormView extends LitElement {
 
         <label>
           ${tr.dueDate}
-          <input type="datetime-local" .value=${this._dueDate} @change=${(e: Event) => { this._dueDate = (e.target as HTMLInputElement).value; }} />
+          <div style="display:flex;gap:8px;">
+            <input type="date" style="flex:1" .value=${this._dueDate} @change=${(e: Event) => { this._dueDate = (e.target as HTMLInputElement).value; }} />
+            <input type="time" style="width:110px" .value=${this._dueTime} @change=${(e: Event) => { this._dueTime = (e.target as HTMLInputElement).value; }} />
+          </div>
         </label>
 
         <div>

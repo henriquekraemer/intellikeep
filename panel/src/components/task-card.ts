@@ -56,6 +56,14 @@ export class IkTaskCard extends LitElement {
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .desc {
+      font-size: 12px;
+      color: var(--secondary-text-color);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
     .meta {
       display: flex;
       flex-wrap: wrap;
@@ -160,6 +168,7 @@ export class IkTaskCard extends LitElement {
       <div class="row">
         <div class="body">
           <div class="name">${task.name}</div>
+          ${task.description ? html`<div class="desc">${task.description}</div>` : ""}
           <div class="meta">
             <span class="badge" style="background:${priorityColor(task.priority)}">${task.priority}</span>
             <span style="color:${statusColor(task.status)}">${this._relativeDue(task.due_date)}</span>

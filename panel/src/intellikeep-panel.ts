@@ -87,6 +87,12 @@ export class IntelliKeepPanel extends LitElement {
     /* Content */
     .content {
       flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .content-scroll {
+      flex: 1;
       overflow-y: auto;
       padding: var(--ik-padding);
     }
@@ -176,9 +182,7 @@ export class IntelliKeepPanel extends LitElement {
       </div>
 
       <div class="content" @navigate=${(e: CustomEvent) => this._navigate(e.detail)}>
-        ${this._loading
-          ? html`<p>${tr.loading}</p>`
-          : isTasks
+        ${isTasks && !this._loading
           ? html`
               <ik-task-list-view
                 .hass=${this.hass}
@@ -187,44 +191,48 @@ export class IntelliKeepPanel extends LitElement {
                 @navigate=${(e: CustomEvent) => this._navigate(e.detail)}
               ></ik-task-list-view>
             `
-          : isNew
-          ? html`
-              <div class="page-title">${tr.newTaskTitle}</div>
-              <ik-task-form-view
-                .hass=${this.hass}
-                @navigate=${(e: CustomEvent) => this._navigate(e.detail)}
-              ></ik-task-form-view>
-            `
-          : isEdit
-          ? html`
-              <div class="page-title">${tr.editTask}</div>
-              <ik-task-form-view
-                .hass=${this.hass}
-                .task=${this._getEditTask()}
-                @navigate=${(e: CustomEvent) => this._navigate(e.detail)}
-              ></ik-task-form-view>
-            `
-          : isHistory
-          ? html`
-              <ik-task-history-view
-                .hass=${this.hass}
-                .taskId=${this._getHistoryTaskId()}
-                @navigate=${(e: CustomEvent) => this._navigate(e.detail)}
-              ></ik-task-history-view>
-            `
-          : isSettings
-          ? html`
-              <div class="page-title">${tr.settingsTitle}</div>
-              <ik-settings-view
-                .hass=${this.hass}
-                .enableAnimations=${this._enableAnimations}
-                @animations-changed=${(e: CustomEvent) => {
-                  this._enableAnimations = e.detail;
-                  localStorage.setItem("intellikeep.animations", String(e.detail));
-                }}
-              ></ik-settings-view>
-            `
-          : nothing}
+          : html`<div class="content-scroll">
+            ${this._loading
+              ? html`<p>${tr.loading}</p>`
+              : isNew
+              ? html`
+                  <div class="page-title">${tr.newTaskTitle}</div>
+                  <ik-task-form-view
+                    .hass=${this.hass}
+                    @navigate=${(e: CustomEvent) => this._navigate(e.detail)}
+                  ></ik-task-form-view>
+                `
+              : isEdit
+              ? html`
+                  <div class="page-title">${tr.editTask}</div>
+                  <ik-task-form-view
+                    .hass=${this.hass}
+                    .task=${this._getEditTask()}
+                    @navigate=${(e: CustomEvent) => this._navigate(e.detail)}
+                  ></ik-task-form-view>
+                `
+              : isHistory
+              ? html`
+                  <ik-task-history-view
+                    .hass=${this.hass}
+                    .taskId=${this._getHistoryTaskId()}
+                    @navigate=${(e: CustomEvent) => this._navigate(e.detail)}
+                  ></ik-task-history-view>
+                `
+              : isSettings
+              ? html`
+                  <div class="page-title">${tr.settingsTitle}</div>
+                  <ik-settings-view
+                    .hass=${this.hass}
+                    .enableAnimations=${this._enableAnimations}
+                    @animations-changed=${(e: CustomEvent) => {
+                      this._enableAnimations = e.detail;
+                      localStorage.setItem("intellikeep.animations", String(e.detail));
+                    }}
+                  ></ik-settings-view>
+                `
+              : nothing}
+          </div>`}
       </div>
     `;
   }
