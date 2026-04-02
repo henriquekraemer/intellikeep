@@ -14,6 +14,14 @@ export class IkTaskListView extends LitElement {
 
   @state() private _filterTab: "due" | "overdue" | "pending" | "completed" = "due";
   @state() private _filterPriority: TaskPriority | "all" = "all";
+
+  connectedCallback() {
+    super.connectedCallback();
+    const saved = localStorage.getItem("intellikeep.filterTab");
+    if (saved === "due" || saved === "overdue" || saved === "pending" || saved === "completed") {
+      this._filterTab = saved;
+    }
+  }
   @state() private _deleteTarget: string | null = null;
   @state() private _completing: Set<string> = new Set();
   @state() private _reopening: Set<string> = new Set();
@@ -339,7 +347,7 @@ export class IkTaskListView extends LitElement {
     const chip = (tab: typeof this._filterTab, label: string, count: number, extra = "") => html`
       <button
         class="filter-chip ${extra} ${this._filterTab === tab ? "active" : ""}"
-        @click=${() => { this._filterTab = tab; this._resetPage(); }}
+        @click=${() => { this._filterTab = tab; localStorage.setItem("intellikeep.filterTab", tab); this._resetPage(); }}
       >
         ${label}
         <span class="chip-badge">${count}</span>

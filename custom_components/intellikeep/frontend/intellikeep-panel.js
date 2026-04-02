@@ -506,6 +506,13 @@ let IkTaskListView = class IkTaskListView extends i {
         this._exitingUndo = new Set();
         this._exitingEdit = new Set();
     }
+    connectedCallback() {
+        super.connectedCallback();
+        const saved = localStorage.getItem("intellikeep.filterTab");
+        if (saved === "due" || saved === "overdue" || saved === "pending" || saved === "completed") {
+            this._filterTab = saved;
+        }
+    }
     _resetPage() {
         this._page = 0;
     }
@@ -613,7 +620,7 @@ let IkTaskListView = class IkTaskListView extends i {
         const chip = (tab, label, count, extra = "") => b `
       <button
         class="filter-chip ${extra} ${this._filterTab === tab ? "active" : ""}"
-        @click=${() => { this._filterTab = tab; this._resetPage(); }}
+        @click=${() => { this._filterTab = tab; localStorage.setItem("intellikeep.filterTab", tab); this._resetPage(); }}
       >
         ${label}
         <span class="chip-badge">${count}</span>
