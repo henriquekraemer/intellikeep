@@ -29,7 +29,6 @@ export class IkTaskCard extends LitElement {
   @property({ attribute: false }) task!: Task;
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ type: Boolean }) completing = false;
-  @property({ type: Boolean }) grid = false;
 
   static styles = css`
     :host {
@@ -107,59 +106,7 @@ export class IkTaskCard extends LitElement {
       flex-shrink: 0;
       justify-content: flex-end;
     }
-    /* Grid card layout */
-    .card {
-      display: flex;
-      flex-direction: column;
-      padding: 14px 14px 10px;
-      border-radius: 10px;
-      border: 1.5px solid var(--divider-color);
-      background: var(--card-background-color);
-      gap: 8px;
-      height: 100%;
-      box-sizing: border-box;
-    }
-    .card-top {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 6px;
-    }
-    .card-name {
-      font-weight: 600;
-      font-size: 14px;
-      color: var(--primary-text-color);
-      line-height: 1.3;
-      flex: 1;
-    }
-    .card-priority-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
-      margin-top: 3px;
-    }
-    .card-due {
-      font-size: 12px;
-      font-weight: 500;
-    }
-    .card-desc {
-      font-size: 12px;
-      line-height: 1.4;
-      height: 2.8em;
-      color: var(--secondary-text-color);
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-    }
-    .card-actions {
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap;
-      margin-top: 2px;
-      justify-content: flex-end;
-    }
+
   `;
 
   private _relativeDue(iso: string | null): string {
@@ -175,19 +122,6 @@ export class IkTaskCard extends LitElement {
 
   render() {
     const { task } = this;
-    if (this.grid) {
-      return html`
-        <div class="card">
-          <div class="card-top">
-            <div class="card-name">${task.name}</div>
-            <div class="card-priority-dot" style="background:${priorityColor(task.priority)}" title=${task.priority}></div>
-          </div>
-          <div class="card-desc">${task.description ?? ""}</div>
-          <div class="card-due" style="color:${statusColor(task.status)}">${this._relativeDue(task.due_date)}</div>
-          <div class="card-actions"><slot name="actions"></slot></div>
-        </div>
-      `;
-    }
     return html`
       <div class="row">
         <div class="priority-bar" style="background:${priorityColor(task.priority)}">
