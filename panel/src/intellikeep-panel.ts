@@ -18,6 +18,7 @@ export class IntelliKeepPanel extends LitElement {
   @state() private _tasks: Task[] = [];
   @state() private _currentPath = "/tasks";
   @state() private _loading = true;
+  @state() private _enableAnimations = true;
 
   private _unsubscribe?: () => void;
 
@@ -100,6 +101,7 @@ export class IntelliKeepPanel extends LitElement {
 
   async connectedCallback() {
     super.connectedCallback();
+    this._enableAnimations = localStorage.getItem("intellikeep.animations") !== "false";
     await this._subscribe();
     this._restoreRoute();
   }
@@ -181,6 +183,7 @@ export class IntelliKeepPanel extends LitElement {
               <ik-task-list-view
                 .hass=${this.hass}
                 .tasks=${this._tasks}
+                .enableAnimations=${this._enableAnimations}
                 @navigate=${(e: CustomEvent) => this._navigate(e.detail)}
               ></ik-task-list-view>
             `
@@ -212,7 +215,14 @@ export class IntelliKeepPanel extends LitElement {
           : isSettings
           ? html`
               <div class="page-title">${tr.settingsTitle}</div>
-              <ik-settings-view .hass=${this.hass}></ik-settings-view>
+              <ik-settings-view
+                .hass=${this.hass}
+                .enableAnimations=${this._enableAnimations}
+                @animations-changed=${(e: CustomEvent) => {
+                  this._enableAnimations = e.detail;
+                  localStorage.setItem("intellikeep.animations", String(e.detail));
+                }}
+              ></ik-settings-view>
             `
           : nothing}
       </div>

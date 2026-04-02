@@ -10,6 +10,7 @@ import "../components/confirm-dialog";
 export class IkTaskListView extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) tasks: Task[] = [];
+  @property({ type: Boolean }) enableAnimations = true;
 
   @state() private _filterGroup: "pending" | "completed" = "pending";
   @state() private _filterUrgency: "overdue" | "due" | "all" = "all";
@@ -19,6 +20,8 @@ export class IkTaskListView extends LitElement {
   @state() private _reopening: Set<string> = new Set();
   @state() private _page = 0;
   @state() private _pageSize: 25 | 50 | 100 = 25;
+  @state() private _exitingDone: Set<string> = new Set();
+  @state() private _exitingDelete: Set<string> = new Set();
 
   static styles = css`
     :host { display: block; }
@@ -110,6 +113,27 @@ export class IkTaskListView extends LitElement {
       opacity: 0.4;
       cursor: default;
     }
+    @keyframes ik-done-exit {
+      0%   { transform: translateX(0);    opacity: 1; background: transparent; }
+      15%  { background: color-mix(in srgb, var(--primary-color) 18%, transparent); }
+      100% { transform: translateX(56px); opacity: 0; background: transparent; }
+    }
+    @keyframes ik-delete-exit {
+      0%   { transform: translateX(0);     opacity: 1; background: transparent; }
+      15%  { background: rgba(244, 67, 54, 0.15); }
+      100% { transform: translateX(-56px); opacity: 0; background: transparent; }
+    }
+    .task-wrapper {
+      overflow: hidden;
+    }
+    .task-wrapper.exiting-done {
+      animation: ik-done-exit 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      pointer-events: none;
+    }
+    .task-wrapper.exiting-delete {
+      animation: ik-delete-exit 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      pointer-events: none;
+    }
   `;
 
   private _resetPage() {
@@ -148,6 +172,10 @@ export class IkTaskListView extends LitElement {
 
   private async _complete(taskId: string) {
     this._completing = new Set([...this._completing, taskId]);
+    if (this.enableAnimations) {
+      this._exitingDone = new Set([...this._exitingDone, taskId]);
+      await new Promise((r) => setTimeout(r, 380));
+    }
     try {
       await completeTask(this.hass, taskId);
     } catch (err) {
@@ -155,14 +183,27 @@ export class IkTaskListView extends LitElement {
       alert(`Failed to complete task: ${err}`);
     } finally {
       this._completing = new Set([...this._completing].filter((id) => id !== taskId));
+      this._exitingDone = new Set([...this._exitingDone].filter((id) => id !== taskId));
     }
   }
 
   private async _confirmDelete(confirmed: boolean) {
-    if (confirmed && this._deleteTarget) {
-      await deleteTask(this.hass, this._deleteTarget);
-    }
+    const taskId = this._deleteTarget;
     this._deleteTarget = null;
+    if (confirmed && taskId) {
+      if (this.enableAnimations) {
+        this._exitingDelete = new Set([...this._exitingDelete, taskId]);
+        await new Promise((r) => setTimeout(r, 380));
+      }
+      try {
+        await deleteTask(this.hass, taskId);
+      } catch (err) {
+        console.error("[IntelliKeep] delete_task failed:", err);
+        alert(`Failed to delete task: ${err}`);
+      } finally {
+        this._exitingDelete = new Set([...this._exitingDelete].filter((id) => id !== taskId));
+      }
+    }
   }
 
   render() {
@@ -199,16 +240,18 @@ export class IkTaskListView extends LitElement {
           ? html`<div class="empty">${tr.noTasks}</div>`
           : pageTasks.map(
               (task, i) => html`
-                ${i > 0 ? html`<hr class="task-divider" />` : ""}
-                <ik-task-card .task=${task} .hass=${this.hass}>
-                  <div class="task-actions" slot="actions">
-                    ${task.status !== "completed"
-                      ? html`<button class="btn primary" ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}>${tr.done}</button>`
-                      : html`<button class="btn" ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}>${tr.undo}</button>`}
-                    <button class="btn" @click=${() => this._navigateTo(`/edit/${task.task_id}`)}>${tr.edit}</button>
-                    <button class="btn danger" @click=${() => { this._deleteTarget = task.task_id; }}>${tr.del}</button>
-                  </div>
-                </ik-task-card>
+                <div class="task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : ""}">
+                  ${i > 0 ? html`<hr class="task-divider" />` : ""}
+                  <ik-task-card .task=${task} .hass=${this.hass}>
+                    <div class="task-actions" slot="actions">
+                      ${task.status !== "completed"
+                        ? html`<button class="btn primary" ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}>${tr.done}</button>`
+                        : html`<button class="btn" ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}>${tr.undo}</button>`}
+                      <button class="btn" @click=${() => this._navigateTo(`/edit/${task.task_id}`)}>${tr.edit}</button>
+                      <button class="btn danger" @click=${() => { this._deleteTarget = task.task_id; }}>${tr.del}</button>
+                    </div>
+                  </ik-task-card>
+                </div>
               `
             )}
       </ha-card>
