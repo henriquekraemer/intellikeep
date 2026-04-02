@@ -1,7 +1,7 @@
 """Tests for IntelliKeep TaskManager business logic."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -40,7 +40,7 @@ class TestCompleteTask:
         assert completed.executions[0].completed_by == "Alice"
 
     async def test_complete_recurring_advances_due_date(self, task_manager, mock_storage):
-        base_due = datetime(2025, 1, 1)
+        base_due = datetime(2025, 1, 1, tzinfo=timezone.utc)
         task = make_task(
             name="Monthly clean",
             frequency=TaskFrequency.MONTHLY,
@@ -51,9 +51,18 @@ class TestCompleteTask:
 
         completed = await task_manager.async_complete_task(task.task_id)
         assert completed is not None
-        assert completed.enabled is True
-        assert completed.due_date is not None
-        assert completed.due_date > base_due
+        # Original task is marked as done
+        assert completed.enabled is False
+
+        # A new task must have been created with the next due date
+        all_tasks = mock_storage.get_all_tasks()
+        new_tasks = [t for t in all_tasks if t.task_id != task.task_id]
+        assert len(new_tasks) == 1
+        next_task = new_tasks[0]
+        assert next_task.enabled is True
+        assert next_task.due_date is not None
+        assert next_task.due_date > base_due
+        assert next_task.frequency == TaskFrequency.MONTHLY
 
     async def test_complete_unknown_task_returns_none(self, task_manager):
         result = await task_manager.async_complete_task("nonexistent-id")
@@ -76,15 +85,15 @@ class TestDeleteTask:
 
 class TestTaskStatus:
     def test_status_pending(self, task_manager):
-        task = make_task(due_date=datetime.utcnow() + timedelta(days=5))
+        task = make_task(due_date=datetime.now(timezone.utc) + timedelta(days=5))
         assert task_manager.get_task_status(task) == TaskStatus.PENDING
 
     def test_status_due(self, task_manager):
-        task = make_task(due_date=datetime.utcnow())
+        task = make_task(due_date=datetime.now(timezone.utc))
         assert task_manager.get_task_status(task) == TaskStatus.DUE
 
     def test_status_overdue(self, task_manager):
-        task = make_task(due_date=datetime.utcnow() - timedelta(days=3))
+        task = make_task(due_date=datetime.now(timezone.utc) - timedelta(days=3))
         assert task_manager.get_task_status(task) == TaskStatus.OVERDUE
 
     def test_status_completed(self, task_manager):
@@ -144,9 +153,9 @@ class TestFrequencyCalculation:
 
 class TestQueryMethods:
     async def test_get_tasks_due_today(self, task_manager, mock_storage):
-        t1 = make_task(name="Due", due_date=datetime.utcnow())
-        t2 = make_task(name="Future", due_date=datetime.utcnow() + timedelta(days=3))
-        t3 = make_task(name="Disabled", due_date=datetime.utcnow(), enabled=False)
+        t1 = make_task(name="Due", due_date=datetime.now(timezone.utc))
+        t2 = make_task(name="Future", due_date=datetime.now(timezone.utc) + timedelta(days=3))
+        t3 = make_task(name="Disabled", due_date=datetime.now(timezone.utc), enabled=False)
         mock_storage.upsert_task(t1)
         mock_storage.upsert_task(t2)
         mock_storage.upsert_task(t3)
@@ -160,7 +169,7 @@ class TestQueryMethods:
     async def test_get_approaching_tasks(self, task_manager, mock_storage):
         t = make_task(
             name="Approaching",
-            due_date=datetime.utcnow() + timedelta(days=1),
+            due_date=datetime.now(timezone.utc) + timedelta(days=1),
             notify_days_before=2,
         )
         mock_storage.upsert_task(t)
@@ -168,8 +177,8 @@ class TestQueryMethods:
         assert any(x.name == "Approaching" for x in approaching)
 
     async def test_get_next_due_task(self, task_manager, mock_storage):
-        t1 = make_task(name="Later", due_date=datetime.utcnow() + timedelta(days=5))
-        t2 = make_task(name="Sooner", due_date=datetime.utcnow() + timedelta(days=1))
+        t1 = make_task(name="Later", due_date=datetime.now(timezone.utc) + timedelta(days=5))
+        t2 = make_task(name="Sooner", due_date=datetime.now(timezone.utc) + timedelta(days=1))
         mock_storage.upsert_task(t1)
         mock_storage.upsert_task(t2)
         next_task = task_manager.get_next_due_task()
