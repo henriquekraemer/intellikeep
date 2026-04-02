@@ -163,11 +163,23 @@ automation:
 
 ## Development
 
-```bash
-# Install test dependencies
-pip install -r requirements_test.txt
+### Run tests via Docker (recommended, no local Python required)
 
-# Run tests
+```bash
+# All tests
+./run-tests.sh
+
+# Specific file
+./run-tests.sh tests/test_task_manager.py
+
+# With filter
+./run-tests.sh -k test_complete_recurring
+```
+
+### Run tests locally
+
+```bash
+pip install -r requirements_test.txt
 pytest tests/ -v
 ```
 

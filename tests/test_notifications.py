@@ -1,7 +1,7 @@
 """Tests for IntelliKeep NotificationManager."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
@@ -22,7 +22,7 @@ class TestApproachingNotifications:
     ):
         task = make_task(
             name="Change filter",
-            due_date=datetime.utcnow() + timedelta(days=1),
+            due_date=datetime.now(timezone.utc) + timedelta(days=1),
             notify_days_before=2,
         )
         mock_storage.upsert_task(task)
@@ -39,7 +39,7 @@ class TestApproachingNotifications:
         self, notification_manager, mock_hass, task_manager, mock_storage
     ):
         task = make_task(
-            due_date=datetime.utcnow() + timedelta(days=1),
+            due_date=datetime.now(timezone.utc) + timedelta(days=1),
             notify_days_before=2,
         )
         mock_storage.upsert_task(task)
@@ -56,7 +56,7 @@ class TestApproachingNotifications:
         self, notification_manager, task_manager, mock_storage
     ):
         task = make_task(
-            due_date=datetime.utcnow() + timedelta(days=1),
+            due_date=datetime.now(timezone.utc) + timedelta(days=1),
             notify_days_before=2,
         )
         mock_storage.upsert_task(task)
@@ -74,7 +74,7 @@ class TestOverdueNotifications:
     ):
         task = make_task(
             name="Overdue task",
-            due_date=datetime.utcnow() - timedelta(days=5),
+            due_date=datetime.now(timezone.utc) - timedelta(days=5),
             notify_on_overdue=True,
         )
         mock_storage.upsert_task(task)
@@ -92,7 +92,7 @@ class TestOverdueNotifications:
         self, notification_manager, mock_hass, task_manager, mock_storage
     ):
         task = make_task(
-            due_date=datetime.utcnow() - timedelta(days=3),
+            due_date=datetime.now(timezone.utc) - timedelta(days=3),
             notify_on_overdue=False,
         )
         mock_storage.upsert_task(task)
@@ -107,7 +107,7 @@ class TestHaEvent:
         self, notification_manager, mock_hass, task_manager, mock_storage
     ):
         task = make_task(
-            due_date=datetime.utcnow() - timedelta(days=3),
+            due_date=datetime.now(timezone.utc) - timedelta(days=3),
             notify_on_overdue=True,
         )
         mock_storage.upsert_task(task)
@@ -127,7 +127,7 @@ class TestCustomNotificationService:
             mock_hass, task_manager, notification_service="notify.mobile"
         )
         task = make_task(
-            due_date=datetime.utcnow() - timedelta(days=2),
+            due_date=datetime.now(timezone.utc) - timedelta(days=2),
             notify_on_overdue=True,
         )
         mock_storage.upsert_task(task)

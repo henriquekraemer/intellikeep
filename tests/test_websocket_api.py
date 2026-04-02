@@ -1,7 +1,7 @@
 """Tests for IntelliKeep WebSocket API commands."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -12,8 +12,8 @@ from tests.conftest import make_task
 
 class TestGetTasksWS:
     async def test_returns_all_tasks_with_status(self, task_manager, mock_storage):
-        t1 = make_task(name="Task A", due_date=datetime.utcnow() + timedelta(days=2))
-        t2 = make_task(name="Task B", due_date=datetime.utcnow() - timedelta(days=1))
+        t1 = make_task(name="Task A", due_date=datetime.now(timezone.utc) + timedelta(days=2))
+        t2 = make_task(name="Task B", due_date=datetime.now(timezone.utc) - timedelta(days=1))
         mock_storage.upsert_task(t1)
         mock_storage.upsert_task(t2)
 
@@ -48,7 +48,7 @@ class TestTaskDictSerialization:
         task = make_task(
             name="Full task",
             frequency=TaskFrequency.MONTHLY,
-            due_date=datetime.utcnow() + timedelta(days=10),
+            due_date=datetime.now(timezone.utc) + timedelta(days=10),
             linked_entity_ids=["sensor.temp"],
         )
         mock_storage.upsert_task(task)
