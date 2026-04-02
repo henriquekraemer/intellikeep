@@ -12,16 +12,18 @@ export class IkTaskListView extends LitElement {
   @property({ attribute: false }) tasks: Task[] = [];
   @property({ type: Boolean }) enableAnimations = true;
 
-  @state() private _filterTab: "due" | "overdue" | "pending" | "completed" = "due";
+  @state() private _filterTab: "pending" | "completed" = "pending";
   @state() private _filterPriority: TaskPriority | "all" = "all";
   @state() private _searchQuery = "";
-  @state() private _viewMode: "list" | "grid" =
-    localStorage.getItem("intellikeep.viewMode") === "grid" ? "grid" : "list";
+  @state() private _upcomingRange: "all" | "week" | "2weeks" | "30" | "90" | "year" | "custom" =
+    (localStorage.getItem("intellikeep.upcomingRange") as "all" | "week" | "2weeks" | "30" | "90" | "year" | "custom") ?? "all";
+  @state() private _upcomingCustomFrom = localStorage.getItem("intellikeep.upcomingCustomFrom") ?? "";
+  @state() private _upcomingCustomTo = localStorage.getItem("intellikeep.upcomingCustomTo") ?? "";
 
   connectedCallback() {
     super.connectedCallback();
     const saved = localStorage.getItem("intellikeep.filterTab");
-    if (saved === "due" || saved === "overdue" || saved === "pending" || saved === "completed") {
+    if (saved === "pending" || saved === "completed") {
       this._filterTab = saved;
     }
   }
@@ -55,7 +57,7 @@ export class IkTaskListView extends LitElement {
       align-items: center;
       gap: 6px;
       padding: 5px 13px;
-      border-radius: 20px;
+      border-radius: 8px;
       border: 1.5px solid var(--divider-color);
       background: transparent;
       color: var(--secondary-text-color);
@@ -104,46 +106,107 @@ export class IkTaskListView extends LitElement {
       color: var(--primary-text-color);
       font-size: 13px;
     }
-    .search-input {
+    .search-wrapper {
+      position: relative;
       flex: 1;
       min-width: 160px;
-      padding: 5px 10px;
+      display: flex;
+      align-items: center;
+    }
+    .search-icon {
+      position: absolute;
+      left: 8px;
+      color: var(--secondary-text-color);
+      --mdc-icon-size: 16px;
+      pointer-events: none;
+    }
+    .search-input {
+      width: 100%;
+      padding: 5px 10px 5px 30px;
       border-radius: 6px;
       border: 1px solid var(--divider-color);
       background: var(--card-background-color);
       color: var(--primary-text-color);
       font-size: 13px;
       font-family: inherit;
+      box-sizing: border-box;
     }
     .search-input::placeholder { color: var(--secondary-text-color); }
-    .view-toggle {
+
+    .full-card { flex: 1; min-height: 0; overflow-y: auto; }
+    .sections-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
       display: flex;
-      border: 1.5px solid var(--divider-color);
-      border-radius: 8px;
-      overflow: hidden;
-      flex-shrink: 0;
+      flex-direction: column;
+      gap: 16px;
+      padding-bottom: 8px;
     }
-    .view-btn {
-      padding: 4px 9px;
-      border: none;
+    .section-header {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--secondary-text-color);
+      padding: 0 2px 8px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .section-header.urgent {
+      color: var(--error-color, #f44336);
+    }
+    .upcoming-filter {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 0 10px;
+      flex-wrap: wrap;
+    }
+    .upcoming-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 6px;
+      border: 1.5px solid var(--divider-color);
       background: transparent;
       color: var(--secondary-text-color);
       cursor: pointer;
-      font-size: 16px;
-      line-height: 1;
-      transition: background 0.15s, color 0.15s;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
     }
-    .view-btn.active {
+    .upcoming-chip:hover {
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+    .upcoming-chip.active {
       background: var(--primary-color);
+      border-color: var(--primary-color);
       color: var(--text-primary-color, #fff);
     }
-    .grid-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 12px;
-      padding: 8px;
+    .custom-range {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 0 0 10px;
     }
-    ha-card { flex: 1; min-height: 0; overflow-y: auto; }
+    .custom-range input[type="date"] {
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--divider-color);
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      font-size: 12px;
+      font-family: inherit;
+    }
+    .custom-range span {
+      font-size: 12px;
+      color: var(--secondary-text-color);
+    }
     .empty {
       text-align: center;
       padding: 40px 24px;
@@ -296,24 +359,6 @@ export class IkTaskListView extends LitElement {
     this._page = 0;
   }
 
-  private get _filtered(): Task[] {
-    const q = this._searchQuery.trim().toLowerCase();
-    return this.tasks.filter((task) => {
-      const tabMatch = (() => {
-        switch (this._filterTab) {
-          case "due":       return task.status === "due";
-          case "overdue":   return task.status === "overdue";
-          case "pending":   return task.status !== "completed";
-          case "completed": return task.status === "completed";
-        }
-      })();
-      if (!tabMatch) return false;
-      if (this._filterPriority !== "all" && task.priority !== this._filterPriority) return false;
-      if (q && !task.name.toLowerCase().includes(q) && !(task.description ?? "").toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }
-
   private get _relaxSuggestion(): string {
     const tr = t(this.hass?.language);
     const d = new Date();
@@ -388,15 +433,13 @@ export class IkTaskListView extends LitElement {
   }
 
   render() {
-    const tasks = this._filtered;
     const tr = t(this.hass?.language);
-    const totalPages = Math.max(1, Math.ceil(tasks.length / this._pageSize));
-    const page = Math.min(this._page, totalPages - 1);
-    const start = page * this._pageSize;
-    const pageTasks = tasks.slice(start, start + this._pageSize);
+    const q = this._searchQuery.trim().toLowerCase();
+    const matchesQ = (task: Task) =>
+      !q || task.name.toLowerCase().includes(q) || (task.description ?? "").toLowerCase().includes(q);
+    const matchesPr = (task: Task) =>
+      this._filterPriority === "all" || task.priority === this._filterPriority;
 
-    const countDue       = this.tasks.filter(t => t.status === "due").length;
-    const countOverdue   = this.tasks.filter(t => t.status === "overdue").length;
     const countPending   = this.tasks.filter(t => t.status !== "completed").length;
     const countCompleted = this.tasks.filter(t => t.status === "completed").length;
 
@@ -410,21 +453,22 @@ export class IkTaskListView extends LitElement {
       </button>
     `;
 
-    const isDueClear = this._filterTab === "due" && tasks.length === 0 && !this._searchQuery.trim();
-
-    return html`
-      <div class="filter-bar">
-        <input
-          class="search-input"
-          type="search"
-          .value=${this._searchQuery}
-          placeholder=${tr.searchPlaceholder}
-          @input=${(e: Event) => { this._searchQuery = (e.target as HTMLInputElement).value; this._resetPage(); }}
-        />
+    const taskItem = (task: Task) => html`
+      <div class="list-item task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : this._exitingUndo.has(task.task_id) ? "exiting-undo" : this._exitingEdit.has(task.task_id) ? "exiting-edit" : ""}">
+        <ik-task-card .task=${task} .hass=${this.hass}>
+          <div class="task-actions" slot="actions">
+            ${task.status !== "completed"
+              ? html`<button class="icon-btn primary" title=${tr.done} ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}><ha-icon icon="mdi:check"></ha-icon></button>`
+              : html`<button class="icon-btn undo" title=${tr.undo} ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}><ha-icon icon="mdi:undo"></ha-icon></button>`}
+            <button class="icon-btn edit" title=${tr.edit} @click=${() => this._edit(task.task_id)}><ha-icon icon="mdi:pencil"></ha-icon></button>
+            <button class="icon-btn danger" title=${tr.del} @click=${() => { this._deleteTarget = task.task_id; }}><ha-icon icon="mdi:delete"></ha-icon></button>
+          </div>
+        </ik-task-card>
       </div>
+    `;
+
+    const filterSection = html`
       <div class="filter-bar">
-        ${chip("due",       tr.dueToday,  countDue)}
-        ${chip("overdue",   tr.overdue,   countOverdue,  "chip-overdue")}
         ${chip("pending",   tr.pending,   countPending)}
         ${chip("completed", tr.completed, countCompleted, "chip-completed")}
         <select class="priority-select" .value=${this._filterPriority} @change=${(e: Event) => { this._filterPriority = (e.target as HTMLSelectElement).value as TaskPriority | "all"; this._resetPage(); }}>
@@ -434,69 +478,22 @@ export class IkTaskListView extends LitElement {
           <option value="medium">${tr.medium}</option>
           <option value="low">${tr.low}</option>
         </select>
-        <div class="view-toggle">
-          <button class="view-btn ${this._viewMode === "list" ? "active" : ""}" title=${tr.viewList}
-            @click=${() => { this._viewMode = "list"; localStorage.setItem("intellikeep.viewMode", "list"); }}>&#9776;</button>
-          <button class="view-btn ${this._viewMode === "grid" ? "active" : ""}" title=${tr.viewGrid}
-            @click=${() => { this._viewMode = "grid"; localStorage.setItem("intellikeep.viewMode", "grid"); }}>&#9783;</button>
+      </div>
+      <div class="filter-bar">
+        <div class="search-wrapper">
+          <ha-icon class="search-icon" icon="mdi:magnify"></ha-icon>
+          <input
+            class="search-input"
+            type="search"
+            .value=${this._searchQuery}
+            placeholder=${tr.searchPlaceholder}
+            @input=${(e: Event) => { this._searchQuery = (e.target as HTMLInputElement).value; this._resetPage(); }}
+          />
         </div>
       </div>
+    `;
 
-      <ha-card>
-        ${isDueClear
-          ? html`
-            <div class="all-clear">
-              <div class="all-clear-emoji">🎉</div>
-              <p class="all-clear-title">${tr.allClear}</p>
-              <p class="all-clear-sub">${tr.allClearSub}</p>
-              <span class="all-clear-suggestion">${this._relaxSuggestion}</span>
-            </div>`
-          : tasks.length === 0
-          ? html`<div class="empty">${tr.noTasks}</div>`
-          : this._viewMode === "grid"
-          ? html`<div class="grid-container">${pageTasks.map(task => html`
-              <div class="task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : this._exitingUndo.has(task.task_id) ? "exiting-undo" : this._exitingEdit.has(task.task_id) ? "exiting-edit" : ""}">
-                <ik-task-card .task=${task} .hass=${this.hass} .grid=${true}>
-                  <div class="task-actions" slot="actions">
-                      ${task.status !== "completed"
-                        ? html`<button class="icon-btn primary" title=${tr.done} ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}><ha-icon icon="mdi:check"></ha-icon></button>`
-                        : html`<button class="icon-btn undo" title=${tr.undo} ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}><ha-icon icon="mdi:undo"></ha-icon></button>`}
-                      <button class="icon-btn edit" title=${tr.edit} @click=${() => this._edit(task.task_id)}><ha-icon icon="mdi:pencil"></ha-icon></button>
-                      <button class="icon-btn danger" title=${tr.del} @click=${() => { this._deleteTarget = task.task_id; }}><ha-icon icon="mdi:delete"></ha-icon></button>
-                  </div>
-                </ik-task-card>
-              </div>`
-            )}</div>`
-          : html`<div class="list-container">${pageTasks.map(
-              (task) => html`
-                <div class="list-item task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : this._exitingUndo.has(task.task_id) ? "exiting-undo" : this._exitingEdit.has(task.task_id) ? "exiting-edit" : ""}">
-                  <ik-task-card .task=${task} .hass=${this.hass}>
-                    <div class="task-actions" slot="actions">
-                      ${task.status !== "completed"
-                        ? html`<button class="icon-btn primary" title=${tr.done} ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}><ha-icon icon="mdi:check"></ha-icon></button>`
-                        : html`<button class="icon-btn undo" title=${tr.undo} ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}><ha-icon icon="mdi:undo"></ha-icon></button>`}
-                      <button class="icon-btn edit" title=${tr.edit} @click=${() => this._edit(task.task_id)}><ha-icon icon="mdi:pencil"></ha-icon></button>
-                      <button class="icon-btn danger" title=${tr.del} @click=${() => { this._deleteTarget = task.task_id; }}><ha-icon icon="mdi:delete"></ha-icon></button>
-                    </div>
-                  </ik-task-card>
-                </div>
-              `
-            )}</div>`}
-      </ha-card>
-
-      ${tasks.length > 0 ? html`
-      <div class="pagination">
-        <span>${this._viewMode === 'grid' ? tr.cardsPerPage : tr.rowsPerPage}</span>
-        <select .value=${String(this._pageSize)} @change=${(e: Event) => { this._pageSize = Number((e.target as HTMLSelectElement).value) as 25 | 50 | 100; this._resetPage(); }}>
-          <option value="25">25</option>
-          <option value="50">50</option>
-          <option value="100">100</option>
-        </select>
-        <span>${start + 1}–${Math.min(start + this._pageSize, tasks.length)} ${tr.of} ${tasks.length}</span>
-        <button class="page-btn" ?disabled=${page === 0} @click=${() => { this._page = page - 1; }}>&lt;</button>
-        <button class="page-btn" ?disabled=${page >= totalPages - 1} @click=${() => { this._page = page + 1; }}>&gt;</button>
-      </div>` : ""}
-
+    const confirmDialog = html`
       <ik-confirm-dialog
         heading=${tr.deleteHeading}
         .open=${this._deleteTarget !== null}
@@ -504,6 +501,150 @@ export class IkTaskListView extends LitElement {
       >
         ${tr.deleteBody}
       </ik-confirm-dialog>
+    `;
+
+    const priorityRank: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+    const sortUpcoming = (a: Task, b: Task) => {
+      const aDate = a.due_date ? new Date(a.due_date).getTime() : Infinity;
+      const bDate = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+      if (aDate !== bDate) return aDate - bDate;
+      return (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99);
+    };
+
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const rangeEnd = (days: number) => { const d = new Date(today); d.setDate(d.getDate() + days); d.setHours(23, 59, 59, 999); return d; };
+    const yearEnd = new Date(today.getFullYear(), 11, 31, 23, 59, 59, 999);
+    let upcomingMax: Date | null = null;
+    let upcomingMin: Date | null = null;
+    if (this._upcomingRange === "week")    upcomingMax = rangeEnd(7);
+    else if (this._upcomingRange === "2weeks") upcomingMax = rangeEnd(14);
+    else if (this._upcomingRange === "30")  upcomingMax = rangeEnd(30);
+    else if (this._upcomingRange === "90")  upcomingMax = rangeEnd(90);
+    else if (this._upcomingRange === "year") upcomingMax = yearEnd;
+    else if (this._upcomingRange === "custom") {
+      upcomingMin = this._upcomingCustomFrom ? new Date(this._upcomingCustomFrom) : null;
+      upcomingMax = this._upcomingCustomTo ? new Date(this._upcomingCustomTo + "T23:59:59") : null;
+    }
+    const inUpcomingRange = (task: Task) => {
+      if (this._upcomingRange === "all") return true;
+      if (!task.due_date) return false;
+      const d = new Date(task.due_date);
+      if (upcomingMin && d < upcomingMin) return false;
+      if (upcomingMax && d > upcomingMax) return false;
+      return true;
+    };
+
+    const setUpcomingRange = (v: typeof this._upcomingRange) => {
+      this._upcomingRange = v;
+      localStorage.setItem("intellikeep.upcomingRange", v);
+    };
+
+    if (this._filterTab === "pending") {
+      const urgentTasks = this.tasks.filter(t =>
+        (t.status === "due" || t.status === "overdue") && matchesPr(t) && matchesQ(t));
+      const otherTasks = this.tasks.filter(t =>
+        t.status !== "completed" && t.status !== "due" && t.status !== "overdue" && matchesPr(t) && matchesQ(t) && inUpcomingRange(t))
+        .sort(sortUpcoming);
+
+      const upcomingRangeChip = (v: typeof this._upcomingRange, label: string) => html`
+        <button class="upcoming-chip ${this._upcomingRange === v ? "active" : ""}" @click=${() => setUpcomingRange(v)}>${label}</button>
+      `;
+      const upcomingFilterBar = html`
+        <div class="upcoming-filter">
+          ${upcomingRangeChip("all",    tr.rangeAll)}
+          ${upcomingRangeChip("week",   tr.rangeWeek)}
+          ${upcomingRangeChip("2weeks", tr.range2Weeks)}
+          ${upcomingRangeChip("30",     tr.range30)}
+          ${upcomingRangeChip("90",     tr.range90)}
+          ${upcomingRangeChip("year",   tr.rangeYear)}
+          ${upcomingRangeChip("custom", tr.rangeCustom)}
+        </div>
+        ${this._upcomingRange === "custom" ? html`
+          <div class="custom-range">
+            <input type="date" .value=${this._upcomingCustomFrom}
+              @change=${(e: Event) => { this._upcomingCustomFrom = (e.target as HTMLInputElement).value; localStorage.setItem("intellikeep.upcomingCustomFrom", this._upcomingCustomFrom); }}
+            />
+            <span>${tr.rangeTo}</span>
+            <input type="date" .value=${this._upcomingCustomTo}
+              @change=${(e: Event) => { this._upcomingCustomTo = (e.target as HTMLInputElement).value; localStorage.setItem("intellikeep.upcomingCustomTo", this._upcomingCustomTo); }}
+            />
+          </div>` : ""
+        }
+      `;
+
+      return html`
+        ${filterSection}
+        <div class="sections-scroll">
+          <div>
+            <div class="section-header urgent">
+              <ha-icon icon="mdi:clock-alert-outline" style="--mdc-icon-size:15px"></ha-icon>
+              ${tr.urgentSection}
+            </div>
+            <ha-card>
+              ${urgentTasks.length === 0 && !q && this._filterPriority === "all"
+                ? html`
+                  <div class="all-clear">
+                    <div class="all-clear-emoji">🎉</div>
+                    <p class="all-clear-title">${tr.allClear}</p>
+                    <p class="all-clear-sub">${tr.allClearSub}</p>
+                    <span class="all-clear-suggestion">${this._relaxSuggestion}</span>
+                  </div>`
+                : urgentTasks.length === 0
+                ? html`<div class="empty">${tr.noTasks}</div>`
+                : html`<div class="list-container">${urgentTasks.map(taskItem)}</div>`}
+            </ha-card>
+          </div>
+          ${otherTasks.length > 0 ? html`
+          <div>
+            <div class="section-header">
+              <ha-icon icon="mdi:clock-outline" style="--mdc-icon-size:15px"></ha-icon>
+              ${tr.otherPendingSection}
+            </div>
+            ${upcomingFilterBar}
+            <ha-card>
+              <div class="list-container">${otherTasks.map(taskItem)}</div>
+            </ha-card>
+          </div>` : html`
+          <div>
+            <div class="section-header">
+              <ha-icon icon="mdi:clock-outline" style="--mdc-icon-size:15px"></ha-icon>
+              ${tr.otherPendingSection}
+            </div>
+            ${upcomingFilterBar}
+          </div>`}
+        </div>
+        ${confirmDialog}
+      `;
+    }
+
+    // completed tab
+    const completedTasks = this.tasks.filter(t =>
+      t.status === "completed" && matchesPr(t) && matchesQ(t));
+    const totalPages = Math.max(1, Math.ceil(completedTasks.length / this._pageSize));
+    const page = Math.min(this._page, totalPages - 1);
+    const start = page * this._pageSize;
+    const pageTasks = completedTasks.slice(start, start + this._pageSize);
+
+    return html`
+      ${filterSection}
+      <ha-card class="full-card">
+        ${completedTasks.length === 0
+          ? html`<div class="empty">${tr.noTasks}</div>`
+          : html`<div class="list-container">${pageTasks.map(taskItem)}</div>`}
+      </ha-card>
+      ${completedTasks.length > 0 ? html`
+      <div class="pagination">
+        <span>${tr.rowsPerPage}</span>
+        <select .value=${String(this._pageSize)} @change=${(e: Event) => { this._pageSize = Number((e.target as HTMLSelectElement).value) as 25 | 50 | 100; this._resetPage(); }}>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+        <span>${start + 1}–${Math.min(start + this._pageSize, completedTasks.length)} ${tr.of} ${completedTasks.length}</span>
+        <button class="page-btn" ?disabled=${page === 0} @click=${() => { this._page = page - 1; }}>&lt;</button>
+        <button class="page-btn" ?disabled=${page >= totalPages - 1} @click=${() => { this._page = page + 1; }}>&gt;</button>
+      </div>` : ""}
+      ${confirmDialog}
     `;
   }
 }
