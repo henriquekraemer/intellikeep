@@ -172,9 +172,12 @@ const messages = {
         settingsHeading: "IntelliKeep Settings",
         settingsBody: "To change integration settings, go to Settings → Devices & Services → IntelliKeep → Configure.",
         rowsPerPage: "Rows per page:",
+        cardsPerPage: "Cards per page:",
         of: "of",
         animationsLabel: "Task animations",
         animationsDesc: "Animate tasks when marked as done or deleted.",
+        viewList: "List view",
+        viewGrid: "Grid view",
         allClear: "You're all caught up for today!",
         allClearSub: "Nothing due right now. Here's an idea:",
         relaxSuggestions: [
@@ -253,9 +256,12 @@ const messages = {
         settingsHeading: "Configurações do IntelliKeep",
         settingsBody: "Para alterar as configurações da integração, acesse Configurações → Dispositivos e Serviços → IntelliKeep → Configurar.",
         rowsPerPage: "Linhas por página:",
+        cardsPerPage: "Cards por página:",
         of: "de",
         animationsLabel: "Animações de tarefas",
         animationsDesc: "Animar tarefas ao marcar como concluída ou excluir.",
+        viewList: "Visualização em lista",
+        viewGrid: "Visualização em cards",
         allClear: "Está tudo em dia por hoje!",
         allClearSub: "Nada pendente agora. Que tal:",
         relaxSuggestions: [
@@ -298,6 +304,7 @@ let IkTaskCard = class IkTaskCard extends i {
     constructor() {
         super(...arguments);
         this.completing = false;
+        this.grid = false;
     }
     _relativeDue(iso) {
         const tr = t(this.hass?.language);
@@ -316,6 +323,19 @@ let IkTaskCard = class IkTaskCard extends i {
     }
     render() {
         const { task } = this;
+        if (this.grid) {
+            return b `
+        <div class="card">
+          <div class="card-top">
+            <div class="card-name">${task.name}</div>
+            <div class="card-priority-dot" style="background:${priorityColor(task.priority)}" title=${task.priority}></div>
+          </div>
+          <div class="card-desc">${task.description ?? ""}</div>
+          <div class="card-due" style="color:${statusColor(task.status)}">${this._relativeDue(task.due_date)}</div>
+          <div class="card-actions"><slot name="actions"></slot></div>
+        </div>
+      `;
+        }
         return b `
       <div class="row">
         <div class="body">
@@ -380,6 +400,58 @@ IkTaskCard.styles = i$3 `
       display: flex;
       gap: 4px;
     }
+    /* Grid card layout */
+    .card {
+      display: flex;
+      flex-direction: column;
+      padding: 14px 14px 10px;
+      border-radius: 10px;
+      border: 1.5px solid var(--divider-color);
+      background: var(--card-background-color);
+      gap: 8px;
+      height: 100%;
+      box-sizing: border-box;
+    }
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .card-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--primary-text-color);
+      line-height: 1.3;
+      flex: 1;
+    }
+    .card-priority-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+    .card-due {
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .card-desc {
+      font-size: 12px;
+      line-height: 1.4;
+      height: 2.8em;
+      color: var(--secondary-text-color);
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .card-actions {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-top: 2px;
+    }
   `;
 __decorate([
     n({ attribute: false })
@@ -390,6 +462,9 @@ __decorate([
 __decorate([
     n({ type: Boolean })
 ], IkTaskCard.prototype, "completing", void 0);
+__decorate([
+    n({ type: Boolean })
+], IkTaskCard.prototype, "grid", void 0);
 IkTaskCard = __decorate([
     t$1("ik-task-card")
 ], IkTaskCard);
@@ -505,12 +580,17 @@ let IkTaskListView = class IkTaskListView extends i {
         this._exitingDelete = new Set();
         this._exitingUndo = new Set();
         this._exitingEdit = new Set();
+        this._viewMode = "list";
     }
     connectedCallback() {
         super.connectedCallback();
         const saved = localStorage.getItem("intellikeep.filterTab");
         if (saved === "due" || saved === "overdue" || saved === "pending" || saved === "completed") {
             this._filterTab = saved;
+        }
+        const savedView = localStorage.getItem("intellikeep.viewMode");
+        if (savedView === "list" || savedView === "grid") {
+            this._viewMode = savedView;
         }
     }
     _resetPage() {
@@ -640,6 +720,12 @@ let IkTaskListView = class IkTaskListView extends i {
           <option value="medium">${tr.medium}</option>
           <option value="low">${tr.low}</option>
         </select>
+        <div class="view-toggle">
+          <button class="view-btn ${this._viewMode === "list" ? "active" : ""}" title=${tr.viewList}
+            @click=${() => { this._viewMode = "list"; localStorage.setItem("intellikeep.viewMode", "list"); }}>&#9776;</button>
+          <button class="view-btn ${this._viewMode === "grid" ? "active" : ""}" title=${tr.viewGrid}
+            @click=${() => { this._viewMode = "grid"; localStorage.setItem("intellikeep.viewMode", "grid"); }}>&#9783;</button>
+        </div>
       </div>
 
       <ha-card>
@@ -653,14 +739,27 @@ let IkTaskListView = class IkTaskListView extends i {
             </div>`
             : tasks.length === 0
                 ? b `<div class="empty">${tr.noTasks}</div>`
-                : pageTasks.map((task, i) => b `
+                : this._viewMode === "grid"
+                    ? b `<div class="grid-container">${pageTasks.map(task => b `
+              <div class="task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : this._exitingUndo.has(task.task_id) ? "exiting-undo" : this._exitingEdit.has(task.task_id) ? "exiting-edit" : ""}">
+                <ik-task-card .task=${task} .hass=${this.hass} .grid=${true}>
+                  <div class="task-actions" slot="actions">
+                    ${task.status !== "completed"
+                        ? b `<button class="btn primary" ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}>${tr.done}</button>`
+                        : b `<button class="btn undo" ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}>${tr.undo}</button>`}
+                    <button class="btn edit" @click=${() => this._edit(task.task_id)}>${tr.edit}</button>
+                    <button class="btn danger" @click=${() => { this._deleteTarget = task.task_id; }}>${tr.del}</button>
+                  </div>
+                </ik-task-card>
+              </div>`)}</div>`
+                    : pageTasks.map((task, i) => b `
                 <div class="task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : this._exitingUndo.has(task.task_id) ? "exiting-undo" : this._exitingEdit.has(task.task_id) ? "exiting-edit" : ""}">
                   ${i > 0 ? b `<hr class="task-divider" />` : ""}
                   <ik-task-card .task=${task} .hass=${this.hass}>
                     <div class="task-actions" slot="actions">
                       ${task.status !== "completed"
-                    ? b `<button class="btn primary" ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}>${tr.done}</button>`
-                    : b `<button class="btn undo" ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}>${tr.undo}</button>`}
+                        ? b `<button class="btn primary" ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}>${tr.done}</button>`
+                        : b `<button class="btn undo" ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}>${tr.undo}</button>`}
                       <button class="btn edit" @click=${() => this._edit(task.task_id)}>${tr.edit}</button>
                       <button class="btn danger" @click=${() => { this._deleteTarget = task.task_id; }}>${tr.del}</button>
                     </div>
@@ -671,7 +770,7 @@ let IkTaskListView = class IkTaskListView extends i {
 
       ${tasks.length > 0 ? b `
       <div class="pagination">
-        <span>${tr.rowsPerPage}</span>
+        <span>${this._viewMode === 'grid' ? tr.cardsPerPage : tr.rowsPerPage}</span>
         <select .value=${String(this._pageSize)} @change=${(e) => { this._pageSize = Number(e.target.value); this._resetPage(); }}>
           <option value="25">25</option>
           <option value="50">50</option>
@@ -755,6 +854,33 @@ IkTaskListView.styles = i$3 `
       background: var(--card-background-color);
       color: var(--primary-text-color);
       font-size: 13px;
+    }
+    .view-toggle {
+      display: flex;
+      border: 1.5px solid var(--divider-color);
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .view-btn {
+      padding: 4px 9px;
+      border: none;
+      background: transparent;
+      color: var(--secondary-text-color);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      transition: background 0.15s, color 0.15s;
+    }
+    .view-btn.active {
+      background: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+      padding: 8px;
     }
     ha-card { overflow: hidden; }
     .empty {
@@ -939,6 +1065,9 @@ __decorate([
 __decorate([
     r()
 ], IkTaskListView.prototype, "_exitingEdit", void 0);
+__decorate([
+    r()
+], IkTaskListView.prototype, "_viewMode", void 0);
 IkTaskListView = __decorate([
     t$1("ik-task-list-view")
 ], IkTaskListView);
