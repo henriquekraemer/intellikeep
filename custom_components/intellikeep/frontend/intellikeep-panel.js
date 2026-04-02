@@ -133,6 +133,7 @@ const messages = {
         medium: "Medium",
         low: "Low",
         noTasks: "No tasks match the current filters.",
+        noUpcoming: "No tasks scheduled for the selected period.",
         deleteHeading: "Delete task?",
         deleteBody: "This action cannot be undone.",
         noDueDate: "No due date",
@@ -166,6 +167,8 @@ const messages = {
         freqCustom: "Custom interval",
         historyLoading: "Loading…",
         taskNotFound: "Task not found.",
+        editTab: "Edit",
+        historyTab: (n) => n > 0 ? `History (${n})` : "History",
         back: "← Back",
         executionHistory: (n) => `Execution history — ${n} record${n !== 1 ? "s" : ""}`,
         noExecutions: "No executions recorded yet.",
@@ -227,6 +230,7 @@ const messages = {
         medium: "Média",
         low: "Baixa",
         noTasks: "Nenhuma tarefa corresponde aos filtros.",
+        noUpcoming: "Nenhuma tarefa agendada para o período selecionado.",
         deleteHeading: "Excluir tarefa?",
         deleteBody: "Esta ação não pode ser desfeita.",
         noDueDate: "Sem data prevista",
@@ -260,6 +264,8 @@ const messages = {
         freqCustom: "Intervalo personalizado",
         historyLoading: "Carregando…",
         taskNotFound: "Tarefa não encontrada.",
+        editTab: "Editar",
+        historyTab: (n) => n > 0 ? `Histórico (${n})` : "Histórico",
         back: "← Voltar",
         executionHistory: (n) => `Histórico de execuções — ${n} registro${n !== 1 ? "s" : ""}`,
         noExecutions: "Nenhuma execução registrada ainda.",
@@ -568,6 +574,8 @@ let IkTaskListView = class IkTaskListView extends i {
         this._reopening = new Set();
         this._page = 0;
         this._pageSize = 25;
+        this._pendingPage = 0;
+        this._urgentPage = 0;
         this._exitingDone = new Set();
         this._exitingDelete = new Set();
         this._exitingUndo = new Set();
@@ -656,6 +664,8 @@ let IkTaskListView = class IkTaskListView extends i {
     }
     _resetPage() {
         this._page = 0;
+        this._pendingPage = 0;
+        this._urgentPage = 0;
     }
     get _relaxSuggestion() {
         const tr = t(this.hass?.language);
@@ -704,7 +714,7 @@ let IkTaskListView = class IkTaskListView extends i {
             await new Promise((r) => setTimeout(r, 380));
         }
         try {
-            await completeTask(this.hass, taskId);
+            await completeTask(this.hass, taskId, this.hass.user?.name ?? "");
         }
         catch (err) {
             console.error("[IntelliKeep] complete_task failed:", err);
@@ -746,7 +756,7 @@ let IkTaskListView = class IkTaskListView extends i {
         const q = this._searchQuery.trim().toLowerCase();
         const matchesQ = (task) => !q || task.name.toLowerCase().includes(q) || (task.description ?? "").toLowerCase().includes(q);
         const matchesPr = (task) => this._filterPriority === "all" || task.priority === this._filterPriority;
-        const countPending = this.tasks.filter(t => t.status !== "completed").length;
+        const countPending = this.tasks.filter(t => t.status === "due" || t.status === "overdue").length;
         const countCompleted = this.tasks.filter(t => t.status === "completed").length;
         const chip = (tab, label, count, extra = "") => b `
       <button
@@ -866,9 +876,17 @@ let IkTaskListView = class IkTaskListView extends i {
             localStorage.setItem("intellikeep.upcomingRange", v);
         };
         if (this._filterTab === "pending") {
-            const urgentTasks = this.tasks.filter(t => (t.status === "due" || t.status === "overdue") && matchesPr(t) && matchesQ(t));
-            const otherTasks = this.tasks.filter(t => t.status !== "completed" && t.status !== "due" && t.status !== "overdue" && matchesPr(t) && matchesQ(t) && inUpcomingRange(t))
+            const urgentTasksAll = this.tasks.filter(t => (t.status === "due" || t.status === "overdue") && matchesPr(t) && matchesQ(t));
+            const urgentTotalPages = Math.max(1, Math.ceil(urgentTasksAll.length / this._pageSize));
+            const urgentPage = Math.min(this._urgentPage, urgentTotalPages - 1);
+            const urgentStart = urgentPage * this._pageSize;
+            const urgentTasks = urgentTasksAll.slice(urgentStart, urgentStart + this._pageSize);
+            const otherTasksAll = this.tasks.filter(t => t.status !== "completed" && t.status !== "due" && t.status !== "overdue" && matchesPr(t) && matchesQ(t) && inUpcomingRange(t))
                 .sort(sortUpcoming);
+            const pendingTotalPages = Math.max(1, Math.ceil(otherTasksAll.length / this._pageSize));
+            const pendingPage = Math.min(this._pendingPage, pendingTotalPages - 1);
+            const pendingStart = pendingPage * this._pageSize;
+            const otherTasks = otherTasksAll.slice(pendingStart, pendingStart + this._pageSize);
             const upcomingRangeChip = (v, label) => b `
         <button class="upcoming-chip ${this._upcomingRange === v ? "active" : ""}" @click=${() => setUpcomingRange(v)}>${label}</button>
       `;
@@ -902,7 +920,7 @@ let IkTaskListView = class IkTaskListView extends i {
               ${tr.urgentSection}
             </div>
             <ha-card>
-              ${urgentTasks.length === 0 && !q && this._filterPriority === "all"
+              ${urgentTasksAll.length === 0 && !q && this._filterPriority === "all"
                 ? b `
                   <div class="all-clear">
                     <div class="all-clear-emoji">🎉</div>
@@ -910,12 +928,24 @@ let IkTaskListView = class IkTaskListView extends i {
                     <p class="all-clear-sub">${tr.allClearSub}</p>
                     <span class="all-clear-suggestion">${this._relaxSuggestion}</span>
                   </div>`
-                : urgentTasks.length === 0
+                : urgentTasksAll.length === 0
                     ? b `<div class="empty">${tr.noTasks}</div>`
                     : b `<div class="list-container">${urgentTasks.map(taskItem)}</div>`}
             </ha-card>
+            ${urgentTasksAll.length > 0 ? b `
+            <div class="pagination">
+              <span>${tr.rowsPerPage}</span>
+              <select .value=${String(this._pageSize)} @change=${(e) => { this._pageSize = Number(e.target.value); this._urgentPage = 0; }}>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span>${urgentStart + 1}–${Math.min(urgentStart + this._pageSize, urgentTasksAll.length)} ${tr.of} ${urgentTasksAll.length}</span>
+              <button class="page-btn" ?disabled=${urgentPage === 0} @click=${() => { this._urgentPage = urgentPage - 1; }}>&lt;</button>
+              <button class="page-btn" ?disabled=${urgentPage >= urgentTotalPages - 1} @click=${() => { this._urgentPage = urgentPage + 1; }}>&gt;</button>
+            </div>` : ""}
           </div>
-          ${otherTasks.length > 0 ? b `
+          ${otherTasksAll.length > 0 ? b `
           <div>
             <div class="section-header">
               <ha-icon icon="mdi:clock-outline" style="--mdc-icon-size:15px"></ha-icon>
@@ -932,7 +962,22 @@ let IkTaskListView = class IkTaskListView extends i {
               ${tr.otherPendingSection}
             </div>
             ${upcomingFilterBar}
+            <ha-card>
+              <div class="empty">${tr.noUpcoming}</div>
+            </ha-card>
           </div>`}
+          ${otherTasksAll.length > 0 ? b `
+          <div class="pagination">
+            <span>${tr.rowsPerPage}</span>
+            <select .value=${String(this._pageSize)} @change=${(e) => { this._pageSize = Number(e.target.value); this._pendingPage = 0; }}>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            <span>${pendingStart + 1}–${Math.min(pendingStart + this._pageSize, otherTasksAll.length)} ${tr.of} ${otherTasksAll.length}</span>
+            <button class="page-btn" ?disabled=${pendingPage === 0} @click=${() => { this._pendingPage = pendingPage - 1; }}>&lt;</button>
+            <button class="page-btn" ?disabled=${pendingPage >= pendingTotalPages - 1} @click=${() => { this._pendingPage = pendingPage + 1; }}>&gt;</button>
+          </div>` : ""}
         </div>
         ${confirmDialog}
       `;
@@ -945,23 +990,25 @@ let IkTaskListView = class IkTaskListView extends i {
         const pageTasks = completedTasks.slice(start, start + this._pageSize);
         return b `
       ${filterSection}
-      <ha-card class="full-card">
-        ${completedTasks.length === 0
+      <div class="list-scroll">
+        <ha-card class="full-card">
+          ${completedTasks.length === 0
             ? b `<div class="empty">${tr.noTasks}</div>`
             : b `<div class="list-container">${pageTasks.map(taskItem)}</div>`}
-      </ha-card>
-      ${completedTasks.length > 0 ? b `
-      <div class="pagination">
-        <span>${tr.rowsPerPage}</span>
-        <select .value=${String(this._pageSize)} @change=${(e) => { this._pageSize = Number(e.target.value); this._resetPage(); }}>
-          <option value="25">25</option>
-          <option value="50">50</option>
-          <option value="100">100</option>
-        </select>
-        <span>${start + 1}–${Math.min(start + this._pageSize, completedTasks.length)} ${tr.of} ${completedTasks.length}</span>
-        <button class="page-btn" ?disabled=${page === 0} @click=${() => { this._page = page - 1; }}>&lt;</button>
-        <button class="page-btn" ?disabled=${page >= totalPages - 1} @click=${() => { this._page = page + 1; }}>&gt;</button>
-      </div>` : ""}
+        </ha-card>
+        ${completedTasks.length > 0 ? b `
+        <div class="pagination">
+          <span>${tr.rowsPerPage}</span>
+          <select .value=${String(this._pageSize)} @change=${(e) => { this._pageSize = Number(e.target.value); this._resetPage(); }}>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+          <span>${start + 1}–${Math.min(start + this._pageSize, completedTasks.length)} ${tr.of} ${completedTasks.length}</span>
+          <button class="page-btn" ?disabled=${page === 0} @click=${() => { this._page = page - 1; }}>&lt;</button>
+          <button class="page-btn" ?disabled=${page >= totalPages - 1} @click=${() => { this._page = page + 1; }}>&gt;</button>
+        </div>` : ""}
+      </div>
       ${confirmDialog}
     `;
     }
@@ -1062,7 +1109,12 @@ IkTaskListView.styles = i$3 `
     }
     .search-input::placeholder { color: var(--secondary-text-color); }
 
-    .full-card { flex: 1; min-height: 0; overflow-y: auto; }
+    .full-card { display: block; }
+    .list-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
     .sections-scroll {
       flex: 1;
       min-height: 0;
@@ -1220,7 +1272,7 @@ IkTaskListView.styles = i$3 `
       align-items: center;
       justify-content: flex-end;
       gap: 8px;
-      padding: 12px 0 0;
+      padding: 12px 0;
       flex-wrap: wrap;
     }
     .pagination select {
@@ -1368,6 +1420,12 @@ __decorate([
 ], IkTaskListView.prototype, "_pageSize", void 0);
 __decorate([
     r()
+], IkTaskListView.prototype, "_pendingPage", void 0);
+__decorate([
+    r()
+], IkTaskListView.prototype, "_urgentPage", void 0);
+__decorate([
+    r()
 ], IkTaskListView.prototype, "_exitingDone", void 0);
 __decorate([
     r()
@@ -1402,6 +1460,9 @@ let IkTaskFormView = class IkTaskFormView extends i {
         this._deleting = false;
         this._showDeleteConfirm = false;
         this._error = "";
+        this._activeTab = "edit";
+        this._historyPage = 0;
+        this._historyPageSize = 10;
     }
     connectedCallback() {
         super.connectedCallback();
@@ -1429,13 +1490,16 @@ let IkTaskFormView = class IkTaskFormView extends i {
     _navigate(path) {
         this.dispatchEvent(new CustomEvent("navigate", { detail: path, bubbles: true, composed: true }));
     }
+    _formatDate(iso) {
+        return new Date(iso).toLocaleString();
+    }
     async _complete() {
         if (!this.task)
             return;
         this._completing = true;
         try {
             if (this.task.status !== "completed") {
-                await completeTask(this.hass, this.task.task_id);
+                await completeTask(this.hass, this.task.task_id, this.hass.user?.name ?? "");
             }
             else {
                 await reopenTask(this.hass, this.task.task_id);
@@ -1503,8 +1567,22 @@ let IkTaskFormView = class IkTaskFormView extends i {
         else {
             this.removeAttribute("no-animations");
         }
+        const executions = isEdit ? [...(this.task.executions || [])].reverse() : [];
+        const showHistory = isEdit && this._activeTab === "history";
+        const pageSize = this._historyPageSize;
+        const totalPages = Math.max(1, Math.ceil(executions.length / pageSize));
+        const histPage = Math.min(this._historyPage, totalPages - 1);
+        const histStart = histPage * pageSize;
+        const pageExecs = executions.slice(histStart, histStart + pageSize);
         return b `
       <div class="form">
+        ${isEdit ? b `
+          <div class="form-tabs">
+            <div class="form-tab ${this._activeTab === "edit" ? "active" : ""}" @click=${() => { this._activeTab = "edit"; }}>${tr.editTab}</div>
+            <div class="form-tab ${this._activeTab === "history" ? "active" : ""}" @click=${() => { this._activeTab = "history"; this._historyPage = 0; }}>${tr.historyTab(executions.length)}</div>
+          </div>
+        ` : A}
+        ${!showHistory ? b `
         <label>
           ${tr.taskName}
           <input .value=${this._name} @input=${(e) => { this._name = e.target.value; }} placeholder=${tr.taskNamePlaceholder} />
@@ -1623,10 +1701,48 @@ let IkTaskFormView = class IkTaskFormView extends i {
             </button>
           </div>
         `}
+        ` : b `
+          ${executions.length === 0
+            ? b `<div class="history-empty">${tr.noExecutions}</div>`
+            : b `
+              <table class="exec-table">
+                <thead>
+                  <tr>
+                    <th>${tr.completedAt}</th>
+                    <th>${tr.completedBy}</th>
+                    <th>${tr.notes}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${pageExecs.map((ex) => b `
+                    <tr>
+                      <td>${this._formatDate(ex.completed_at)}</td>
+                      <td>${ex.completed_by || "—"}</td>
+                      <td>${ex.notes || "—"}</td>
+                    </tr>
+                  `)}
+                </tbody>
+              </table>
+              ${executions.length > 0 ? b `
+                <div class="history-pagination">
+                  <span>${tr.rowsPerPage}</span>
+                  <select .value=${String(this._historyPageSize)} @change=${(e) => { this._historyPageSize = Number(e.target.value); this._historyPage = 0; }}>
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                  </select>
+                  <span class="history-summary">${histStart + 1}–${Math.min(histStart + this._historyPageSize, executions.length)} ${tr.of} ${executions.length}</span>
+                  <button class="history-page-btn" ?disabled=${histPage === 0} @click=${() => { this._historyPage = histPage - 1; }}>&lt;</button>
+                  <button class="history-page-btn" ?disabled=${histPage >= totalPages - 1} @click=${() => { this._historyPage = histPage + 1; }}>&gt;</button>
+                </div>
+              ` : A}
+            `}
+        `}
       </div>
     `;
     }
 };
+IkTaskFormView._HISTORY_PAGE_SIZE = 10;
 IkTaskFormView.styles = i$3 `
     :host { display: block; }
     .form { display: flex; flex-direction: column; gap: 16px; max-width: 600px; }
@@ -1712,6 +1828,94 @@ IkTaskFormView.styles = i$3 `
       filter: none !important;
       transform: none !important;
     }
+    .form-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--divider-color);
+      margin-bottom: -4px;
+    }
+    .form-tab {
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--secondary-text-color);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      user-select: none;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .form-tab:hover { color: var(--primary-text-color); }
+    .form-tab.active {
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
+    }
+    .history-empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--secondary-text-color);
+      font-size: 14px;
+    }
+    .exec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .exec-table th {
+      text-align: left;
+      padding: 8px 12px;
+      background: var(--secondary-background-color);
+      color: var(--secondary-text-color);
+      font-weight: 500;
+      border-bottom: 1px solid var(--divider-color);
+    }
+    .exec-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--divider-color);
+      vertical-align: top;
+    }
+    .exec-table tbody tr:last-child td { border-bottom: none; }
+    .history-pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 0 0;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 600px) {
+      .history-pagination {
+        justify-content: flex-end;
+        margin-top: 8px;
+      }
+      .history-pagination .history-summary {
+        width: auto;
+        order: 0;
+      }
+    }
+    .history-pagination select {
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--divider-color);
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      font-size: 13px;
+    }
+    .history-pagination span {
+      font-size: 13px;
+      color: var(--secondary-text-color);
+    }
+    .history-page-btn {
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--divider-color);
+      background: transparent;
+      color: var(--primary-text-color);
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .history-page-btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
   `;
 __decorate([
     n({ attribute: false })
@@ -1767,6 +1971,15 @@ __decorate([
 __decorate([
     r()
 ], IkTaskFormView.prototype, "_error", void 0);
+__decorate([
+    r()
+], IkTaskFormView.prototype, "_activeTab", void 0);
+__decorate([
+    r()
+], IkTaskFormView.prototype, "_historyPage", void 0);
+__decorate([
+    r()
+], IkTaskFormView.prototype, "_historyPageSize", void 0);
 IkTaskFormView = __decorate([
     t$1("ik-task-form-view")
 ], IkTaskFormView);

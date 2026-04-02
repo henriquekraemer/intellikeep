@@ -26,6 +26,10 @@ export class IkTaskFormView extends LitElement {
   @state() private _deleting = false;
   @state() private _showDeleteConfirm = false;
   @state() private _error = "";
+  @state() private _activeTab: "edit" | "history" = "edit";
+  @state() private _historyPage = 0;
+  @state() private _historyPageSize: 10 | 25 | 50 = 10;
+  private static readonly _HISTORY_PAGE_SIZE = 10;
 
   connectedCallback() {
     super.connectedCallback();
@@ -135,10 +139,102 @@ export class IkTaskFormView extends LitElement {
       filter: none !important;
       transform: none !important;
     }
+    .form-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--divider-color);
+      margin-bottom: -4px;
+    }
+    .form-tab {
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--secondary-text-color);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      user-select: none;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .form-tab:hover { color: var(--primary-text-color); }
+    .form-tab.active {
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
+    }
+    .history-empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--secondary-text-color);
+      font-size: 14px;
+    }
+    .exec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .exec-table th {
+      text-align: left;
+      padding: 8px 12px;
+      background: var(--secondary-background-color);
+      color: var(--secondary-text-color);
+      font-weight: 500;
+      border-bottom: 1px solid var(--divider-color);
+    }
+    .exec-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--divider-color);
+      vertical-align: top;
+    }
+    .exec-table tbody tr:last-child td { border-bottom: none; }
+    .history-pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 0 0;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 600px) {
+      .history-pagination {
+        justify-content: flex-end;
+        margin-top: 8px;
+      }
+      .history-pagination .history-summary {
+        width: auto;
+        order: 0;
+      }
+    }
+    .history-pagination select {
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--divider-color);
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      font-size: 13px;
+    }
+    .history-pagination span {
+      font-size: 13px;
+      color: var(--secondary-text-color);
+    }
+    .history-page-btn {
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--divider-color);
+      background: transparent;
+      color: var(--primary-text-color);
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .history-page-btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
   `;
 
   private _navigate(path: string) {
     this.dispatchEvent(new CustomEvent("navigate", { detail: path, bubbles: true, composed: true }));
+  }
+
+  private _formatDate(iso: string): string {
+    return new Date(iso).toLocaleString();
   }
 
   private async _complete() {
@@ -146,7 +242,7 @@ export class IkTaskFormView extends LitElement {
     this._completing = true;
     try {
       if (this.task.status !== "completed") {
-        await completeTask(this.hass, this.task.task_id);
+        await completeTask(this.hass, this.task.task_id, this.hass.user?.name ?? "");
       } else {
         await reopenTask(this.hass, this.task.task_id);
       }
@@ -210,8 +306,22 @@ export class IkTaskFormView extends LitElement {
     } else {
       this.removeAttribute("no-animations");
     }
+    const executions = isEdit ? [...(this.task!.executions || [])].reverse() : [];
+    const showHistory = isEdit && this._activeTab === "history";
+    const pageSize = this._historyPageSize;
+    const totalPages = Math.max(1, Math.ceil(executions.length / pageSize));
+    const histPage = Math.min(this._historyPage, totalPages - 1);
+    const histStart = histPage * pageSize;
+    const pageExecs = executions.slice(histStart, histStart + pageSize);
     return html`
       <div class="form">
+        ${isEdit ? html`
+          <div class="form-tabs">
+            <div class="form-tab ${this._activeTab === "edit" ? "active" : ""}" @click=${() => { this._activeTab = "edit"; }}>${tr.editTab}</div>
+            <div class="form-tab ${this._activeTab === "history" ? "active" : ""}" @click=${() => { this._activeTab = "history"; this._historyPage = 0; }}>${tr.historyTab(executions.length)}</div>
+          </div>
+        ` : nothing}
+        ${!showHistory ? html`
         <label>
           ${tr.taskName}
           <input .value=${this._name} @input=${(e: Event) => { this._name = (e.target as HTMLInputElement).value; }} placeholder=${tr.taskNamePlaceholder} />
@@ -331,6 +441,43 @@ export class IkTaskFormView extends LitElement {
               <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${this._saving ? tr.saving : tr.createTask}</span>
             </button>
           </div>
+        `}
+        ` : html`
+          ${executions.length === 0
+            ? html`<div class="history-empty">${tr.noExecutions}</div>`
+            : html`
+              <table class="exec-table">
+                <thead>
+                  <tr>
+                    <th>${tr.completedAt}</th>
+                    <th>${tr.completedBy}</th>
+                    <th>${tr.notes}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${pageExecs.map((ex) => html`
+                    <tr>
+                      <td>${this._formatDate(ex.completed_at)}</td>
+                      <td>${ex.completed_by || "—"}</td>
+                      <td>${ex.notes || "—"}</td>
+                    </tr>
+                  `)}
+                </tbody>
+              </table>
+              ${executions.length > 0 ? html`
+                <div class="history-pagination">
+                  <span>${tr.rowsPerPage}</span>
+                  <select .value=${String(this._historyPageSize)} @change=${(e: Event) => { this._historyPageSize = Number((e.target as HTMLSelectElement).value) as 10 | 25 | 50; this._historyPage = 0; }}>
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                  </select>
+                  <span class="history-summary">${histStart + 1}–${Math.min(histStart + this._historyPageSize, executions.length)} ${tr.of} ${executions.length}</span>
+                  <button class="history-page-btn" ?disabled=${histPage === 0} @click=${() => { this._historyPage = histPage - 1; }}>&lt;</button>
+                  <button class="history-page-btn" ?disabled=${histPage >= totalPages - 1} @click=${() => { this._historyPage = histPage + 1; }}>&gt;</button>
+                </div>
+              ` : nothing}
+            `}
         `}
       </div>
     `;
