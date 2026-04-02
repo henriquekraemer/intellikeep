@@ -67,6 +67,18 @@ const messages = {
     of: "of",
     animationsLabel: "Task animations",
     animationsDesc: "Animate tasks when marked as done or deleted.",
+    allClear: "You're all caught up for today!",
+    allClearSub: "Nothing due right now. Here's an idea:",
+    relaxSuggestions: [
+      "\u2615 Brew a fresh cup of coffee and enjoy it slowly.",
+      "\u{1F6B6} Take a short walk outside and get some fresh air.",
+      "\u{1F4D6} Read a chapter of that book you've been putting off.",
+      "\u{1F3B5} Put on your favourite playlist and unwind.",
+      "\u{1F9D8} Do a 5-minute breathing exercise.",
+      "\u{1F33F} Water your plants and check in on them.",
+      "\u{1F3AE} Boot up a game you haven't played in a while.",
+      "\u{1F375} Make some tea and watch the world go by.",
+    ],
   },
   pt: {
     newTask: "Nova tarefa",
@@ -136,6 +148,18 @@ const messages = {
     of: "de",
     animationsLabel: "Animações de tarefas",
     animationsDesc: "Animar tarefas ao marcar como concluída ou excluir.",
+    allClear: "Está tudo em dia por hoje!",
+    allClearSub: "Nada pendente agora. Que tal:",
+    relaxSuggestions: [
+      "\u2615 Prepare um café gostoso e aprecie cada gole.",
+      "\u{1F6B6} Dê uma caminhada e tome um ar fresco.",
+      "\u{1F4D6} Leia um capítulo daquele livro que está esperando.",
+      "\u{1F3B5} Coloque sua playlist favorita e relaxe.",
+      "\u{1F9D8} Faça um exercício de respiração de 5 minutos.",
+      "\u{1F33F} Regue suas plantas e veja como estão.",
+      "\u{1F3AE} Jogue aquele jogo que faz tempo que não abre.",
+      "\u{1F375} Prepare um chá e observe o mundo passar.",
+    ],
   },
 };
 

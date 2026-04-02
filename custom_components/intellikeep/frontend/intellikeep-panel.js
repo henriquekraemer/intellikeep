@@ -175,6 +175,18 @@ const messages = {
         of: "of",
         animationsLabel: "Task animations",
         animationsDesc: "Animate tasks when marked as done or deleted.",
+        allClear: "You're all caught up for today!",
+        allClearSub: "Nothing due right now. Here's an idea:",
+        relaxSuggestions: [
+            "\u2615 Brew a fresh cup of coffee and enjoy it slowly.",
+            "\u{1F6B6} Take a short walk outside and get some fresh air.",
+            "\u{1F4D6} Read a chapter of that book you've been putting off.",
+            "\u{1F3B5} Put on your favourite playlist and unwind.",
+            "\u{1F9D8} Do a 5-minute breathing exercise.",
+            "\u{1F33F} Water your plants and check in on them.",
+            "\u{1F3AE} Boot up a game you haven't played in a while.",
+            "\u{1F375} Make some tea and watch the world go by.",
+        ],
     },
     pt: {
         newTask: "Nova tarefa",
@@ -244,6 +256,18 @@ const messages = {
         of: "de",
         animationsLabel: "Animações de tarefas",
         animationsDesc: "Animar tarefas ao marcar como concluída ou excluir.",
+        allClear: "Está tudo em dia por hoje!",
+        allClearSub: "Nada pendente agora. Que tal:",
+        relaxSuggestions: [
+            "\u2615 Prepare um café gostoso e aprecie cada gole.",
+            "\u{1F6B6} Dê uma caminhada e tome um ar fresco.",
+            "\u{1F4D6} Leia um capítulo daquele livro que está esperando.",
+            "\u{1F3B5} Coloque sua playlist favorita e relaxe.",
+            "\u{1F9D8} Faça um exercício de respiração de 5 minutos.",
+            "\u{1F33F} Regue suas plantas e veja como estão.",
+            "\u{1F3AE} Jogue aquele jogo que faz tempo que não abre.",
+            "\u{1F375} Prepare um chá e observe o mundo passar.",
+        ],
     },
 };
 function t(language) {
@@ -470,8 +494,7 @@ let IkTaskListView = class IkTaskListView extends i {
         super(...arguments);
         this.tasks = [];
         this.enableAnimations = true;
-        this._filterGroup = "pending";
-        this._filterUrgency = "all";
+        this._filterTab = "due";
         this._filterPriority = "all";
         this._deleteTarget = null;
         this._completing = new Set();
@@ -480,32 +503,52 @@ let IkTaskListView = class IkTaskListView extends i {
         this._pageSize = 25;
         this._exitingDone = new Set();
         this._exitingDelete = new Set();
+        this._exitingUndo = new Set();
+        this._exitingEdit = new Set();
     }
     _resetPage() {
         this._page = 0;
     }
     get _filtered() {
-        return this.tasks.filter((t) => {
-            // Group: pending = not completed, completed = completed
-            if (this._filterGroup === "pending" && t.status === "completed")
+        return this.tasks.filter((task) => {
+            const tabMatch = (() => {
+                switch (this._filterTab) {
+                    case "due": return task.status === "due";
+                    case "overdue": return task.status === "overdue";
+                    case "pending": return task.status !== "completed";
+                    case "completed": return task.status === "completed";
+                }
+            })();
+            if (!tabMatch)
                 return false;
-            if (this._filterGroup === "completed" && t.status !== "completed")
-                return false;
-            // Urgency subfiltro (só aplicável em pending)
-            if (this._filterGroup === "pending" && this._filterUrgency !== "all") {
-                if (t.status !== this._filterUrgency)
-                    return false;
-            }
-            if (this._filterPriority !== "all" && t.priority !== this._filterPriority)
+            if (this._filterPriority !== "all" && task.priority !== this._filterPriority)
                 return false;
             return true;
         });
     }
+    get _relaxSuggestion() {
+        const tr = t(this.hass?.language);
+        const d = new Date();
+        const idx = (d.getDate() + d.getMonth()) % tr.relaxSuggestions.length;
+        return tr.relaxSuggestions[idx];
+    }
     _navigateTo(path) {
         this.dispatchEvent(new CustomEvent("navigate", { detail: path, bubbles: true, composed: true }));
     }
+    async _edit(taskId) {
+        if (this.enableAnimations) {
+            this._exitingEdit = new Set([...this._exitingEdit, taskId]);
+            await new Promise((r) => setTimeout(r, 320));
+            this._exitingEdit = new Set([...this._exitingEdit].filter((id) => id !== taskId));
+        }
+        this._navigateTo(`/edit/${taskId}`);
+    }
     async _reopen(taskId) {
         this._reopening = new Set([...this._reopening, taskId]);
+        if (this.enableAnimations) {
+            this._exitingUndo = new Set([...this._exitingUndo, taskId]);
+            await new Promise((r) => setTimeout(r, 380));
+        }
         try {
             await reopenTask(this.hass, taskId);
         }
@@ -515,6 +558,7 @@ let IkTaskListView = class IkTaskListView extends i {
         }
         finally {
             this._reopening = new Set([...this._reopening].filter((id) => id !== taskId));
+            this._exitingUndo = new Set([...this._exitingUndo].filter((id) => id !== taskId));
         }
     }
     async _complete(taskId) {
@@ -562,40 +606,55 @@ let IkTaskListView = class IkTaskListView extends i {
         const page = Math.min(this._page, totalPages - 1);
         const start = page * this._pageSize;
         const pageTasks = tasks.slice(start, start + this._pageSize);
+        const countDue = this.tasks.filter(t => t.status === "due").length;
+        const countOverdue = this.tasks.filter(t => t.status === "overdue").length;
+        const countPending = this.tasks.filter(t => t.status !== "completed").length;
+        const countCompleted = this.tasks.filter(t => t.status === "completed").length;
+        const chip = (tab, label, count, extra = "") => b `
+      <button
+        class="filter-chip ${extra} ${this._filterTab === tab ? "active" : ""}"
+        @click=${() => { this._filterTab = tab; this._resetPage(); }}
+      >
+        ${label}
+        <span class="chip-badge">${count}</span>
+      </button>
+    `;
+        const isDueClear = this._filterTab === "due" && tasks.length === 0;
         return b `
-      <div class="toolbar">
-        <select @change=${(e) => { this._filterGroup = e.target.value; this._filterUrgency = "all"; this._resetPage(); }}>
-          <option value="pending">${tr.pending}</option>
-          <option value="completed">${tr.completed}</option>
-        </select>
-        ${this._filterGroup === "pending" ? b `
-        <select @change=${(e) => { this._filterUrgency = e.target.value; this._resetPage(); }}>
-          <option value="all">${tr.allUrgencies}</option>
-          <option value="overdue">${tr.overdue}</option>
-          <option value="due">${tr.dueToday}</option>
-        </select>` : ""}
-        <select @change=${(e) => { this._filterPriority = e.target.value; this._resetPage(); }}>
+      <div class="filter-bar">
+        ${chip("due", tr.dueToday, countDue)}
+        ${chip("overdue", tr.overdue, countOverdue, "chip-overdue")}
+        ${chip("pending", tr.pending, countPending)}
+        ${chip("completed", tr.completed, countCompleted, "chip-completed")}
+        <select class="priority-select" .value=${this._filterPriority} @change=${(e) => { this._filterPriority = e.target.value; this._resetPage(); }}>
           <option value="all">${tr.allPriorities}</option>
           <option value="critical">${tr.critical}</option>
           <option value="high">${tr.high}</option>
           <option value="medium">${tr.medium}</option>
           <option value="low">${tr.low}</option>
         </select>
-        <span class="count">${tasks.length} task${tasks.length !== 1 ? "s" : ""}</span>
       </div>
 
       <ha-card>
-        ${tasks.length === 0
-            ? b `<div class="empty">${tr.noTasks}</div>`
-            : pageTasks.map((task, i) => b `
-                <div class="task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : ""}">
+        ${isDueClear
+            ? b `
+            <div class="all-clear">
+              <div class="all-clear-emoji">🎉</div>
+              <p class="all-clear-title">${tr.allClear}</p>
+              <p class="all-clear-sub">${tr.allClearSub}</p>
+              <span class="all-clear-suggestion">${this._relaxSuggestion}</span>
+            </div>`
+            : tasks.length === 0
+                ? b `<div class="empty">${tr.noTasks}</div>`
+                : pageTasks.map((task, i) => b `
+                <div class="task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : this._exitingUndo.has(task.task_id) ? "exiting-undo" : this._exitingEdit.has(task.task_id) ? "exiting-edit" : ""}">
                   ${i > 0 ? b `<hr class="task-divider" />` : ""}
                   <ik-task-card .task=${task} .hass=${this.hass}>
                     <div class="task-actions" slot="actions">
                       ${task.status !== "completed"
-                ? b `<button class="btn primary" ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}>${tr.done}</button>`
-                : b `<button class="btn" ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}>${tr.undo}</button>`}
-                      <button class="btn" @click=${() => this._navigateTo(`/edit/${task.task_id}`)}>${tr.edit}</button>
+                    ? b `<button class="btn primary" ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}>${tr.done}</button>`
+                    : b `<button class="btn undo" ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}>${tr.undo}</button>`}
+                      <button class="btn edit" @click=${() => this._edit(task.task_id)}>${tr.edit}</button>
                       <button class="btn danger" @click=${() => { this._deleteTarget = task.task_id; }}>${tr.del}</button>
                     </div>
                   </ik-task-card>
@@ -628,33 +687,102 @@ let IkTaskListView = class IkTaskListView extends i {
 };
 IkTaskListView.styles = i$3 `
     :host { display: block; }
-    .toolbar {
+    .filter-bar {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
       padding: 0 0 16px;
       flex-wrap: wrap;
     }
-    .toolbar select {
-      padding: 6px 10px;
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 13px;
+      border-radius: 20px;
+      border: 1.5px solid var(--divider-color);
+      background: transparent;
+      color: var(--secondary-text-color);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .filter-chip:hover {
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+    .filter-chip.active {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+    .filter-chip.active.chip-overdue {
+      background: var(--error-color, #f44336);
+      border-color: var(--error-color, #f44336);
+    }
+    .filter-chip.active.chip-completed {
+      background: var(--success-color, #4caf50);
+      border-color: var(--success-color, #4caf50);
+    }
+    .chip-badge {
+      display: inline-block;
+      background: rgba(0,0,0,0.15);
+      border-radius: 10px;
+      padding: 0 5px;
+      font-size: 11px;
+      min-width: 16px;
+      text-align: center;
+      line-height: 16px;
+    }
+    .filter-chip:not(.active) .chip-badge {
+      background: var(--divider-color);
+      color: var(--primary-text-color);
+    }
+    .priority-select {
+      margin-left: auto;
+      padding: 5px 10px;
       border-radius: 6px;
       border: 1px solid var(--divider-color);
       background: var(--card-background-color);
       color: var(--primary-text-color);
       font-size: 13px;
     }
-    .count {
-      margin-left: auto;
-      font-size: 13px;
-      color: var(--secondary-text-color);
-    }
-    ha-card {
-      overflow: hidden;
-    }
+    ha-card { overflow: hidden; }
     .empty {
       text-align: center;
       padding: 40px 24px;
       color: var(--secondary-text-color);
+    }
+    .all-clear {
+      text-align: center;
+      padding: 48px 24px 40px;
+    }
+    .all-clear-emoji {
+      font-size: 64px;
+      line-height: 1;
+      margin-bottom: 16px;
+    }
+    .all-clear-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--primary-text-color);
+      margin: 0 0 8px;
+    }
+    .all-clear-sub {
+      font-size: 14px;
+      color: var(--secondary-text-color);
+      margin: 0 0 20px;
+    }
+    .all-clear-suggestion {
+      display: inline-block;
+      padding: 10px 20px;
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+      color: var(--primary-color);
+      font-size: 14px;
+      font-weight: 500;
     }
     .task-actions {
       display: flex;
@@ -672,6 +800,14 @@ IkTaskListView.styles = i$3 `
     .btn.primary {
       background: var(--primary-color);
       color: var(--text-primary-color, #fff);
+      border-color: var(--primary-color);
+    }
+    .btn.undo {
+      color: var(--warning-color, #ff9800);
+      border-color: var(--warning-color, #ff9800);
+    }
+    .btn.edit {
+      color: var(--primary-color);
       border-color: var(--primary-color);
     }
     .btn.danger {
@@ -726,15 +862,31 @@ IkTaskListView.styles = i$3 `
       15%  { background: rgba(244, 67, 54, 0.15); }
       100% { transform: translateX(-56px); opacity: 0; background: transparent; }
     }
-    .task-wrapper {
-      overflow: hidden;
-    }
+    .task-wrapper { overflow: hidden; }
     .task-wrapper.exiting-done {
       animation: ik-done-exit 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
       pointer-events: none;
     }
     .task-wrapper.exiting-delete {
       animation: ik-delete-exit 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      pointer-events: none;
+    }
+    @keyframes ik-undo-exit {
+      0%   { transform: translateX(0);     opacity: 1; background: transparent; }
+      15%  { background: color-mix(in srgb, var(--warning-color, #ff9800) 22%, transparent); }
+      100% { transform: translateX(-56px); opacity: 0; background: transparent; }
+    }
+    .task-wrapper.exiting-undo {
+      animation: ik-undo-exit 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      pointer-events: none;
+    }
+    @keyframes ik-edit-pulse {
+      0%   { transform: scale(1);    box-shadow: none; }
+      40%  { transform: scale(1.012); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 30%, transparent); }
+      100% { transform: scale(1);    box-shadow: none; }
+    }
+    .task-wrapper.exiting-edit {
+      animation: ik-edit-pulse 0.32s cubic-bezier(0.4, 0, 0.2, 1);
       pointer-events: none;
     }
   `;
@@ -749,10 +901,7 @@ __decorate([
 ], IkTaskListView.prototype, "enableAnimations", void 0);
 __decorate([
     r()
-], IkTaskListView.prototype, "_filterGroup", void 0);
-__decorate([
-    r()
-], IkTaskListView.prototype, "_filterUrgency", void 0);
+], IkTaskListView.prototype, "_filterTab", void 0);
 __decorate([
     r()
 ], IkTaskListView.prototype, "_filterPriority", void 0);
@@ -777,6 +926,12 @@ __decorate([
 __decorate([
     r()
 ], IkTaskListView.prototype, "_exitingDelete", void 0);
+__decorate([
+    r()
+], IkTaskListView.prototype, "_exitingUndo", void 0);
+__decorate([
+    r()
+], IkTaskListView.prototype, "_exitingEdit", void 0);
 IkTaskListView = __decorate([
     t$1("ik-task-list-view")
 ], IkTaskListView);
