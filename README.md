@@ -1,6 +1,6 @@
 # IntelliKeep
 
-IntelliKeep is a home maintenance task management system built as a custom integration for Home Assistant.
+IntelliKeep is a Home Assistant custom integration that centralizes home maintenance tasks with recurring schedules, priorities and history.
 
 ---
 
@@ -102,7 +102,7 @@ show_description: false
 
 ## Panel
 
-The IntelliKeep panel appears automatically in the HA sidebar after installation. It supports **pt-BR** and **en** — the language follows your HA profile setting.
+The IntelliKeep panel appears automatically in the HA sidebar after installation. It supports multiple languages following your HA profile setting.
 
 ---
 
@@ -195,4 +195,4 @@ pytest tests/ -v
 
 ## License
 
-MIT © [Intellilar](https://intellilar.com.br)
+MIT © [Intellilar](https://intellilar.com)
