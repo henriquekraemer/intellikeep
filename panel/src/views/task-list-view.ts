@@ -38,7 +38,13 @@ export class IkTaskListView extends LitElement {
   @state() private _viewMode: "list" | "grid" = "list";
 
   static styles = css`
-    :host { display: block; }
+    :host {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: var(--ik-padding, 20px);
+      box-sizing: border-box;
+    }
     .filter-bar {
       display: flex;
       align-items: center;
@@ -128,7 +134,7 @@ export class IkTaskListView extends LitElement {
       gap: 12px;
       padding: 8px;
     }
-    ha-card { overflow: hidden; }
+    ha-card { flex: 1; min-height: 0; overflow-y: auto; }
     .empty {
       text-align: center;
       padding: 40px 24px;
