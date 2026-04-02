@@ -21,6 +21,10 @@ export class IkTaskListView extends LitElement {
     if (saved === "due" || saved === "overdue" || saved === "pending" || saved === "completed") {
       this._filterTab = saved;
     }
+    const savedView = localStorage.getItem("intellikeep.viewMode");
+    if (savedView === "list" || savedView === "grid") {
+      this._viewMode = savedView;
+    }
   }
   @state() private _deleteTarget: string | null = null;
   @state() private _completing: Set<string> = new Set();
@@ -31,6 +35,7 @@ export class IkTaskListView extends LitElement {
   @state() private _exitingDelete: Set<string> = new Set();
   @state() private _exitingUndo: Set<string> = new Set();
   @state() private _exitingEdit: Set<string> = new Set();
+  @state() private _viewMode: "list" | "grid" = "list";
 
   static styles = css`
     :host { display: block; }
@@ -95,6 +100,33 @@ export class IkTaskListView extends LitElement {
       background: var(--card-background-color);
       color: var(--primary-text-color);
       font-size: 13px;
+    }
+    .view-toggle {
+      display: flex;
+      border: 1.5px solid var(--divider-color);
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .view-btn {
+      padding: 4px 9px;
+      border: none;
+      background: transparent;
+      color: var(--secondary-text-color);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      transition: background 0.15s, color 0.15s;
+    }
+    .view-btn.active {
+      background: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+      padding: 8px;
     }
     ha-card { overflow: hidden; }
     .empty {
@@ -369,6 +401,12 @@ export class IkTaskListView extends LitElement {
           <option value="medium">${tr.medium}</option>
           <option value="low">${tr.low}</option>
         </select>
+        <div class="view-toggle">
+          <button class="view-btn ${this._viewMode === "list" ? "active" : ""}" title=${tr.viewList}
+            @click=${() => { this._viewMode = "list"; localStorage.setItem("intellikeep.viewMode", "list"); }}>&#9776;</button>
+          <button class="view-btn ${this._viewMode === "grid" ? "active" : ""}" title=${tr.viewGrid}
+            @click=${() => { this._viewMode = "grid"; localStorage.setItem("intellikeep.viewMode", "grid"); }}>&#9783;</button>
+        </div>
       </div>
 
       <ha-card>
@@ -382,6 +420,20 @@ export class IkTaskListView extends LitElement {
             </div>`
           : tasks.length === 0
           ? html`<div class="empty">${tr.noTasks}</div>`
+          : this._viewMode === "grid"
+          ? html`<div class="grid-container">${pageTasks.map(task => html`
+              <div class="task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : this._exitingUndo.has(task.task_id) ? "exiting-undo" : this._exitingEdit.has(task.task_id) ? "exiting-edit" : ""}">
+                <ik-task-card .task=${task} .hass=${this.hass} .grid=${true}>
+                  <div class="task-actions" slot="actions">
+                    ${task.status !== "completed"
+                      ? html`<button class="btn primary" ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}>${tr.done}</button>`
+                      : html`<button class="btn undo" ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}>${tr.undo}</button>`}
+                    <button class="btn edit" @click=${() => this._edit(task.task_id)}>${tr.edit}</button>
+                    <button class="btn danger" @click=${() => { this._deleteTarget = task.task_id; }}>${tr.del}</button>
+                  </div>
+                </ik-task-card>
+              </div>`
+            )}</div>`
           : pageTasks.map(
               (task, i) => html`
                 <div class="task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : this._exitingUndo.has(task.task_id) ? "exiting-undo" : this._exitingEdit.has(task.task_id) ? "exiting-edit" : ""}">
@@ -402,7 +454,7 @@ export class IkTaskListView extends LitElement {
 
       ${tasks.length > 0 ? html`
       <div class="pagination">
-        <span>${tr.rowsPerPage}</span>
+        <span>${this._viewMode === 'grid' ? tr.cardsPerPage : tr.rowsPerPage}</span>
         <select .value=${String(this._pageSize)} @change=${(e: Event) => { this._pageSize = Number((e.target as HTMLSelectElement).value) as 25 | 50 | 100; this._resetPage(); }}>
           <option value="25">25</option>
           <option value="50">50</option>
