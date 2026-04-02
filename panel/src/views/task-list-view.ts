@@ -14,16 +14,15 @@ export class IkTaskListView extends LitElement {
 
   @state() private _filterTab: "due" | "overdue" | "pending" | "completed" = "due";
   @state() private _filterPriority: TaskPriority | "all" = "all";
+  @state() private _searchQuery = "";
+  @state() private _viewMode: "list" | "grid" =
+    localStorage.getItem("intellikeep.viewMode") === "grid" ? "grid" : "list";
 
   connectedCallback() {
     super.connectedCallback();
     const saved = localStorage.getItem("intellikeep.filterTab");
     if (saved === "due" || saved === "overdue" || saved === "pending" || saved === "completed") {
       this._filterTab = saved;
-    }
-    const savedView = localStorage.getItem("intellikeep.viewMode");
-    if (savedView === "list" || savedView === "grid") {
-      this._viewMode = savedView;
     }
   }
   @state() private _deleteTarget: string | null = null;
@@ -35,7 +34,6 @@ export class IkTaskListView extends LitElement {
   @state() private _exitingDelete: Set<string> = new Set();
   @state() private _exitingUndo: Set<string> = new Set();
   @state() private _exitingEdit: Set<string> = new Set();
-  @state() private _viewMode: "list" | "grid" = "list";
 
   static styles = css`
     :host {
@@ -99,7 +97,6 @@ export class IkTaskListView extends LitElement {
       color: var(--primary-text-color);
     }
     .priority-select {
-      margin-left: auto;
       padding: 5px 10px;
       border-radius: 6px;
       border: 1px solid var(--divider-color);
@@ -107,6 +104,18 @@ export class IkTaskListView extends LitElement {
       color: var(--primary-text-color);
       font-size: 13px;
     }
+    .search-input {
+      flex: 1;
+      min-width: 160px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--divider-color);
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      font-size: 13px;
+      font-family: inherit;
+    }
+    .search-input::placeholder { color: var(--secondary-text-color); }
     .view-toggle {
       display: flex;
       border: 1.5px solid var(--divider-color);
@@ -171,34 +180,29 @@ export class IkTaskListView extends LitElement {
     }
     .task-actions {
       display: flex;
-      gap: 4px;
+      gap: 6px;
+      justify-content: flex-end;
+      align-items: center;
     }
-    .btn {
-      padding: 4px 10px;
-      border-radius: 6px;
-      border: 1px solid var(--divider-color);
-      background: transparent;
-      color: var(--primary-text-color);
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: none;
       cursor: pointer;
-      font-size: 12px;
+      transition: filter 0.15s, opacity 0.15s;
+      --mdc-icon-size: 18px;
+      color: #fff;
     }
-    .btn.primary {
-      background: var(--primary-color);
-      color: var(--text-primary-color, #fff);
-      border-color: var(--primary-color);
-    }
-    .btn.undo {
-      color: var(--warning-color, #ff9800);
-      border-color: var(--warning-color, #ff9800);
-    }
-    .btn.edit {
-      color: var(--primary-color);
-      border-color: var(--primary-color);
-    }
-    .btn.danger {
-      color: var(--error-color, #f44336);
-      border-color: var(--error-color, #f44336);
-    }
+    .icon-btn:hover { filter: brightness(1.15); }
+    .icon-btn:disabled { opacity: 0.4; cursor: default; }
+    .icon-btn.primary { background: var(--primary-color); }
+    .icon-btn.undo    { background: var(--warning-color, #ff9800); }
+    .icon-btn.edit    { background: var(--secondary-text-color, #757575); }
+    .icon-btn.danger  { background: var(--error-color, #f44336); }
     .task-divider {
       border: none;
       border-top: 1px solid var(--divider-color);
@@ -248,6 +252,18 @@ export class IkTaskListView extends LitElement {
       100% { transform: translateX(-56px); opacity: 0; background: transparent; }
     }
     .task-wrapper { overflow: hidden; }
+    .list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px;
+    }
+    .list-item {
+      border: 1.5px solid var(--divider-color);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--card-background-color);
+    }
     .task-wrapper.exiting-done {
       animation: ik-done-exit 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
       pointer-events: none;
@@ -281,6 +297,7 @@ export class IkTaskListView extends LitElement {
   }
 
   private get _filtered(): Task[] {
+    const q = this._searchQuery.trim().toLowerCase();
     return this.tasks.filter((task) => {
       const tabMatch = (() => {
         switch (this._filterTab) {
@@ -292,6 +309,7 @@ export class IkTaskListView extends LitElement {
       })();
       if (!tabMatch) return false;
       if (this._filterPriority !== "all" && task.priority !== this._filterPriority) return false;
+      if (q && !task.name.toLowerCase().includes(q) && !(task.description ?? "").toLowerCase().includes(q)) return false;
       return true;
     });
   }
@@ -392,9 +410,18 @@ export class IkTaskListView extends LitElement {
       </button>
     `;
 
-    const isDueClear = this._filterTab === "due" && tasks.length === 0;
+    const isDueClear = this._filterTab === "due" && tasks.length === 0 && !this._searchQuery.trim();
 
     return html`
+      <div class="filter-bar">
+        <input
+          class="search-input"
+          type="search"
+          .value=${this._searchQuery}
+          placeholder=${tr.searchPlaceholder}
+          @input=${(e: Event) => { this._searchQuery = (e.target as HTMLInputElement).value; this._resetPage(); }}
+        />
+      </div>
       <div class="filter-bar">
         ${chip("due",       tr.dueToday,  countDue)}
         ${chip("overdue",   tr.overdue,   countOverdue,  "chip-overdue")}
@@ -431,31 +458,30 @@ export class IkTaskListView extends LitElement {
               <div class="task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : this._exitingUndo.has(task.task_id) ? "exiting-undo" : this._exitingEdit.has(task.task_id) ? "exiting-edit" : ""}">
                 <ik-task-card .task=${task} .hass=${this.hass} .grid=${true}>
                   <div class="task-actions" slot="actions">
-                    ${task.status !== "completed"
-                      ? html`<button class="btn primary" ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}>${tr.done}</button>`
-                      : html`<button class="btn undo" ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}>${tr.undo}</button>`}
-                    <button class="btn edit" @click=${() => this._edit(task.task_id)}>${tr.edit}</button>
-                    <button class="btn danger" @click=${() => { this._deleteTarget = task.task_id; }}>${tr.del}</button>
+                      ${task.status !== "completed"
+                        ? html`<button class="icon-btn primary" title=${tr.done} ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}><ha-icon icon="mdi:check"></ha-icon></button>`
+                        : html`<button class="icon-btn undo" title=${tr.undo} ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}><ha-icon icon="mdi:undo"></ha-icon></button>`}
+                      <button class="icon-btn edit" title=${tr.edit} @click=${() => this._edit(task.task_id)}><ha-icon icon="mdi:pencil"></ha-icon></button>
+                      <button class="icon-btn danger" title=${tr.del} @click=${() => { this._deleteTarget = task.task_id; }}><ha-icon icon="mdi:delete"></ha-icon></button>
                   </div>
                 </ik-task-card>
               </div>`
             )}</div>`
-          : pageTasks.map(
-              (task, i) => html`
-                <div class="task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : this._exitingUndo.has(task.task_id) ? "exiting-undo" : this._exitingEdit.has(task.task_id) ? "exiting-edit" : ""}">
-                  ${i > 0 ? html`<hr class="task-divider" />` : ""}
+          : html`<div class="list-container">${pageTasks.map(
+              (task) => html`
+                <div class="list-item task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : this._exitingUndo.has(task.task_id) ? "exiting-undo" : this._exitingEdit.has(task.task_id) ? "exiting-edit" : ""}">
                   <ik-task-card .task=${task} .hass=${this.hass}>
                     <div class="task-actions" slot="actions">
                       ${task.status !== "completed"
-                        ? html`<button class="btn primary" ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}>${tr.done}</button>`
-                        : html`<button class="btn undo" ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}>${tr.undo}</button>`}
-                      <button class="btn edit" @click=${() => this._edit(task.task_id)}>${tr.edit}</button>
-                      <button class="btn danger" @click=${() => { this._deleteTarget = task.task_id; }}>${tr.del}</button>
+                        ? html`<button class="icon-btn primary" title=${tr.done} ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}><ha-icon icon="mdi:check"></ha-icon></button>`
+                        : html`<button class="icon-btn undo" title=${tr.undo} ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}><ha-icon icon="mdi:undo"></ha-icon></button>`}
+                      <button class="icon-btn edit" title=${tr.edit} @click=${() => this._edit(task.task_id)}><ha-icon icon="mdi:pencil"></ha-icon></button>
+                      <button class="icon-btn danger" title=${tr.del} @click=${() => { this._deleteTarget = task.task_id; }}><ha-icon icon="mdi:delete"></ha-icon></button>
                     </div>
                   </ik-task-card>
                 </div>
               `
-            )}
+            )}</div>`}
       </ha-card>
 
       ${tasks.length > 0 ? html`
