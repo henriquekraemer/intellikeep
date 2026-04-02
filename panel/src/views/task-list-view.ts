@@ -15,10 +15,12 @@ export class IkTaskListView extends LitElement {
   @state() private _filterTab: "pending" | "completed" = "pending";
   @state() private _filterPriority: TaskPriority | "all" = "all";
   @state() private _searchQuery = "";
-  @state() private _upcomingRange: "all" | "week" | "2weeks" | "30" | "90" | "year" | "custom" =
-    (localStorage.getItem("intellikeep.upcomingRange") as "all" | "week" | "2weeks" | "30" | "90" | "year" | "custom") ?? "all";
+  @state() private _upcomingRange: "week" | "nextweek" | "month" | "all" | "custom" =
+    (localStorage.getItem("intellikeep.upcomingRange") as "week" | "nextweek" | "month" | "all" | "custom") ?? "week";
   @state() private _upcomingCustomFrom = localStorage.getItem("intellikeep.upcomingCustomFrom") ?? "";
   @state() private _upcomingCustomTo = localStorage.getItem("intellikeep.upcomingCustomTo") ?? "";
+  @state() private _customFromDraft = localStorage.getItem("intellikeep.upcomingCustomFrom") ?? "";
+  @state() private _customToDraft = localStorage.getItem("intellikeep.upcomingCustomTo") ?? "";
 
   connectedCallback() {
     super.connectedCallback();
@@ -213,6 +215,27 @@ export class IkTaskListView extends LitElement {
     .custom-range span {
       font-size: 12px;
       color: var(--secondary-text-color);
+    }
+    .custom-range-btn {
+      padding: 3px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--divider-color);
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .custom-range-btn:hover {
+      background: var(--secondary-background-color);
+    }
+    .apply-btn {
+      background: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+      border-color: var(--primary-color);
+    }
+    .apply-btn:hover {
+      opacity: 0.9;
     }
     .empty {
       text-align: center;
@@ -651,14 +674,16 @@ export class IkTaskListView extends LitElement {
 
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const rangeEnd = (days: number) => { const d = new Date(today); d.setDate(d.getDate() + days); d.setHours(23, 59, 59, 999); return d; };
-    const yearEnd = new Date(today.getFullYear(), 11, 31, 23, 59, 59, 999);
+    // next week: Monday–Sunday of the calendar week after this one
+    const nextMonday = new Date(today); nextMonday.setDate(today.getDate() + (8 - today.getDay()) % 7 || 7);
+    const nextSunday = new Date(nextMonday); nextSunday.setDate(nextMonday.getDate() + 6); nextSunday.setHours(23, 59, 59, 999);
+    // this month: rest of current calendar month
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
     let upcomingMax: Date | null = null;
     let upcomingMin: Date | null = null;
-    if (this._upcomingRange === "week")    upcomingMax = rangeEnd(7);
-    else if (this._upcomingRange === "2weeks") upcomingMax = rangeEnd(14);
-    else if (this._upcomingRange === "30")  upcomingMax = rangeEnd(30);
-    else if (this._upcomingRange === "90")  upcomingMax = rangeEnd(90);
-    else if (this._upcomingRange === "year") upcomingMax = yearEnd;
+    if (this._upcomingRange === "week")         upcomingMax = rangeEnd(7);
+    else if (this._upcomingRange === "nextweek") { upcomingMin = nextMonday; upcomingMax = nextSunday; }
+    else if (this._upcomingRange === "month")    upcomingMax = monthEnd;
     else if (this._upcomingRange === "custom") {
       upcomingMin = this._upcomingCustomFrom ? new Date(this._upcomingCustomFrom) : null;
       upcomingMax = this._upcomingCustomTo ? new Date(this._upcomingCustomTo + "T23:59:59") : null;
@@ -699,23 +724,37 @@ export class IkTaskListView extends LitElement {
       `;
       const upcomingFilterBar = html`
         <div class="upcoming-filter">
-          ${upcomingRangeChip("all",    tr.rangeAll)}
-          ${upcomingRangeChip("week",   tr.rangeWeek)}
-          ${upcomingRangeChip("2weeks", tr.range2Weeks)}
-          ${upcomingRangeChip("30",     tr.range30)}
-          ${upcomingRangeChip("90",     tr.range90)}
-          ${upcomingRangeChip("year",   tr.rangeYear)}
-          ${upcomingRangeChip("custom", tr.rangeCustom)}
+          ${upcomingRangeChip("week",     tr.rangeWeek)}
+          ${upcomingRangeChip("nextweek", tr.rangeNextWeek)}
+          ${upcomingRangeChip("month",    tr.rangeMonth)}
+          ${upcomingRangeChip("all",      tr.rangeAll)}
+          ${upcomingRangeChip("custom",   tr.rangeCustom)}
         </div>
         ${this._upcomingRange === "custom" ? html`
           <div class="custom-range">
-            <input type="date" .value=${this._upcomingCustomFrom}
-              @change=${(e: Event) => { this._upcomingCustomFrom = (e.target as HTMLInputElement).value; localStorage.setItem("intellikeep.upcomingCustomFrom", this._upcomingCustomFrom); }}
+            <input type="date" .value=${this._customFromDraft}
+              @change=${(e: Event) => { this._customFromDraft = (e.target as HTMLInputElement).value; }}
             />
             <span>${tr.rangeTo}</span>
-            <input type="date" .value=${this._upcomingCustomTo}
-              @change=${(e: Event) => { this._upcomingCustomTo = (e.target as HTMLInputElement).value; localStorage.setItem("intellikeep.upcomingCustomTo", this._upcomingCustomTo); }}
+            <input type="date" .value=${this._customToDraft}
+              @change=${(e: Event) => { this._customToDraft = (e.target as HTMLInputElement).value; }}
             />
+            <button class="custom-range-btn apply-btn" @click=${() => {
+              this._upcomingCustomFrom = this._customFromDraft;
+              this._upcomingCustomTo = this._customToDraft;
+              localStorage.setItem("intellikeep.upcomingCustomFrom", this._upcomingCustomFrom);
+              localStorage.setItem("intellikeep.upcomingCustomTo", this._upcomingCustomTo);
+              this._pendingPage = 0;
+            }}>${tr.rangeApply}</button>
+            <button class="custom-range-btn" ?disabled=${!this._customFromDraft && !this._customToDraft} @click=${() => {
+              this._customFromDraft = "";
+              this._customToDraft = "";
+              this._upcomingCustomFrom = "";
+              this._upcomingCustomTo = "";
+              localStorage.removeItem("intellikeep.upcomingCustomFrom");
+              localStorage.removeItem("intellikeep.upcomingCustomTo");
+              this._pendingPage = 0;
+            }}>${tr.rangeClear}</button>
           </div>` : ""
         }
       `;
