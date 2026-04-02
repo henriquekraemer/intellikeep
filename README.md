@@ -7,13 +7,21 @@ IntelliKeep is a home maintenance task management system built as a custom integ
 ## Features
 
 - One-time and **recurring tasks** (daily, weekly, monthly, yearly, or custom interval)
+- **Priority levels**: low, medium, high, critical — with color-coded priority bar
 - Link tasks to **Home Assistant entities** (e.g., track which A/C unit needs a filter change)
 - **Notifications** via persistent notifications + optional mobile push service
 - Full **execution history** with timestamps and notes
-- **Lovelace card** for dashboards
-- **Sidebar panel** (full management UI embedded in HA) with pt-BR / en support
 - Three **sensor entities**: `tasks_due_count`, `tasks_overdue_count`, `next_due_task`
-- Sample data action to quickly populate tasks for testing
+- Designed for **web and mobile** — responsive panel that adapts to any screen size
+- **Mobile swipe gestures**: swipe right → done/undo · swipe left → delete
+- **Mobile tap** → opens edit view; nav tabs hidden during create/edit for focused experience
+- **Sidebar panel** fully embedded in HA with **en / pt-BR** language support
+- Pending view split into **Urgent** (overdue/due today) and **Upcoming** sections
+- **Upcoming range filter**: All / This week / 2 weeks / 30 days / 90 days / This year / Custom date range
+- **Completed tab** with pagination, priority filter, and search bar
+- Responsive form footer — icon + label on wide screens, icon-only on narrow mobile
+- **Animation toggle** in Settings disables all CSS transitions and hover effects globally
+- **Lovelace card** for compact dashboard display of due/overdue tasks
 
 ---
 
