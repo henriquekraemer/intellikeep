@@ -63,6 +63,8 @@ const messages = {
     notes: "Notes",
     settingsHeading: "IntelliKeep Settings",
     settingsBody: "To change integration settings, go to Settings → Devices & Services → IntelliKeep → Configure.",
+    rowsPerPage: "Rows per page:",
+    of: "of",
   },
   pt: {
     newTask: "Nova tarefa",
@@ -128,6 +130,8 @@ const messages = {
     notes: "Observações",
     settingsHeading: "Configurações do IntelliKeep",
     settingsBody: "Para alterar as configurações da integração, acesse Configurações → Dispositivos e Serviços → IntelliKeep → Configurar.",
+    rowsPerPage: "Linhas por página:",
+    of: "de",
   },
 };
 

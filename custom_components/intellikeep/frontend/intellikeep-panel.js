@@ -171,6 +171,8 @@ const messages = {
         notes: "Notes",
         settingsHeading: "IntelliKeep Settings",
         settingsBody: "To change integration settings, go to Settings → Devices & Services → IntelliKeep → Configure.",
+        rowsPerPage: "Rows per page:",
+        of: "of",
     },
     pt: {
         newTask: "Nova tarefa",
@@ -236,6 +238,8 @@ const messages = {
         notes: "Observações",
         settingsHeading: "Configurações do IntelliKeep",
         settingsBody: "Para alterar as configurações da integração, acesse Configurações → Dispositivos e Serviços → IntelliKeep → Configurar.",
+        rowsPerPage: "Linhas por página:",
+        of: "de",
     },
 };
 function t(language) {
@@ -467,6 +471,11 @@ let IkTaskListView = class IkTaskListView extends i {
         this._deleteTarget = null;
         this._completing = new Set();
         this._reopening = new Set();
+        this._page = 0;
+        this._pageSize = 25;
+    }
+    _resetPage() {
+        this._page = 0;
     }
     get _filtered() {
         return this.tasks.filter((t) => {
@@ -523,19 +532,23 @@ let IkTaskListView = class IkTaskListView extends i {
     render() {
         const tasks = this._filtered;
         const tr = t(this.hass?.language);
+        const totalPages = Math.max(1, Math.ceil(tasks.length / this._pageSize));
+        const page = Math.min(this._page, totalPages - 1);
+        const start = page * this._pageSize;
+        const pageTasks = tasks.slice(start, start + this._pageSize);
         return b `
       <div class="toolbar">
-        <select @change=${(e) => { this._filterGroup = e.target.value; this._filterUrgency = "all"; }}>
+        <select @change=${(e) => { this._filterGroup = e.target.value; this._filterUrgency = "all"; this._resetPage(); }}>
           <option value="pending">${tr.pending}</option>
           <option value="completed">${tr.completed}</option>
         </select>
         ${this._filterGroup === "pending" ? b `
-        <select @change=${(e) => { this._filterUrgency = e.target.value; }}>
+        <select @change=${(e) => { this._filterUrgency = e.target.value; this._resetPage(); }}>
           <option value="all">${tr.allUrgencies}</option>
           <option value="overdue">${tr.overdue}</option>
           <option value="due">${tr.dueToday}</option>
         </select>` : ""}
-        <select @change=${(e) => { this._filterPriority = e.target.value; }}>
+        <select @change=${(e) => { this._filterPriority = e.target.value; this._resetPage(); }}>
           <option value="all">${tr.allPriorities}</option>
           <option value="critical">${tr.critical}</option>
           <option value="high">${tr.high}</option>
@@ -548,7 +561,8 @@ let IkTaskListView = class IkTaskListView extends i {
       <ha-card>
         ${tasks.length === 0
             ? b `<div class="empty">${tr.noTasks}</div>`
-            : tasks.map((task) => b `
+            : pageTasks.map((task, i) => b `
+                ${i > 0 ? b `<hr class="task-divider" />` : ""}
                 <ik-task-card .task=${task} .hass=${this.hass}>
                   <div class="task-actions" slot="actions">
                     ${task.status !== "completed"
@@ -560,6 +574,19 @@ let IkTaskListView = class IkTaskListView extends i {
                 </ik-task-card>
               `)}
       </ha-card>
+
+      ${tasks.length > 0 ? b `
+      <div class="pagination">
+        <span>${tr.rowsPerPage}</span>
+        <select .value=${String(this._pageSize)} @change=${(e) => { this._pageSize = Number(e.target.value); this._resetPage(); }}>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+        <span>${start + 1}–${Math.min(start + this._pageSize, tasks.length)} ${tr.of} ${tasks.length}</span>
+        <button class="page-btn" ?disabled=${page === 0} @click=${() => { this._page = page - 1; }}>&lt;</button>
+        <button class="page-btn" ?disabled=${page >= totalPages - 1} @click=${() => { this._page = page + 1; }}>&gt;</button>
+      </div>` : ""}
 
       <ik-confirm-dialog
         heading=${tr.deleteHeading}
@@ -623,6 +650,44 @@ IkTaskListView.styles = i$3 `
       color: var(--error-color, #f44336);
       border-color: var(--error-color, #f44336);
     }
+    .task-divider {
+      border: none;
+      border-top: 1px solid var(--divider-color);
+      margin: 0;
+    }
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 0 0;
+      flex-wrap: wrap;
+    }
+    .pagination select {
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--divider-color);
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      font-size: 13px;
+    }
+    .pagination span {
+      font-size: 13px;
+      color: var(--secondary-text-color);
+    }
+    .page-btn {
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--divider-color);
+      background: transparent;
+      color: var(--primary-text-color);
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .page-btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
   `;
 __decorate([
     n({ attribute: false })
@@ -648,6 +713,12 @@ __decorate([
 __decorate([
     r()
 ], IkTaskListView.prototype, "_reopening", void 0);
+__decorate([
+    r()
+], IkTaskListView.prototype, "_page", void 0);
+__decorate([
+    r()
+], IkTaskListView.prototype, "_pageSize", void 0);
 IkTaskListView = __decorate([
     t$1("ik-task-list-view")
 ], IkTaskListView);
