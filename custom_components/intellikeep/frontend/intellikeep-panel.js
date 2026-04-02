@@ -126,6 +126,7 @@ const messages = {
         completed: "Done",
         allUrgencies: "All",
         allPriorities: "All priorities",
+        searchPlaceholder: "Search by name or description…",
         critical: "Critical",
         high: "High",
         medium: "Medium",
@@ -210,6 +211,7 @@ const messages = {
         completed: "Concluída",
         allUrgencies: "Todas",
         allPriorities: "Todas as prioridades",
+        searchPlaceholder: "Buscar por nome ou descrição…",
         critical: "Crítica",
         high: "Alta",
         medium: "Média",
@@ -338,19 +340,23 @@ let IkTaskCard = class IkTaskCard extends i {
         }
         return b `
       <div class="row">
-        <div class="body">
-          <div class="name">${task.name}</div>
-          ${task.description ? b `<div class="desc">${task.description}</div>` : ""}
-          <div class="meta">
-            <span class="badge" style="background:${priorityColor(task.priority)}">${task.priority}</span>
-            <span style="color:${statusColor(task.status)}">${this._relativeDue(task.due_date)}</span>
-            ${task.linked_entity_ids.length
+        <div class="priority-bar" style="background:${priorityColor(task.priority)}">
+          <span>${task.priority}</span>
+        </div>
+        <div class="row-content">
+          <div class="body">
+            <div class="name">${task.name}</div>
+            ${task.description ? b `<div class="desc">${task.description}</div>` : ""}
+            <div class="meta">
+              <span style="color:${statusColor(task.status)}">${this._relativeDue(task.due_date)}</span>
+              ${task.linked_entity_ids.length
             ? b `<span>· ${task.linked_entity_ids.length} entit${task.linked_entity_ids.length > 1 ? "ies" : "y"}</span>`
             : ""}
+            </div>
           </div>
-        </div>
-        <div class="actions">
-          <slot name="actions"></slot>
+          <div class="actions">
+            <slot name="actions"></slot>
+          </div>
         </div>
       </div>
     `;
@@ -362,13 +368,34 @@ IkTaskCard.styles = i$3 `
     }
     .row {
       display: flex;
-      align-items: center;
-      padding: 12px 16px;
+      align-items: stretch;
       gap: 12px;
-      border-bottom: 1px solid var(--divider-color);
+      overflow: hidden;
     }
-    .row:last-child {
-      border-bottom: none;
+    .priority-bar {
+      width: 28px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .priority-bar span {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #fff;
+      white-space: nowrap;
+    }
+    .row-content {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px 12px 0;
     }
     .body {
       flex: 1;
@@ -408,6 +435,8 @@ IkTaskCard.styles = i$3 `
     .actions {
       display: flex;
       gap: 4px;
+      flex-shrink: 0;
+      justify-content: flex-end;
     }
     /* Grid card layout */
     .card {
@@ -460,6 +489,7 @@ IkTaskCard.styles = i$3 `
       gap: 4px;
       flex-wrap: wrap;
       margin-top: 2px;
+      justify-content: flex-end;
     }
   `;
 __decorate([
@@ -580,6 +610,8 @@ let IkTaskListView = class IkTaskListView extends i {
         this.enableAnimations = true;
         this._filterTab = "due";
         this._filterPriority = "all";
+        this._searchQuery = "";
+        this._viewMode = localStorage.getItem("intellikeep.viewMode") === "grid" ? "grid" : "list";
         this._deleteTarget = null;
         this._completing = new Set();
         this._reopening = new Set();
@@ -589,7 +621,6 @@ let IkTaskListView = class IkTaskListView extends i {
         this._exitingDelete = new Set();
         this._exitingUndo = new Set();
         this._exitingEdit = new Set();
-        this._viewMode = "list";
     }
     connectedCallback() {
         super.connectedCallback();
@@ -597,15 +628,12 @@ let IkTaskListView = class IkTaskListView extends i {
         if (saved === "due" || saved === "overdue" || saved === "pending" || saved === "completed") {
             this._filterTab = saved;
         }
-        const savedView = localStorage.getItem("intellikeep.viewMode");
-        if (savedView === "list" || savedView === "grid") {
-            this._viewMode = savedView;
-        }
     }
     _resetPage() {
         this._page = 0;
     }
     get _filtered() {
+        const q = this._searchQuery.trim().toLowerCase();
         return this.tasks.filter((task) => {
             const tabMatch = (() => {
                 switch (this._filterTab) {
@@ -618,6 +646,8 @@ let IkTaskListView = class IkTaskListView extends i {
             if (!tabMatch)
                 return false;
             if (this._filterPriority !== "all" && task.priority !== this._filterPriority)
+                return false;
+            if (q && !task.name.toLowerCase().includes(q) && !(task.description ?? "").toLowerCase().includes(q))
                 return false;
             return true;
         });
@@ -715,8 +745,17 @@ let IkTaskListView = class IkTaskListView extends i {
         <span class="chip-badge">${count}</span>
       </button>
     `;
-        const isDueClear = this._filterTab === "due" && tasks.length === 0;
+        const isDueClear = this._filterTab === "due" && tasks.length === 0 && !this._searchQuery.trim();
         return b `
+      <div class="filter-bar">
+        <input
+          class="search-input"
+          type="search"
+          .value=${this._searchQuery}
+          placeholder=${tr.searchPlaceholder}
+          @input=${(e) => { this._searchQuery = e.target.value; this._resetPage(); }}
+        />
+      </div>
       <div class="filter-bar">
         ${chip("due", tr.dueToday, countDue)}
         ${chip("overdue", tr.overdue, countOverdue, "chip-overdue")}
@@ -753,28 +792,27 @@ let IkTaskListView = class IkTaskListView extends i {
               <div class="task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : this._exitingUndo.has(task.task_id) ? "exiting-undo" : this._exitingEdit.has(task.task_id) ? "exiting-edit" : ""}">
                 <ik-task-card .task=${task} .hass=${this.hass} .grid=${true}>
                   <div class="task-actions" slot="actions">
-                    ${task.status !== "completed"
-                        ? b `<button class="btn primary" ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}>${tr.done}</button>`
-                        : b `<button class="btn undo" ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}>${tr.undo}</button>`}
-                    <button class="btn edit" @click=${() => this._edit(task.task_id)}>${tr.edit}</button>
-                    <button class="btn danger" @click=${() => { this._deleteTarget = task.task_id; }}>${tr.del}</button>
+                      ${task.status !== "completed"
+                        ? b `<button class="icon-btn primary" title=${tr.done} ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}><ha-icon icon="mdi:check"></ha-icon></button>`
+                        : b `<button class="icon-btn undo" title=${tr.undo} ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}><ha-icon icon="mdi:undo"></ha-icon></button>`}
+                      <button class="icon-btn edit" title=${tr.edit} @click=${() => this._edit(task.task_id)}><ha-icon icon="mdi:pencil"></ha-icon></button>
+                      <button class="icon-btn danger" title=${tr.del} @click=${() => { this._deleteTarget = task.task_id; }}><ha-icon icon="mdi:delete"></ha-icon></button>
                   </div>
                 </ik-task-card>
               </div>`)}</div>`
-                    : pageTasks.map((task, i) => b `
-                <div class="task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : this._exitingUndo.has(task.task_id) ? "exiting-undo" : this._exitingEdit.has(task.task_id) ? "exiting-edit" : ""}">
-                  ${i > 0 ? b `<hr class="task-divider" />` : ""}
+                    : b `<div class="list-container">${pageTasks.map((task) => b `
+                <div class="list-item task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : this._exitingUndo.has(task.task_id) ? "exiting-undo" : this._exitingEdit.has(task.task_id) ? "exiting-edit" : ""}">
                   <ik-task-card .task=${task} .hass=${this.hass}>
                     <div class="task-actions" slot="actions">
                       ${task.status !== "completed"
-                        ? b `<button class="btn primary" ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}>${tr.done}</button>`
-                        : b `<button class="btn undo" ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}>${tr.undo}</button>`}
-                      <button class="btn edit" @click=${() => this._edit(task.task_id)}>${tr.edit}</button>
-                      <button class="btn danger" @click=${() => { this._deleteTarget = task.task_id; }}>${tr.del}</button>
+                        ? b `<button class="icon-btn primary" title=${tr.done} ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}><ha-icon icon="mdi:check"></ha-icon></button>`
+                        : b `<button class="icon-btn undo" title=${tr.undo} ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}><ha-icon icon="mdi:undo"></ha-icon></button>`}
+                      <button class="icon-btn edit" title=${tr.edit} @click=${() => this._edit(task.task_id)}><ha-icon icon="mdi:pencil"></ha-icon></button>
+                      <button class="icon-btn danger" title=${tr.del} @click=${() => { this._deleteTarget = task.task_id; }}><ha-icon icon="mdi:delete"></ha-icon></button>
                     </div>
                   </ik-task-card>
                 </div>
-              `)}
+              `)}</div>`}
       </ha-card>
 
       ${tasks.length > 0 ? b `
@@ -862,7 +900,6 @@ IkTaskListView.styles = i$3 `
       color: var(--primary-text-color);
     }
     .priority-select {
-      margin-left: auto;
       padding: 5px 10px;
       border-radius: 6px;
       border: 1px solid var(--divider-color);
@@ -870,6 +907,18 @@ IkTaskListView.styles = i$3 `
       color: var(--primary-text-color);
       font-size: 13px;
     }
+    .search-input {
+      flex: 1;
+      min-width: 160px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--divider-color);
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      font-size: 13px;
+      font-family: inherit;
+    }
+    .search-input::placeholder { color: var(--secondary-text-color); }
     .view-toggle {
       display: flex;
       border: 1.5px solid var(--divider-color);
@@ -934,34 +983,29 @@ IkTaskListView.styles = i$3 `
     }
     .task-actions {
       display: flex;
-      gap: 4px;
+      gap: 6px;
+      justify-content: flex-end;
+      align-items: center;
     }
-    .btn {
-      padding: 4px 10px;
-      border-radius: 6px;
-      border: 1px solid var(--divider-color);
-      background: transparent;
-      color: var(--primary-text-color);
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: none;
       cursor: pointer;
-      font-size: 12px;
+      transition: filter 0.15s, opacity 0.15s;
+      --mdc-icon-size: 18px;
+      color: #fff;
     }
-    .btn.primary {
-      background: var(--primary-color);
-      color: var(--text-primary-color, #fff);
-      border-color: var(--primary-color);
-    }
-    .btn.undo {
-      color: var(--warning-color, #ff9800);
-      border-color: var(--warning-color, #ff9800);
-    }
-    .btn.edit {
-      color: var(--primary-color);
-      border-color: var(--primary-color);
-    }
-    .btn.danger {
-      color: var(--error-color, #f44336);
-      border-color: var(--error-color, #f44336);
-    }
+    .icon-btn:hover { filter: brightness(1.15); }
+    .icon-btn:disabled { opacity: 0.4; cursor: default; }
+    .icon-btn.primary { background: var(--primary-color); }
+    .icon-btn.undo    { background: var(--warning-color, #ff9800); }
+    .icon-btn.edit    { background: var(--secondary-text-color, #757575); }
+    .icon-btn.danger  { background: var(--error-color, #f44336); }
     .task-divider {
       border: none;
       border-top: 1px solid var(--divider-color);
@@ -1011,6 +1055,18 @@ IkTaskListView.styles = i$3 `
       100% { transform: translateX(-56px); opacity: 0; background: transparent; }
     }
     .task-wrapper { overflow: hidden; }
+    .list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px;
+    }
+    .list-item {
+      border: 1.5px solid var(--divider-color);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--card-background-color);
+    }
     .task-wrapper.exiting-done {
       animation: ik-done-exit 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
       pointer-events: none;
@@ -1055,6 +1111,12 @@ __decorate([
 ], IkTaskListView.prototype, "_filterPriority", void 0);
 __decorate([
     r()
+], IkTaskListView.prototype, "_searchQuery", void 0);
+__decorate([
+    r()
+], IkTaskListView.prototype, "_viewMode", void 0);
+__decorate([
+    r()
 ], IkTaskListView.prototype, "_deleteTarget", void 0);
 __decorate([
     r()
@@ -1080,9 +1142,6 @@ __decorate([
 __decorate([
     r()
 ], IkTaskListView.prototype, "_exitingEdit", void 0);
-__decorate([
-    r()
-], IkTaskListView.prototype, "_viewMode", void 0);
 IkTaskListView = __decorate([
     t$1("ik-task-list-view")
 ], IkTaskListView);

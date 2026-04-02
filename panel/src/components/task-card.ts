@@ -37,13 +37,34 @@ export class IkTaskCard extends LitElement {
     }
     .row {
       display: flex;
-      align-items: center;
-      padding: 12px 16px;
+      align-items: stretch;
       gap: 12px;
-      border-bottom: 1px solid var(--divider-color);
+      overflow: hidden;
     }
-    .row:last-child {
-      border-bottom: none;
+    .priority-bar {
+      width: 28px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .priority-bar span {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #fff;
+      white-space: nowrap;
+    }
+    .row-content {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px 12px 0;
     }
     .body {
       flex: 1;
@@ -83,6 +104,8 @@ export class IkTaskCard extends LitElement {
     .actions {
       display: flex;
       gap: 4px;
+      flex-shrink: 0;
+      justify-content: flex-end;
     }
     /* Grid card layout */
     .card {
@@ -135,6 +158,7 @@ export class IkTaskCard extends LitElement {
       gap: 4px;
       flex-wrap: wrap;
       margin-top: 2px;
+      justify-content: flex-end;
     }
   `;
 
@@ -166,19 +190,23 @@ export class IkTaskCard extends LitElement {
     }
     return html`
       <div class="row">
-        <div class="body">
-          <div class="name">${task.name}</div>
-          ${task.description ? html`<div class="desc">${task.description}</div>` : ""}
-          <div class="meta">
-            <span class="badge" style="background:${priorityColor(task.priority)}">${task.priority}</span>
-            <span style="color:${statusColor(task.status)}">${this._relativeDue(task.due_date)}</span>
-            ${task.linked_entity_ids.length
-              ? html`<span>· ${task.linked_entity_ids.length} entit${task.linked_entity_ids.length > 1 ? "ies" : "y"}</span>`
-              : ""}
-          </div>
+        <div class="priority-bar" style="background:${priorityColor(task.priority)}">
+          <span>${task.priority}</span>
         </div>
-        <div class="actions">
-          <slot name="actions"></slot>
+        <div class="row-content">
+          <div class="body">
+            <div class="name">${task.name}</div>
+            ${task.description ? html`<div class="desc">${task.description}</div>` : ""}
+            <div class="meta">
+              <span style="color:${statusColor(task.status)}">${this._relativeDue(task.due_date)}</span>
+              ${task.linked_entity_ids.length
+                ? html`<span>· ${task.linked_entity_ids.length} entit${task.linked_entity_ids.length > 1 ? "ies" : "y"}</span>`
+                : ""}
+            </div>
+          </div>
+          <div class="actions">
+            <slot name="actions"></slot>
+          </div>
         </div>
       </div>
     `;
