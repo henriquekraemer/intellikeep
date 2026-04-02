@@ -63,7 +63,7 @@ export class IkTaskCard extends LitElement {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 12px 16px 12px 0;
+      padding: 12px 16px;
     }
     .body {
       flex: 1;
@@ -101,10 +101,10 @@ export class IkTaskCard extends LitElement {
       color: #fff;
     }
     .actions {
+      align-self: stretch;
       display: flex;
-      gap: 4px;
       flex-shrink: 0;
-      justify-content: flex-end;
+      overflow: hidden;
     }
 
   `;
@@ -138,9 +138,9 @@ export class IkTaskCard extends LitElement {
                 : ""}
             </div>
           </div>
-          <div class="actions">
-            <slot name="actions"></slot>
-          </div>
+        </div>
+        <div class="actions">
+          <slot name="actions"></slot>
         </div>
       </div>
     `;

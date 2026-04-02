@@ -1,13 +1,15 @@
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant, Task, TaskFrequency, TaskPriority } from "../types";
-import { createTask, updateTask } from "../api";
+import { createTask, updateTask, completeTask, reopenTask, deleteTask } from "../api";
 import { t } from "../translations";
+import "../components/confirm-dialog";
 
 @customElement("ik-task-form-view")
 export class IkTaskFormView extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) task: Task | null = null;
+  @property({ type: Boolean }) enableAnimations = true;
 
   @state() private _name = "";
   @state() private _description = "";
@@ -20,6 +22,9 @@ export class IkTaskFormView extends LitElement {
   @state() private _notifyDaysBefore = 1;
   @state() private _notifyOnOverdue = true;
   @state() private _saving = false;
+  @state() private _completing = false;
+  @state() private _deleting = false;
+  @state() private _showDeleteConfirm = false;
   @state() private _error = "";
 
   connectedCallback() {
@@ -61,7 +66,7 @@ export class IkTaskFormView extends LitElement {
     textarea { resize: vertical; min-height: 72px; }
     .row { display: flex; gap: 12px; flex-wrap: wrap; }
     .row label { flex: 1; min-width: 160px; }
-    .checkbox-label { flex-direction: row; align-items: center; gap: 8px; cursor: pointer; }
+    .checkbox-label { flex-direction: row; align-items: center; gap: 8px; cursor: pointer; align-self: flex-end; padding-bottom: 8px; }
     .actions { display: flex; gap: 10px; margin-top: 8px; }
     button {
       padding: 10px 20px;
@@ -70,19 +75,97 @@ export class IkTaskFormView extends LitElement {
       cursor: pointer;
       font-size: 14px;
       font-weight: 500;
+      transition: filter 0.15s, transform 0.15s;
+    }
+    @media (hover: hover) {
+      button:not(:disabled):hover { filter: brightness(1.08); transform: translateY(-1px); }
+      button:not(:disabled):active { transform: translateY(0); filter: brightness(0.97); }
     }
     .save { background: var(--primary-color); color: var(--text-primary-color, #fff); }
     .cancel { background: var(--secondary-background-color); color: var(--primary-text-color); }
+    .error { color: var(--error-color, #f44336); font-size: 13px; }
+    .form-footer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      padding-top: 14px;
+      border-top: 1px solid var(--divider-color);
+    }
+    .form-footer-spacer { flex: 1; }
+    .cancel-mobile { display: none; }
+    @media (hover: none) {
+      .cancel-mobile { display: inline-flex; }
+    }
+    .btn-done {
+      background: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+    .btn-undo {
+      background: var(--warning-color, #ff9800);
+      color: #fff;
+    }
+    .btn-delete {
+      background: var(--error-color, #f44336);
+      color: #fff;
+      margin-left: auto;
+    }
+    .btn-done, .btn-undo, .btn-delete, .save, .cancel {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      --mdc-icon-size: 18px;
+    }
+    @media (max-width: 400px) {
+      .form-footer .btn-label { display: none; }
+      .form-footer button { padding: 10px 12px; }
+    }
     .error { color: var(--error-color, #f44336); font-size: 13px; }
     .entity-list { display: flex; flex-direction: column; gap: 4px; }
     .entity-row { display: flex; gap: 6px; align-items: center; }
     .entity-row input { flex: 1; }
     .entity-row button { padding: 6px 10px; background: var(--secondary-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 6px; cursor: pointer; }
     .add-entity { background: transparent; border: 1px dashed var(--divider-color); color: var(--secondary-text-color); border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; align-self: flex-start; }
+    :host([no-animations]) *, :host([no-animations]) *::before, :host([no-animations]) *::after {
+      transition: none !important;
+      animation: none !important;
+    }
+    :host([no-animations]) button:hover,
+    :host([no-animations]) button:active {
+      filter: none !important;
+      transform: none !important;
+    }
   `;
 
   private _navigate(path: string) {
     this.dispatchEvent(new CustomEvent("navigate", { detail: path, bubbles: true, composed: true }));
+  }
+
+  private async _complete() {
+    if (!this.task) return;
+    this._completing = true;
+    try {
+      if (this.task.status !== "completed") {
+        await completeTask(this.hass, this.task.task_id);
+      } else {
+        await reopenTask(this.hass, this.task.task_id);
+      }
+      this._navigate("/tasks");
+    } finally {
+      this._completing = false;
+    }
+  }
+
+  private async _handleDelete(confirmed: boolean) {
+    this._showDeleteConfirm = false;
+    if (!confirmed || !this.task) return;
+    this._deleting = true;
+    try {
+      await deleteTask(this.hass, this.task.task_id);
+      this._navigate("/tasks");
+    } finally {
+      this._deleting = false;
+    }
   }
 
   private async _save() {
@@ -122,6 +205,11 @@ export class IkTaskFormView extends LitElement {
   render() {
     const isEdit = this.task !== null;
     const tr = t(this.hass?.language);
+    if (!this.enableAnimations) {
+      this.setAttribute("no-animations", "");
+    } else {
+      this.removeAttribute("no-animations");
+    }
     return html`
       <div class="form">
         <label>
@@ -207,12 +295,43 @@ export class IkTaskFormView extends LitElement {
 
         ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
 
-        <div class="actions">
-          <button class="save" ?disabled=${this._saving} @click=${this._save}>
-            ${this._saving ? tr.saving : isEdit ? tr.saveChanges : tr.createTask}
-          </button>
-          <button class="cancel" @click=${() => this._navigate("/tasks")}>${tr.cancel}</button>
-        </div>
+        ${isEdit ? html`
+          <div class="form-footer">
+            <button class="btn-delete" ?disabled=${this._deleting} @click=${() => { this._showDeleteConfirm = true; }}>
+              <ha-icon icon="mdi:delete"></ha-icon><span class="btn-label"> ${tr.del}</span>
+            </button>
+            <div class="form-footer-spacer"></div>
+            <button class="cancel cancel-mobile" @click=${() => this._navigate("/tasks")}>
+              <ha-icon icon="mdi:close"></ha-icon><span class="btn-label"> ${tr.cancel}</span>
+            </button>
+            ${this.task!.status !== "completed"
+              ? html`<button class="btn-done" ?disabled=${this._completing} @click=${this._complete}>
+                  <ha-icon icon="mdi:check"></ha-icon><span class="btn-label"> ${tr.done}</span>
+                </button>`
+              : html`<button class="btn-undo" ?disabled=${this._completing} @click=${this._complete}>
+                  <ha-icon icon="mdi:undo"></ha-icon><span class="btn-label"> ${tr.undo}</span>
+                </button>`}
+            <button class="save" ?disabled=${this._saving} @click=${this._save}>
+              <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${this._saving ? tr.saving : tr.save}</span>
+            </button>
+          </div>
+          <ik-confirm-dialog
+            .heading=${tr.deleteHeading}
+            .body=${tr.deleteBody}
+            .open=${this._showDeleteConfirm}
+            @dialog-closed=${(e: CustomEvent) => this._handleDelete(e.detail.confirmed)}
+          ></ik-confirm-dialog>
+        ` : html`
+          <div class="form-footer">
+            <div class="form-footer-spacer"></div>
+            <button class="cancel" @click=${() => this._navigate("/tasks")}>
+              <ha-icon icon="mdi:close"></ha-icon><span class="btn-label"> ${tr.cancel}</span>
+            </button>
+            <button class="save" ?disabled=${this._saving} @click=${this._save}>
+              <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${this._saving ? tr.saving : tr.createTask}</span>
+            </button>
+          </div>
+        `}
       </div>
     `;
   }

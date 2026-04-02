@@ -154,8 +154,9 @@ const messages = {
         notifyOverdue: "Notify when overdue",
         taskNameRequired: "Task name is required.",
         saving: "Saving…",
+        save: "Save",
         saveChanges: "Save changes",
-        createTask: "Create task",
+        createTask: "Create",
         cancel: "Cancel",
         freqOneTime: "One-time",
         freqDaily: "Daily",
@@ -247,6 +248,7 @@ const messages = {
         notifyOverdue: "Notificar quando atrasada",
         taskNameRequired: "O nome da tarefa é obrigatório.",
         saving: "Salvando…",
+        save: "Salvar",
         saveChanges: "Salvar alterações",
         createTask: "Criar tarefa",
         cancel: "Cancelar",
@@ -356,9 +358,9 @@ let IkTaskCard = class IkTaskCard extends i {
             : ""}
             </div>
           </div>
-          <div class="actions">
-            <slot name="actions"></slot>
-          </div>
+        </div>
+        <div class="actions">
+          <slot name="actions"></slot>
         </div>
       </div>
     `;
@@ -397,7 +399,7 @@ IkTaskCard.styles = i$3 `
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 12px 16px 12px 0;
+      padding: 12px 16px;
     }
     .body {
       flex: 1;
@@ -435,10 +437,10 @@ IkTaskCard.styles = i$3 `
       color: #fff;
     }
     .actions {
+      align-self: stretch;
       display: flex;
-      gap: 4px;
       flex-shrink: 0;
-      justify-content: flex-end;
+      overflow: hidden;
     }
 
   `;
@@ -570,12 +572,86 @@ let IkTaskListView = class IkTaskListView extends i {
         this._exitingDelete = new Set();
         this._exitingUndo = new Set();
         this._exitingEdit = new Set();
+        this._swipeData = new Map();
+        this._swipeMoved = new Set();
     }
     connectedCallback() {
         super.connectedCallback();
         const saved = localStorage.getItem("intellikeep.filterTab");
         if (saved === "pending" || saved === "completed") {
             this._filterTab = saved;
+        }
+    }
+    _onPointerDown(id, e) {
+        if (e.pointerType !== "touch")
+            return;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        this._swipeData.set(id, { startX: e.clientX, startY: e.clientY, decided: false, canceled: false });
+    }
+    _onPointerMove(id, e) {
+        if (e.pointerType !== "touch")
+            return;
+        const s = this._swipeData.get(id);
+        if (!s || s.canceled)
+            return;
+        const dx = e.clientX - s.startX;
+        const dy = e.clientY - s.startY;
+        if (!s.decided) {
+            if (Math.abs(dy) > Math.abs(dx) + 8) {
+                s.canceled = true;
+                e.currentTarget.releasePointerCapture(e.pointerId);
+                return;
+            }
+            if (Math.abs(dx) < 8)
+                return;
+            s.decided = true;
+        }
+        const el = e.currentTarget;
+        const clamped = Math.max(-120, Math.min(120, dx));
+        el.style.transform = `translateX(${clamped}px)`;
+        el.style.transition = "none";
+        const container = el.parentElement;
+        if (container) {
+            const bgDone = container.querySelector(".swipe-bg-done");
+            const bgDel = container.querySelector(".swipe-bg-delete");
+            if (bgDone)
+                bgDone.style.opacity = dx > 0 ? String(Math.min(1, dx / 80)) : "0";
+            if (bgDel)
+                bgDel.style.opacity = dx < 0 ? String(Math.min(1, -dx / 80)) : "0";
+        }
+    }
+    _onPointerUp(id, task, e) {
+        if (e.pointerType !== "touch")
+            return;
+        const s = this._swipeData.get(id);
+        this._swipeData.delete(id);
+        const el = e.currentTarget;
+        const match = el.style.transform.match(/translateX\((-?\d+\.?\d*)px\)/);
+        const offset = match ? parseFloat(match[1]) : 0;
+        el.style.transition = "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)";
+        el.style.transform = "translateX(0)";
+        const container = el.parentElement;
+        if (container) {
+            const bgDone = container.querySelector(".swipe-bg-done");
+            const bgDel = container.querySelector(".swipe-bg-delete");
+            if (bgDone) {
+                bgDone.style.transition = "opacity 0.25s";
+                bgDone.style.opacity = "0";
+            }
+            if (bgDel) {
+                bgDel.style.transition = "opacity 0.25s";
+                bgDel.style.opacity = "0";
+            }
+        }
+        if (s?.decided)
+            this._swipeMoved.add(id);
+        if (!s || s.canceled || !s.decided)
+            return;
+        if (offset >= 80) {
+            task.status !== "completed" ? this._complete(id) : this._reopen(id);
+        }
+        else if (offset <= -80) {
+            this._deleteTarget = id;
         }
     }
     _resetPage() {
@@ -591,6 +667,11 @@ let IkTaskListView = class IkTaskListView extends i {
         this.dispatchEvent(new CustomEvent("navigate", { detail: path, bubbles: true, composed: true }));
     }
     async _edit(taskId) {
+        const isDesktop = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+        if (isDesktop) {
+            this.dispatchEvent(new CustomEvent("open-task-modal", { detail: taskId, bubbles: true, composed: true }));
+            return;
+        }
         if (this.enableAnimations) {
             this._exitingEdit = new Set([...this._exitingEdit, taskId]);
             await new Promise((r) => setTimeout(r, 320));
@@ -655,6 +736,12 @@ let IkTaskListView = class IkTaskListView extends i {
         }
     }
     render() {
+        if (!this.enableAnimations) {
+            this.setAttribute("no-animations", "");
+        }
+        else {
+            this.removeAttribute("no-animations");
+        }
         const tr = t(this.hass?.language);
         const q = this._searchQuery.trim().toLowerCase();
         const matchesQ = (task) => !q || task.name.toLowerCase().includes(q) || (task.description ?? "").toLowerCase().includes(q);
@@ -670,17 +757,34 @@ let IkTaskListView = class IkTaskListView extends i {
         <span class="chip-badge">${count}</span>
       </button>
     `;
+        const swipeDoneColor = (task) => task.status !== "completed"
+            ? "var(--success-color, #4caf50)"
+            : "var(--warning-color, #ff9800)";
+        const swipeDoneIcon = (task) => task.status !== "completed" ? "mdi:check-bold" : "mdi:undo";
         const taskItem = (task) => b `
       <div class="list-item task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : this._exitingUndo.has(task.task_id) ? "exiting-undo" : this._exitingEdit.has(task.task_id) ? "exiting-edit" : ""}">
-        <ik-task-card .task=${task} .hass=${this.hass}>
-          <div class="task-actions" slot="actions">
-            ${task.status !== "completed"
-            ? b `<button class="icon-btn primary" title=${tr.done} ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}><ha-icon icon="mdi:check"></ha-icon></button>`
-            : b `<button class="icon-btn undo" title=${tr.undo} ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}><ha-icon icon="mdi:undo"></ha-icon></button>`}
-            <button class="icon-btn edit" title=${tr.edit} @click=${() => this._edit(task.task_id)}><ha-icon icon="mdi:pencil"></ha-icon></button>
-            <button class="icon-btn danger" title=${tr.del} @click=${() => { this._deleteTarget = task.task_id; }}><ha-icon icon="mdi:delete"></ha-icon></button>
-          </div>
-        </ik-task-card>
+        <div class="swipe-bg swipe-bg-done" style="background:${swipeDoneColor(task)}">
+          <ha-icon icon=${swipeDoneIcon(task)}></ha-icon>
+        </div>
+        <div class="swipe-bg swipe-bg-delete">
+          <ha-icon icon="mdi:trash-can"></ha-icon>
+        </div>
+        <div class="swipe-content"
+          @pointerdown=${(e) => this._onPointerDown(task.task_id, e)}
+          @pointermove=${(e) => this._onPointerMove(task.task_id, e)}
+          @pointerup=${(e) => this._onPointerUp(task.task_id, task, e)}
+          @pointercancel=${(e) => this._onPointerUp(task.task_id, task, e)}
+          @click=${() => { if (!this._swipeMoved.delete(task.task_id))
+            this._edit(task.task_id); }}>
+          <ik-task-card .task=${task} .hass=${this.hass}>
+            <div class="task-actions" slot="actions">
+              <button class="icon-btn danger" title=${tr.del} @click=${(e) => { e.stopPropagation(); this._deleteTarget = task.task_id; }}><ha-icon icon="mdi:delete"></ha-icon></button>
+              ${task.status !== "completed"
+            ? b `<button class="icon-btn primary" title=${tr.done} ?disabled=${this._completing.has(task.task_id)} @click=${(e) => { e.stopPropagation(); this._complete(task.task_id); }}><ha-icon icon="mdi:check"></ha-icon></button>`
+            : b `<button class="icon-btn undo" title=${tr.undo} ?disabled=${this._reopening.has(task.task_id)} @click=${(e) => { e.stopPropagation(); this._reopen(task.task_id); }}><ha-icon icon="mdi:undo"></ha-icon></button>`}
+            </div>
+          </ik-task-card>
+        </div>
       </div>
     `;
         const filterSection = b `
@@ -1066,31 +1170,46 @@ IkTaskListView.styles = i$3 `
       font-size: 14px;
       font-weight: 500;
     }
-    .task-actions {
-      display: flex;
-      gap: 6px;
-      justify-content: flex-end;
-      align-items: center;
-    }
     .icon-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 34px;
-      height: 34px;
-      border-radius: 8px;
+      width: 44px;
+      align-self: stretch;
+      border-radius: 0;
       border: none;
       cursor: pointer;
       transition: filter 0.15s, opacity 0.15s;
-      --mdc-icon-size: 18px;
+      --mdc-icon-size: 20px;
       color: #fff;
     }
-    .icon-btn:hover { filter: brightness(1.15); }
+    .icon-btn + .icon-btn { border-left: 1px solid rgba(255,255,255,0.2); }
+    .icon-btn:hover { filter: brightness(1.12); }
     .icon-btn:disabled { opacity: 0.4; cursor: default; }
     .icon-btn.primary { background: var(--primary-color); }
     .icon-btn.undo    { background: var(--warning-color, #ff9800); }
     .icon-btn.edit    { background: var(--secondary-text-color, #757575); }
     .icon-btn.danger  { background: var(--error-color, #f44336); }
+    .task-actions {
+      display: flex;
+      align-self: stretch;
+      flex-shrink: 0;
+      opacity: 0;
+      transition: opacity 0.18s ease;
+      border-left: 1px solid var(--divider-color, rgba(0,0,0,0.08));
+    }
+    @media (hover: hover) {
+      .task-wrapper:hover .task-actions { opacity: 1; }
+    }
+    :host([no-animations]) *, :host([no-animations]) *::before, :host([no-animations]) *::after {
+      transition: none !important;
+      animation: none !important;
+    }
+    :host([no-animations]) .icon-btn:hover,
+    :host([no-animations]) .icon-btn:active {
+      filter: none !important;
+      transform: none !important;
+    }
     .task-divider {
       border: none;
       border-top: 1px solid var(--divider-color);
@@ -1147,10 +1266,36 @@ IkTaskListView.styles = i$3 `
       padding: 8px;
     }
     .list-item {
+      position: relative;
       border: 1.5px solid var(--divider-color);
       border-radius: 10px;
       overflow: hidden;
+    }
+    .swipe-bg {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      --mdc-icon-size: 26px;
+    }
+    .swipe-bg-done {
+      justify-content: flex-start;
+      padding-left: 18px;
+    }
+    .swipe-bg-delete {
+      background: var(--error-color, #f44336);
+      justify-content: flex-end;
+      padding-right: 18px;
+    }
+    .swipe-bg ha-icon { color: #fff; }
+    .swipe-content {
+      position: relative;
       background: var(--card-background-color);
+      touch-action: pan-y;
+      will-change: transform;
+      cursor: pointer;
     }
     .task-wrapper.exiting-done {
       animation: ik-done-exit 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
@@ -1241,6 +1386,7 @@ let IkTaskFormView = class IkTaskFormView extends i {
     constructor() {
         super(...arguments);
         this.task = null;
+        this.enableAnimations = true;
         this._name = "";
         this._description = "";
         this._priority = "medium";
@@ -1252,6 +1398,9 @@ let IkTaskFormView = class IkTaskFormView extends i {
         this._notifyDaysBefore = 1;
         this._notifyOnOverdue = true;
         this._saving = false;
+        this._completing = false;
+        this._deleting = false;
+        this._showDeleteConfirm = false;
         this._error = "";
     }
     connectedCallback() {
@@ -1279,6 +1428,36 @@ let IkTaskFormView = class IkTaskFormView extends i {
     }
     _navigate(path) {
         this.dispatchEvent(new CustomEvent("navigate", { detail: path, bubbles: true, composed: true }));
+    }
+    async _complete() {
+        if (!this.task)
+            return;
+        this._completing = true;
+        try {
+            if (this.task.status !== "completed") {
+                await completeTask(this.hass, this.task.task_id);
+            }
+            else {
+                await reopenTask(this.hass, this.task.task_id);
+            }
+            this._navigate("/tasks");
+        }
+        finally {
+            this._completing = false;
+        }
+    }
+    async _handleDelete(confirmed) {
+        this._showDeleteConfirm = false;
+        if (!confirmed || !this.task)
+            return;
+        this._deleting = true;
+        try {
+            await deleteTask(this.hass, this.task.task_id);
+            this._navigate("/tasks");
+        }
+        finally {
+            this._deleting = false;
+        }
     }
     async _save() {
         const tr = t(this.hass?.language);
@@ -1318,6 +1497,12 @@ let IkTaskFormView = class IkTaskFormView extends i {
     render() {
         const isEdit = this.task !== null;
         const tr = t(this.hass?.language);
+        if (!this.enableAnimations) {
+            this.setAttribute("no-animations", "");
+        }
+        else {
+            this.removeAttribute("no-animations");
+        }
         return b `
       <div class="form">
         <label>
@@ -1401,12 +1586,43 @@ let IkTaskFormView = class IkTaskFormView extends i {
 
         ${this._error ? b `<div class="error">${this._error}</div>` : A}
 
-        <div class="actions">
-          <button class="save" ?disabled=${this._saving} @click=${this._save}>
-            ${this._saving ? tr.saving : isEdit ? tr.saveChanges : tr.createTask}
-          </button>
-          <button class="cancel" @click=${() => this._navigate("/tasks")}>${tr.cancel}</button>
-        </div>
+        ${isEdit ? b `
+          <div class="form-footer">
+            <button class="btn-delete" ?disabled=${this._deleting} @click=${() => { this._showDeleteConfirm = true; }}>
+              <ha-icon icon="mdi:delete"></ha-icon><span class="btn-label"> ${tr.del}</span>
+            </button>
+            <div class="form-footer-spacer"></div>
+            <button class="cancel cancel-mobile" @click=${() => this._navigate("/tasks")}>
+              <ha-icon icon="mdi:close"></ha-icon><span class="btn-label"> ${tr.cancel}</span>
+            </button>
+            ${this.task.status !== "completed"
+            ? b `<button class="btn-done" ?disabled=${this._completing} @click=${this._complete}>
+                  <ha-icon icon="mdi:check"></ha-icon><span class="btn-label"> ${tr.done}</span>
+                </button>`
+            : b `<button class="btn-undo" ?disabled=${this._completing} @click=${this._complete}>
+                  <ha-icon icon="mdi:undo"></ha-icon><span class="btn-label"> ${tr.undo}</span>
+                </button>`}
+            <button class="save" ?disabled=${this._saving} @click=${this._save}>
+              <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${this._saving ? tr.saving : tr.save}</span>
+            </button>
+          </div>
+          <ik-confirm-dialog
+            .heading=${tr.deleteHeading}
+            .body=${tr.deleteBody}
+            .open=${this._showDeleteConfirm}
+            @dialog-closed=${(e) => this._handleDelete(e.detail.confirmed)}
+          ></ik-confirm-dialog>
+        ` : b `
+          <div class="form-footer">
+            <div class="form-footer-spacer"></div>
+            <button class="cancel" @click=${() => this._navigate("/tasks")}>
+              <ha-icon icon="mdi:close"></ha-icon><span class="btn-label"> ${tr.cancel}</span>
+            </button>
+            <button class="save" ?disabled=${this._saving} @click=${this._save}>
+              <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${this._saving ? tr.saving : tr.createTask}</span>
+            </button>
+          </div>
+        `}
       </div>
     `;
     }
@@ -1427,7 +1643,7 @@ IkTaskFormView.styles = i$3 `
     textarea { resize: vertical; min-height: 72px; }
     .row { display: flex; gap: 12px; flex-wrap: wrap; }
     .row label { flex: 1; min-width: 160px; }
-    .checkbox-label { flex-direction: row; align-items: center; gap: 8px; cursor: pointer; }
+    .checkbox-label { flex-direction: row; align-items: center; gap: 8px; cursor: pointer; align-self: flex-end; padding-bottom: 8px; }
     .actions { display: flex; gap: 10px; margin-top: 8px; }
     button {
       padding: 10px 20px;
@@ -1436,15 +1652,66 @@ IkTaskFormView.styles = i$3 `
       cursor: pointer;
       font-size: 14px;
       font-weight: 500;
+      transition: filter 0.15s, transform 0.15s;
+    }
+    @media (hover: hover) {
+      button:not(:disabled):hover { filter: brightness(1.08); transform: translateY(-1px); }
+      button:not(:disabled):active { transform: translateY(0); filter: brightness(0.97); }
     }
     .save { background: var(--primary-color); color: var(--text-primary-color, #fff); }
     .cancel { background: var(--secondary-background-color); color: var(--primary-text-color); }
+    .error { color: var(--error-color, #f44336); font-size: 13px; }
+    .form-footer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      padding-top: 14px;
+      border-top: 1px solid var(--divider-color);
+    }
+    .form-footer-spacer { flex: 1; }
+    .cancel-mobile { display: none; }
+    @media (hover: none) {
+      .cancel-mobile { display: inline-flex; }
+    }
+    .btn-done {
+      background: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+    .btn-undo {
+      background: var(--warning-color, #ff9800);
+      color: #fff;
+    }
+    .btn-delete {
+      background: var(--error-color, #f44336);
+      color: #fff;
+      margin-left: auto;
+    }
+    .btn-done, .btn-undo, .btn-delete, .save, .cancel {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      --mdc-icon-size: 18px;
+    }
+    @media (max-width: 400px) {
+      .form-footer .btn-label { display: none; }
+      .form-footer button { padding: 10px 12px; }
+    }
     .error { color: var(--error-color, #f44336); font-size: 13px; }
     .entity-list { display: flex; flex-direction: column; gap: 4px; }
     .entity-row { display: flex; gap: 6px; align-items: center; }
     .entity-row input { flex: 1; }
     .entity-row button { padding: 6px 10px; background: var(--secondary-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 6px; cursor: pointer; }
     .add-entity { background: transparent; border: 1px dashed var(--divider-color); color: var(--secondary-text-color); border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; align-self: flex-start; }
+    :host([no-animations]) *, :host([no-animations]) *::before, :host([no-animations]) *::after {
+      transition: none !important;
+      animation: none !important;
+    }
+    :host([no-animations]) button:hover,
+    :host([no-animations]) button:active {
+      filter: none !important;
+      transform: none !important;
+    }
   `;
 __decorate([
     n({ attribute: false })
@@ -1452,6 +1719,9 @@ __decorate([
 __decorate([
     n({ attribute: false })
 ], IkTaskFormView.prototype, "task", void 0);
+__decorate([
+    n({ type: Boolean })
+], IkTaskFormView.prototype, "enableAnimations", void 0);
 __decorate([
     r()
 ], IkTaskFormView.prototype, "_name", void 0);
@@ -1485,6 +1755,15 @@ __decorate([
 __decorate([
     r()
 ], IkTaskFormView.prototype, "_saving", void 0);
+__decorate([
+    r()
+], IkTaskFormView.prototype, "_completing", void 0);
+__decorate([
+    r()
+], IkTaskFormView.prototype, "_deleting", void 0);
+__decorate([
+    r()
+], IkTaskFormView.prototype, "_showDeleteConfirm", void 0);
 __decorate([
     r()
 ], IkTaskFormView.prototype, "_error", void 0);
@@ -1741,6 +2020,7 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
         this._currentPath = "/tasks";
         this._loading = true;
         this._enableAnimations = true;
+        this._modalTaskId = null;
     }
     async connectedCallback() {
         super.connectedCallback();
@@ -1785,6 +2065,7 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
     render() {
         const path = this._currentPath;
         const tr = t(this.hass?.language);
+        const isMobile = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
         const isNew = path === "/new";
         const isEdit = path.startsWith("/edit/");
         const isHistory = path.startsWith("/history/");
@@ -1796,22 +2077,31 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
         <ha-icon icon="mdi:clipboard-check-multiple-outline"></ha-icon>
         <span class="appbar-title">IntelliKeep</span>
         <div class="appbar-actions">
-          <button class="appbar-btn" @click=${() => this._navigate("/new")}>
+          <button class="appbar-btn" @click=${() => {
+            if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+                this._modalTaskId = "__new__";
+            }
+            else {
+                this._navigate("/new");
+            }
+        }}>
             <ha-icon icon="mdi:plus" style="--mdc-icon-size:16px"></ha-icon>
             ${tr.newTask}
           </button>
         </div>
       </div>
 
-      <div class="tabs">
-        <div class="tab ${isTasks ? "active" : ""}" @click=${() => this._navigate("/tasks")}>
-          ${tr.tasks}
-          ${dueCount > 0 ? b `<span style="background:var(--error-color,#f44336);color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:5px;font-weight:700">${dueCount}</span>` : A}
+      ${!(isMobile && (isNew || isEdit)) ? b `
+        <div class="tabs">
+          <div class="tab ${isTasks ? "active" : ""}" @click=${() => this._navigate("/tasks")}>
+            ${tr.tasks}
+            ${dueCount > 0 ? b `<span style="background:var(--error-color,#f44336);color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:5px;font-weight:700">${dueCount}</span>` : A}
+          </div>
+          <div class="tab ${isSettings ? "active" : ""}" @click=${() => this._navigate("/settings")}>${tr.settings}</div>
         </div>
-        <div class="tab ${isSettings ? "active" : ""}" @click=${() => this._navigate("/settings")}>${tr.settings}</div>
-      </div>
+      ` : A}
 
-      <div class="content" @navigate=${(e) => this._navigate(e.detail)}>
+      <div class="content" @navigate=${(e) => this._navigate(e.detail)} @open-task-modal=${(e) => { this._modalTaskId = e.detail; }}>
         ${isTasks && !this._loading
             ? b `
               <ik-task-list-view
@@ -1829,6 +2119,7 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
                   <div class="page-title">${tr.newTaskTitle}</div>
                   <ik-task-form-view
                     .hass=${this.hass}
+                    .enableAnimations=${this._enableAnimations}
                     @navigate=${(e) => this._navigate(e.detail)}
                   ></ik-task-form-view>
                 `
@@ -1838,6 +2129,7 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
                   <ik-task-form-view
                     .hass=${this.hass}
                     .task=${this._getEditTask()}
+                    .enableAnimations=${this._enableAnimations}
                     @navigate=${(e) => this._navigate(e.detail)}
                   ></ik-task-form-view>
                 `
@@ -1864,6 +2156,24 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
                                 : A}
           </div>`}
       </div>
+
+      ${this._modalTaskId !== null ? b `
+        <div class="modal-overlay" @click=${(e) => { if (e.target === e.currentTarget)
+            this._modalTaskId = null; }}>
+          <div class="modal-container">
+            <div class="modal-header">
+              <span class="modal-title">${this._modalTaskId === "__new__" ? tr.newTaskTitle : tr.editTask}</span>
+              <button class="modal-close" @click=${() => { this._modalTaskId = null; }}><ha-icon icon="mdi:close" style="--mdc-icon-size:20px"></ha-icon></button>
+            </div>
+            <ik-task-form-view
+              .hass=${this.hass}
+              .task=${this._modalTaskId === "__new__" ? null : (this._tasks.find(t => t.task_id === this._modalTaskId) ?? null)}
+              .enableAnimations=${this._enableAnimations}
+              @navigate=${(e) => { e.stopPropagation(); this._modalTaskId = null; }}
+            ></ik-task-form-view>
+          </div>
+        </div>
+      ` : A}
     `;
     }
 };
@@ -1942,6 +2252,50 @@ IntelliKeepPanel.styles = i$3 `
       padding: var(--ik-padding);
     }
 
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.48);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    .modal-container {
+      background: var(--card-background-color);
+      border-radius: 12px;
+      padding: 24px;
+      width: 100%;
+      max-width: 640px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.28);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .modal-title {
+      font-size: 18px;
+      font-weight: 500;
+      flex: 1;
+      color: var(--primary-text-color);
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--secondary-text-color);
+      padding: 4px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+    }
+    .modal-close:hover { background: var(--secondary-background-color); }
+
     .page-title {
       font-size: 22px;
       font-weight: 500;
@@ -1970,6 +2324,9 @@ __decorate([
 __decorate([
     r()
 ], IntelliKeepPanel.prototype, "_enableAnimations", void 0);
+__decorate([
+    r()
+], IntelliKeepPanel.prototype, "_modalTaskId", void 0);
 IntelliKeepPanel = __decorate([
     t$1("intellikeep-panel")
 ], IntelliKeepPanel);
