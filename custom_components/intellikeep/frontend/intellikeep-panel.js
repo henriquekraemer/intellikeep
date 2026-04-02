@@ -173,6 +173,8 @@ const messages = {
         settingsBody: "To change integration settings, go to Settings → Devices & Services → IntelliKeep → Configure.",
         rowsPerPage: "Rows per page:",
         of: "of",
+        animationsLabel: "Task animations",
+        animationsDesc: "Animate tasks when marked as done or deleted.",
     },
     pt: {
         newTask: "Nova tarefa",
@@ -240,6 +242,8 @@ const messages = {
         settingsBody: "Para alterar as configurações da integração, acesse Configurações → Dispositivos e Serviços → IntelliKeep → Configurar.",
         rowsPerPage: "Linhas por página:",
         of: "de",
+        animationsLabel: "Animações de tarefas",
+        animationsDesc: "Animar tarefas ao marcar como concluída ou excluir.",
     },
 };
 function t(language) {
@@ -465,6 +469,7 @@ let IkTaskListView = class IkTaskListView extends i {
     constructor() {
         super(...arguments);
         this.tasks = [];
+        this.enableAnimations = true;
         this._filterGroup = "pending";
         this._filterUrgency = "all";
         this._filterPriority = "all";
@@ -473,6 +478,8 @@ let IkTaskListView = class IkTaskListView extends i {
         this._reopening = new Set();
         this._page = 0;
         this._pageSize = 25;
+        this._exitingDone = new Set();
+        this._exitingDelete = new Set();
     }
     _resetPage() {
         this._page = 0;
@@ -512,6 +519,10 @@ let IkTaskListView = class IkTaskListView extends i {
     }
     async _complete(taskId) {
         this._completing = new Set([...this._completing, taskId]);
+        if (this.enableAnimations) {
+            this._exitingDone = new Set([...this._exitingDone, taskId]);
+            await new Promise((r) => setTimeout(r, 380));
+        }
         try {
             await completeTask(this.hass, taskId);
         }
@@ -521,13 +532,28 @@ let IkTaskListView = class IkTaskListView extends i {
         }
         finally {
             this._completing = new Set([...this._completing].filter((id) => id !== taskId));
+            this._exitingDone = new Set([...this._exitingDone].filter((id) => id !== taskId));
         }
     }
     async _confirmDelete(confirmed) {
-        if (confirmed && this._deleteTarget) {
-            await deleteTask(this.hass, this._deleteTarget);
-        }
+        const taskId = this._deleteTarget;
         this._deleteTarget = null;
+        if (confirmed && taskId) {
+            if (this.enableAnimations) {
+                this._exitingDelete = new Set([...this._exitingDelete, taskId]);
+                await new Promise((r) => setTimeout(r, 380));
+            }
+            try {
+                await deleteTask(this.hass, taskId);
+            }
+            catch (err) {
+                console.error("[IntelliKeep] delete_task failed:", err);
+                alert(`Failed to delete task: ${err}`);
+            }
+            finally {
+                this._exitingDelete = new Set([...this._exitingDelete].filter((id) => id !== taskId));
+            }
+        }
     }
     render() {
         const tasks = this._filtered;
@@ -562,16 +588,18 @@ let IkTaskListView = class IkTaskListView extends i {
         ${tasks.length === 0
             ? b `<div class="empty">${tr.noTasks}</div>`
             : pageTasks.map((task, i) => b `
-                ${i > 0 ? b `<hr class="task-divider" />` : ""}
-                <ik-task-card .task=${task} .hass=${this.hass}>
-                  <div class="task-actions" slot="actions">
-                    ${task.status !== "completed"
+                <div class="task-wrapper ${this._exitingDone.has(task.task_id) ? "exiting-done" : this._exitingDelete.has(task.task_id) ? "exiting-delete" : ""}">
+                  ${i > 0 ? b `<hr class="task-divider" />` : ""}
+                  <ik-task-card .task=${task} .hass=${this.hass}>
+                    <div class="task-actions" slot="actions">
+                      ${task.status !== "completed"
                 ? b `<button class="btn primary" ?disabled=${this._completing.has(task.task_id)} @click=${() => this._complete(task.task_id)}>${tr.done}</button>`
                 : b `<button class="btn" ?disabled=${this._reopening.has(task.task_id)} @click=${() => this._reopen(task.task_id)}>${tr.undo}</button>`}
-                    <button class="btn" @click=${() => this._navigateTo(`/edit/${task.task_id}`)}>${tr.edit}</button>
-                    <button class="btn danger" @click=${() => { this._deleteTarget = task.task_id; }}>${tr.del}</button>
-                  </div>
-                </ik-task-card>
+                      <button class="btn" @click=${() => this._navigateTo(`/edit/${task.task_id}`)}>${tr.edit}</button>
+                      <button class="btn danger" @click=${() => { this._deleteTarget = task.task_id; }}>${tr.del}</button>
+                    </div>
+                  </ik-task-card>
+                </div>
               `)}
       </ha-card>
 
@@ -688,6 +716,27 @@ IkTaskListView.styles = i$3 `
       opacity: 0.4;
       cursor: default;
     }
+    @keyframes ik-done-exit {
+      0%   { transform: translateX(0);    opacity: 1; background: transparent; }
+      15%  { background: color-mix(in srgb, var(--primary-color) 18%, transparent); }
+      100% { transform: translateX(56px); opacity: 0; background: transparent; }
+    }
+    @keyframes ik-delete-exit {
+      0%   { transform: translateX(0);     opacity: 1; background: transparent; }
+      15%  { background: rgba(244, 67, 54, 0.15); }
+      100% { transform: translateX(-56px); opacity: 0; background: transparent; }
+    }
+    .task-wrapper {
+      overflow: hidden;
+    }
+    .task-wrapper.exiting-done {
+      animation: ik-done-exit 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      pointer-events: none;
+    }
+    .task-wrapper.exiting-delete {
+      animation: ik-delete-exit 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      pointer-events: none;
+    }
   `;
 __decorate([
     n({ attribute: false })
@@ -695,6 +744,9 @@ __decorate([
 __decorate([
     n({ attribute: false })
 ], IkTaskListView.prototype, "tasks", void 0);
+__decorate([
+    n({ type: Boolean })
+], IkTaskListView.prototype, "enableAnimations", void 0);
 __decorate([
     r()
 ], IkTaskListView.prototype, "_filterGroup", void 0);
@@ -719,6 +771,12 @@ __decorate([
 __decorate([
     r()
 ], IkTaskListView.prototype, "_pageSize", void 0);
+__decorate([
+    r()
+], IkTaskListView.prototype, "_exitingDone", void 0);
+__decorate([
+    r()
+], IkTaskListView.prototype, "_exitingDelete", void 0);
 IkTaskListView = __decorate([
     t$1("ik-task-list-view")
 ], IkTaskListView);
@@ -1082,6 +1140,10 @@ IkTaskHistoryView = __decorate([
 ], IkTaskHistoryView);
 
 let IkSettingsView = class IkSettingsView extends i {
+    constructor() {
+        super(...arguments);
+        this.enableAnimations = true;
+    }
     render() {
         const tr = t(this.hass?.language);
         return b `
@@ -1090,6 +1152,22 @@ let IkSettingsView = class IkSettingsView extends i {
         <p>${tr.settingsBody}</p>
 
         <div style="margin-top:16px">
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-label">${tr.animationsLabel}</div>
+              <div class="toggle-desc">${tr.animationsDesc}</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox"
+                .checked=${this.enableAnimations}
+                @change=${(e) => this.dispatchEvent(new CustomEvent("animations-changed", {
+            detail: e.target.checked,
+            bubbles: true, composed: true
+        }))}
+              />
+              <span class="slider"></span>
+            </label>
+          </div>
           <div class="info-row">
             <span class="info-label">Available services</span>
             <span class="info-value">intellikeep.create_task, intellikeep.complete_task, intellikeep.delete_task, intellikeep.update_task</span>
@@ -1126,10 +1204,59 @@ IkSettingsView.styles = i$3 `
     .info-row:last-child { border-bottom: none; }
     .info-label { font-size: 13px; color: var(--secondary-text-color); min-width: 160px; }
     .info-value { font-size: 14px; color: var(--primary-text-color); font-weight: 500; }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--divider-color);
+    }
+    .toggle-label {
+      font-size: 14px;
+      color: var(--primary-text-color);
+    }
+    .toggle-desc {
+      font-size: 12px;
+      color: var(--secondary-text-color);
+      margin-top: 2px;
+    }
+    /* Simple toggle switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: var(--disabled-color, #ccc);
+      border-radius: 22px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .slider::before {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      left: 3px;
+      top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    input:checked + .slider { background: var(--primary-color); }
+    input:checked + .slider::before { transform: translateX(18px); }
   `;
 __decorate([
     n({ attribute: false })
 ], IkSettingsView.prototype, "hass", void 0);
+__decorate([
+    n({ type: Boolean })
+], IkSettingsView.prototype, "enableAnimations", void 0);
 IkSettingsView = __decorate([
     t$1("ik-settings-view")
 ], IkSettingsView);
@@ -1141,9 +1268,11 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
         this._tasks = [];
         this._currentPath = "/tasks";
         this._loading = true;
+        this._enableAnimations = true;
     }
     async connectedCallback() {
         super.connectedCallback();
+        this._enableAnimations = localStorage.getItem("intellikeep.animations") !== "false";
         await this._subscribe();
         this._restoreRoute();
     }
@@ -1218,6 +1347,7 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
               <ik-task-list-view
                 .hass=${this.hass}
                 .tasks=${this._tasks}
+                .enableAnimations=${this._enableAnimations}
                 @navigate=${(e) => this._navigate(e.detail)}
               ></ik-task-list-view>
             `
@@ -1249,7 +1379,14 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
                             : isSettings
                                 ? b `
               <div class="page-title">${tr.settingsTitle}</div>
-              <ik-settings-view .hass=${this.hass}></ik-settings-view>
+              <ik-settings-view
+                .hass=${this.hass}
+                .enableAnimations=${this._enableAnimations}
+                @animations-changed=${(e) => {
+                                    this._enableAnimations = e.detail;
+                                    localStorage.setItem("intellikeep.animations", String(e.detail));
+                                }}
+              ></ik-settings-view>
             `
                                 : A}
       </div>
@@ -1350,6 +1487,9 @@ __decorate([
 __decorate([
     r()
 ], IntelliKeepPanel.prototype, "_loading", void 0);
+__decorate([
+    r()
+], IntelliKeepPanel.prototype, "_enableAnimations", void 0);
 IntelliKeepPanel = __decorate([
     t$1("intellikeep-panel")
 ], IntelliKeepPanel);

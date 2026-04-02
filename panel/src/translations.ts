@@ -65,6 +65,8 @@ const messages = {
     settingsBody: "To change integration settings, go to Settings → Devices & Services → IntelliKeep → Configure.",
     rowsPerPage: "Rows per page:",
     of: "of",
+    animationsLabel: "Task animations",
+    animationsDesc: "Animate tasks when marked as done or deleted.",
   },
   pt: {
     newTask: "Nova tarefa",
@@ -132,6 +134,8 @@ const messages = {
     settingsBody: "Para alterar as configurações da integração, acesse Configurações → Dispositivos e Serviços → IntelliKeep → Configurar.",
     rowsPerPage: "Linhas por página:",
     of: "de",
+    animationsLabel: "Animações de tarefas",
+    animationsDesc: "Animar tarefas ao marcar como concluída ou excluir.",
   },
 };
 
