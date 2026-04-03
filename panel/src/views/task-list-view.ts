@@ -578,7 +578,8 @@ export class IkTaskListView extends LitElement {
     const tr = t(this.hass?.language);
     const q = this._searchQuery.trim().toLowerCase();
     const matchesQ = (task: Task) =>
-      !q || task.name.toLowerCase().includes(q) || (task.description ?? "").toLowerCase().includes(q);
+      !q || task.name.toLowerCase().includes(q) || (task.description ?? "").toLowerCase().includes(q) ||
+      (task.task_number ? String(task.task_number).padStart(3, '0').includes(q) : false);
     const matchesPr = (task: Task) =>
       this._filterPriority === "all" || task.priority === this._filterPriority;
 
@@ -832,8 +833,9 @@ export class IkTaskListView extends LitElement {
     }
 
     // completed tab
-    const completedTasks = this.tasks.filter(t =>
-      t.status === "completed" && matchesPr(t) && matchesQ(t));
+    const completedTasks = this.tasks
+      .filter(t => t.status === "completed" && matchesPr(t) && matchesQ(t))
+      .sort((a, b) => new Date(b.last_completed_at ?? b.updated_at).getTime() - new Date(a.last_completed_at ?? a.updated_at).getTime());
     const totalPages = Math.max(1, Math.ceil(completedTasks.length / this._pageSize));
     const page = Math.min(this._page, totalPages - 1);
     const start = page * this._pageSize;

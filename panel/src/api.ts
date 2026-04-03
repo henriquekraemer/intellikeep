@@ -71,3 +71,20 @@ export async function deleteTask(
 ): Promise<void> {
   await hass.callService(DOMAIN, "delete_task", { task_id: taskId });
 }
+
+export async function addTaskNote(
+  hass: HomeAssistant,
+  taskId: string,
+  content: string,
+  addedBy = ""
+): Promise<void> {
+  await hass.callService(DOMAIN, "add_task_note", {
+    task_id: taskId,
+    content,
+    added_by: addedBy,
+  });
+}
+
+export async function deleteAllData(hass: HomeAssistant): Promise<void> {
+  await hass.callService(DOMAIN, "delete_all_data", {});
+}

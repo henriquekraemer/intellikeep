@@ -189,11 +189,6 @@ export class IntelliKeepPanel extends LitElement {
     return this._tasks.find((t) => t.task_id === match[1]) ?? null;
   }
 
-  private _getHistoryTaskId(): string {
-    const match = this._currentPath.match(/^\/history\/(.+)$/);
-    return match ? match[1] : "";
-  }
-
   protected render() {
     const path = this._currentPath;
     const tr = t(this.hass?.language);
@@ -201,9 +196,8 @@ export class IntelliKeepPanel extends LitElement {
 
     const isNew = path === "/new";
     const isEdit = path.startsWith("/edit/");
-    const isHistory = path.startsWith("/history/");
     const isSettings = path === "/settings";
-    const isTasks = !isNew && !isEdit && !isHistory && !isSettings;
+    const isTasks = !isNew && !isEdit && !isSettings;
 
     const dueCount = this._tasks.filter((t) => t.status === "due" || t.status === "overdue").length;
 
@@ -253,27 +247,21 @@ export class IntelliKeepPanel extends LitElement {
                   <div class="page-title">${tr.newTaskTitle}</div>
                   <ik-task-form-view
                     .hass=${this.hass}
+                    .tasks=${this._tasks}
                     .enableAnimations=${this._enableAnimations}
                     @navigate=${(e: CustomEvent) => this._navigate(e.detail)}
                   ></ik-task-form-view>
                 `
               : isEdit
               ? html`
-                  <div class="page-title">${tr.editTask}</div>
+                  <div class="page-title">${(() => { const t2 = this._getEditTask(); return t2?.task_number ? `${tr.editTask} #${String(t2.task_number).padStart(3,'0')}` : tr.editTask; })()}</div>
                   <ik-task-form-view
                     .hass=${this.hass}
                     .task=${this._getEditTask()}
+                    .tasks=${this._tasks}
                     .enableAnimations=${this._enableAnimations}
                     @navigate=${(e: CustomEvent) => this._navigate(e.detail)}
                   ></ik-task-form-view>
-                `
-              : isHistory
-              ? html`
-                  <ik-task-history-view
-                    .hass=${this.hass}
-                    .taskId=${this._getHistoryTaskId()}
-                    @navigate=${(e: CustomEvent) => this._navigate(e.detail)}
-                  ></ik-task-history-view>
                 `
               : isSettings
               ? html`
@@ -295,12 +283,13 @@ export class IntelliKeepPanel extends LitElement {
         <div class="modal-overlay" @click=${(e: MouseEvent) => { if (e.target === e.currentTarget) this._modalTaskId = null; }}>
           <div class="modal-container">
             <div class="modal-header">
-              <span class="modal-title">${this._modalTaskId === "__new__" ? tr.newTaskTitle : tr.editTask}</span>
+              <span class="modal-title">${(() => { if (this._modalTaskId === "__new__") return tr.newTaskTitle; const mt = this._tasks.find(t => t.task_id === this._modalTaskId); return mt?.task_number ? `${tr.editTask} #${String(mt.task_number).padStart(3,'0')}` : tr.editTask; })()}</span>
               <button class="modal-close" @click=${() => { this._modalTaskId = null; }}><ha-icon icon="mdi:close" style="--mdc-icon-size:20px"></ha-icon></button>
             </div>
             <ik-task-form-view
               .hass=${this.hass}
               .task=${this._modalTaskId === "__new__" ? null : (this._tasks.find(t => t.task_id === this._modalTaskId) ?? null)}
+              .tasks=${this._tasks}
               .enableAnimations=${this._enableAnimations}
               @navigate=${(e: CustomEvent) => { e.stopPropagation(); this._modalTaskId = null; }}
             ></ik-task-form-view>
