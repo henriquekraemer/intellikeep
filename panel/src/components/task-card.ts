@@ -37,7 +37,7 @@ export class IkTaskCard extends LitElement {
     .row {
       display: flex;
       align-items: stretch;
-      gap: 12px;
+      gap: 0;
       overflow: hidden;
     }
     .priority-bar {
@@ -56,6 +56,23 @@ export class IkTaskCard extends LitElement {
       letter-spacing: 0.08em;
       color: #fff;
       white-space: nowrap;
+    }
+    .task-num-col {
+      flex-shrink: 0;
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 64px;
+      padding: 0 10px;
+      border-right: 1px solid var(--divider-color, rgba(0,0,0,0.12));
+    }
+    .task-num-col span {
+      font-size: 18px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.01em;
+      color: var(--secondary-text-color);
     }
     .row-content {
       flex: 1;
@@ -100,6 +117,9 @@ export class IkTaskCard extends LitElement {
       text-transform: uppercase;
       color: #fff;
     }
+    .task-num {
+      display: none;
+    }
     .actions {
       align-self: stretch;
       display: flex;
@@ -127,9 +147,15 @@ export class IkTaskCard extends LitElement {
         <div class="priority-bar" style="background:${priorityColor(task.priority)}">
           <span>${task.priority}</span>
         </div>
+        ${task.task_number ? html`
+          <div class="task-num-col">
+            <span>#${String(task.task_number).padStart(3, '0')}</span>
+          </div>` : ""}
         <div class="row-content">
           <div class="body">
-            <div class="name">${task.name}</div>
+            <div class="name">
+              ${task.name}
+            </div>
             ${task.description ? html`<div class="desc">${task.description}</div>` : ""}
             <div class="meta">
               <span style="color:${statusColor(task.status)}">${this._relativeDue(task.due_date)}</span>

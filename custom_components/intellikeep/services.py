@@ -8,8 +8,10 @@ from homeassistant.core import HomeAssistant, ServiceCall
 
 from .const import (
     DOMAIN,
+    SERVICE_ADD_TASK_NOTE,
     SERVICE_COMPLETE_TASK,
     SERVICE_CREATE_TASK,
+    SERVICE_DELETE_ALL_DATA,
     SERVICE_DELETE_TASK,
     SERVICE_LOAD_SAMPLE_DATA,
     SERVICE_REOPEN_TASK,
@@ -67,11 +69,13 @@ def async_register_services(
 
     async def handle_load_sample_data(_call: ServiceCall) -> None:
         from .seed import build_sample_tasks  # noqa: PLC0415
-        for task in build_sample_tasks():
+        tasks = build_sample_tasks()
+        for task in tasks:
+            task.task_number = task_manager._storage.next_task_number()
             task_manager._storage.upsert_task(task)
         await task_manager._storage.async_save()
         await coordinator.async_refresh()
-        _LOGGER.info("IntelliKeep sample data loaded (%d tasks)", len(build_sample_tasks()))
+        _LOGGER.info("IntelliKeep sample data loaded (%d tasks)", len(tasks))
 
     async def handle_reopen_task(call: ServiceCall) -> None:
         task = await task_manager.async_reopen_task(call.data["task_id"])
@@ -101,12 +105,31 @@ def async_register_services(
         else:
             await coordinator.async_refresh()
 
+    async def handle_add_task_note(call: ServiceCall) -> None:
+        note = await task_manager.async_add_task_note(
+            call.data["task_id"],
+            content=call.data.get("content", ""),
+            added_by=call.data.get("added_by", ""),
+        )
+        if note is None:
+            _LOGGER.warning("add_task_note: task_id not found: %s", call.data["task_id"])
+        else:
+            await coordinator.async_refresh()
+
+    async def handle_delete_all_data(_call: ServiceCall) -> None:
+        count = task_manager._storage.clear_all_tasks()
+        await task_manager._storage.async_save()
+        await coordinator.async_refresh()
+        _LOGGER.info("IntelliKeep: deleted all data (%d tasks removed)", count)
+
     hass.services.async_register(DOMAIN, SERVICE_CREATE_TASK, handle_create_task)
     hass.services.async_register(DOMAIN, SERVICE_LOAD_SAMPLE_DATA, handle_load_sample_data)
     hass.services.async_register(DOMAIN, SERVICE_COMPLETE_TASK, handle_complete_task)
     hass.services.async_register(DOMAIN, SERVICE_REOPEN_TASK, handle_reopen_task)
     hass.services.async_register(DOMAIN, SERVICE_DELETE_TASK, handle_delete_task)
     hass.services.async_register(DOMAIN, SERVICE_UPDATE_TASK, handle_update_task)
+    hass.services.async_register(DOMAIN, SERVICE_ADD_TASK_NOTE, handle_add_task_note)
+    hass.services.async_register(DOMAIN, SERVICE_DELETE_ALL_DATA, handle_delete_all_data)
     _LOGGER.debug("IntelliKeep services registered")
 
 
@@ -118,5 +141,7 @@ def async_unregister_services(hass: HomeAssistant) -> None:
         SERVICE_REOPEN_TASK,
         SERVICE_DELETE_TASK,
         SERVICE_UPDATE_TASK,
+        SERVICE_ADD_TASK_NOTE,
+        SERVICE_DELETE_ALL_DATA,
     ):
         hass.services.async_remove(DOMAIN, service)

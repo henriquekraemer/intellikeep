@@ -26,6 +26,8 @@ SERVICE_COMPLETE_TASK = "complete_task"
 SERVICE_REOPEN_TASK = "reopen_task"
 SERVICE_DELETE_TASK = "delete_task"
 SERVICE_UPDATE_TASK = "update_task"
+SERVICE_ADD_TASK_NOTE = "add_task_note"
+SERVICE_DELETE_ALL_DATA = "delete_all_data"
 
 # WebSocket commands
 WS_GET_TASKS = "get_tasks"

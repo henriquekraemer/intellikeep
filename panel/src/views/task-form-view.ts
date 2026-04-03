@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant, Task, TaskFrequency, TaskPriority } from "../types";
-import { createTask, updateTask, completeTask, reopenTask, deleteTask } from "../api";
+import { createTask, updateTask, completeTask, reopenTask, deleteTask, addTaskNote } from "../api";
 import { t } from "../translations";
 import "../components/confirm-dialog";
 
@@ -9,6 +9,7 @@ import "../components/confirm-dialog";
 export class IkTaskFormView extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) task: Task | null = null;
+  @property({ attribute: false }) tasks: Task[] = [];
   @property({ type: Boolean }) enableAnimations = true;
 
   @state() private _name = "";
@@ -26,10 +27,16 @@ export class IkTaskFormView extends LitElement {
   @state() private _deleting = false;
   @state() private _showDeleteConfirm = false;
   @state() private _error = "";
-  @state() private _activeTab: "edit" | "history" = "edit";
+  @state() private _activeTab: "edit" | "notes" | "history" = "edit";
+  @state() private _newNoteContent = "";
+  @state() private _addingNote = false;
   @state() private _historyPage = 0;
   @state() private _historyPageSize: 10 | 25 | 50 = 10;
-  private static readonly _HISTORY_PAGE_SIZE = 10;
+  @state() private _notesPage = 0;
+  @state() private _prevOccPage = 0;
+
+  private static readonly _NOTES_PAGE_SIZE = 5;
+  private static readonly _PREV_OCC_PAGE_SIZE = 5;
 
   connectedCallback() {
     super.connectedCallback();
@@ -57,6 +64,24 @@ export class IkTaskFormView extends LitElement {
   static styles = css`
     :host { display: block; }
     .form { display: flex; flex-direction: column; gap: 16px; max-width: 600px; }
+    .tab-panels {
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto;
+    }
+    .tab-panel {
+      grid-column: 1;
+      grid-row: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .tab-panel.tab-active {
+      visibility: visible;
+      pointer-events: auto;
+    }
     label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--secondary-text-color); }
     input, select, textarea {
       padding: 8px 10px;
@@ -70,6 +95,24 @@ export class IkTaskFormView extends LitElement {
     textarea { resize: vertical; min-height: 72px; }
     .row { display: flex; gap: 12px; flex-wrap: wrap; }
     .row label { flex: 1; min-width: 160px; }
+    input:disabled, select:disabled, textarea:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      background: var(--secondary-background-color);
+    }
+    .entity-row button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .add-entity:disabled { opacity: 0.4; cursor: not-allowed; }
+    .readonly-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--secondary-background-color);
+      border: 1px solid var(--divider-color);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--secondary-text-color);
+    }
     .checkbox-label { flex-direction: row; align-items: center; gap: 8px; cursor: pointer; align-self: flex-end; padding-bottom: 8px; }
     .actions { display: flex; gap: 10px; margin-top: 8px; }
     button {
@@ -86,7 +129,6 @@ export class IkTaskFormView extends LitElement {
       button:not(:disabled):active { transform: translateY(0); filter: brightness(0.97); }
     }
     .save { background: var(--primary-color); color: var(--text-primary-color, #fff); }
-    .cancel { background: var(--secondary-background-color); color: var(--primary-text-color); }
     .error { color: var(--error-color, #f44336); font-size: 13px; }
     .form-footer {
       display: flex;
@@ -97,10 +139,6 @@ export class IkTaskFormView extends LitElement {
       border-top: 1px solid var(--divider-color);
     }
     .form-footer-spacer { flex: 1; }
-    .cancel-mobile { display: none; }
-    @media (hover: none) {
-      .cancel-mobile { display: inline-flex; }
-    }
     .btn-done {
       background: var(--primary-color);
       color: var(--text-primary-color, #fff);
@@ -114,15 +152,11 @@ export class IkTaskFormView extends LitElement {
       color: #fff;
       margin-left: auto;
     }
-    .btn-done, .btn-undo, .btn-delete, .save, .cancel {
+    .btn-done, .btn-undo, .btn-delete, .save {
       display: inline-flex;
       align-items: center;
       gap: 6px;
       --mdc-icon-size: 18px;
-    }
-    @media (max-width: 400px) {
-      .form-footer .btn-label { display: none; }
-      .form-footer button { padding: 10px 12px; }
     }
     .error { color: var(--error-color, #f44336); font-size: 13px; }
     .entity-list { display: flex; flex-direction: column; gap: 4px; }
@@ -178,6 +212,17 @@ export class IkTaskFormView extends LitElement {
       font-weight: 500;
       border-bottom: 1px solid var(--divider-color);
     }
+    .exec-table th.col-num,
+    .exec-table td.col-num {
+      width: 44px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--secondary-text-color);
+      white-space: nowrap;
+      border-right: 1px solid var(--divider-color);
+    }
     .exec-table td {
       padding: 10px 12px;
       border-bottom: 1px solid var(--divider-color);
@@ -226,6 +271,131 @@ export class IkTaskFormView extends LitElement {
     .history-page-btn:disabled {
       opacity: 0.4;
       cursor: default;
+    }
+    .exec-table-wrap {
+      overflow-y: auto;
+      max-height: 350px;
+    }
+    .late-badge {
+      display: inline-block;
+      background: var(--warning-color, #ff9800);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .related-section {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--divider-color);
+    }
+    .related-section-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--secondary-text-color);
+      margin-bottom: 10px;
+    }
+    .related-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .related-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      background: var(--secondary-background-color);
+      border-radius: 8px;
+    }
+    .related-item-num {
+      flex-shrink: 0;
+      font-size: 13px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: var(--secondary-text-color);
+      min-width: 36px;
+      text-align: center;
+    }
+    .related-item-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .related-item-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--primary-text-color);
+    }
+    .related-item-meta {
+      font-size: 11px;
+      color: var(--secondary-text-color);
+    }
+    .related-item-status {
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .related-item-status.overdue { background: var(--error-color, #f44336); color: #fff; }
+    .related-item-status.due { background: var(--warning-color, #ff9800); color: #fff; }
+    .related-item-status.pending { background: transparent; color: var(--secondary-text-color); border: 1px solid var(--divider-color); }
+    .related-item-status.completed { background: var(--success-color, #4caf50); color: #fff; }
+    .btn-related-view {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 4px 9px;
+      border-radius: 6px;
+      border: 1px solid var(--divider-color);
+      background: transparent;
+      color: var(--primary-color);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      --mdc-icon-size: 13px;
+    }
+    .btn-related-view:hover { background: var(--card-background-color); }
+    .notes-textarea {
+      min-height: 200px;
+    }
+    .notes-add-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .notes-add-btn-row {
+      display: flex;
+      justify-content: flex-end;
+    }
+    .notes-divider {
+      border: none;
+      border-top: 1px solid var(--divider-color);
+      margin: 16px 0 12px;
+    }
+    .notes-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .note-item {
+      background: var(--secondary-background-color);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .note-meta {
+      font-size: 11px;
+      color: var(--secondary-text-color);
+      margin-bottom: 6px;
+    }
+    .note-content {
+      font-size: 13px;
+      color: var(--primary-text-color);
+      white-space: pre-wrap;
+      word-break: break-word;
     }
   `;
 
@@ -300,6 +470,7 @@ export class IkTaskFormView extends LitElement {
 
   render() {
     const isEdit = this.task !== null;
+    const isCompleted = isEdit && this.task!.status === "completed";
     const tr = t(this.hass?.language);
     if (!this.enableAnimations) {
       this.setAttribute("no-animations", "");
@@ -307,45 +478,44 @@ export class IkTaskFormView extends LitElement {
       this.removeAttribute("no-animations");
     }
     const executions = isEdit ? [...(this.task!.executions || [])].reverse() : [];
-    const showHistory = isEdit && this._activeTab === "history";
+
     const pageSize = this._historyPageSize;
     const totalPages = Math.max(1, Math.ceil(executions.length / pageSize));
     const histPage = Math.min(this._historyPage, totalPages - 1);
     const histStart = histPage * pageSize;
     const pageExecs = executions.slice(histStart, histStart + pageSize);
-    return html`
-      <div class="form">
-        ${isEdit ? html`
-          <div class="form-tabs">
-            <div class="form-tab ${this._activeTab === "edit" ? "active" : ""}" @click=${() => { this._activeTab = "edit"; }}>${tr.editTab}</div>
-            <div class="form-tab ${this._activeTab === "history" ? "active" : ""}" @click=${() => { this._activeTab = "history"; this._historyPage = 0; }}>${tr.historyTab(executions.length)}</div>
+
+    const editPanel = html`
+      <div class="tab-panel ${!isEdit || this._activeTab === 'edit' ? 'tab-active' : ''}">
+        ${isCompleted ? html`
+          <div class="readonly-banner">
+            <ha-icon icon="mdi:lock-outline" style="--mdc-icon-size:16px;flex-shrink:0"></ha-icon>
+            ${tr.taskCompletedReadonly}
           </div>
         ` : nothing}
-        ${!showHistory ? html`
         <label>
           ${tr.taskName}
-          <input .value=${this._name} @input=${(e: Event) => { this._name = (e.target as HTMLInputElement).value; }} placeholder=${tr.taskNamePlaceholder} />
+          <input .value=${this._name} ?disabled=${isCompleted} @input=${(e: Event) => { this._name = (e.target as HTMLInputElement).value; }} placeholder=${tr.taskNamePlaceholder} />
         </label>
 
         <label>
           ${tr.description}
-          <textarea .value=${this._description} @input=${(e: Event) => { this._description = (e.target as HTMLTextAreaElement).value; }} placeholder=${tr.descriptionPlaceholder}></textarea>
+          <textarea .value=${this._description} ?disabled=${isCompleted} @input=${(e: Event) => { this._description = (e.target as HTMLTextAreaElement).value; }} placeholder=${tr.descriptionPlaceholder}></textarea>
         </label>
 
         <div class="row">
           <label>
             ${tr.priority}
-            <select .value=${this._priority} @change=${(e: Event) => { this._priority = (e.target as HTMLSelectElement).value as TaskPriority; }}>
+            <select .value=${this._priority} ?disabled=${isCompleted} @change=${(e: Event) => { this._priority = (e.target as HTMLSelectElement).value as TaskPriority; }}>
               <option value="low">${tr.low}</option>
               <option value="medium">${tr.medium}</option>
               <option value="high">${tr.high}</option>
               <option value="critical">${tr.critical}</option>
             </select>
           </label>
-
           <label>
             ${tr.frequency}
-            <select .value=${this._frequency} @change=${(e: Event) => { this._frequency = (e.target as HTMLSelectElement).value as TaskFrequency; }}>
+            <select .value=${this._frequency} ?disabled=${isCompleted} @change=${(e: Event) => { this._frequency = (e.target as HTMLSelectElement).value as TaskFrequency; }}>
               <option value="one_time">${tr.freqOneTime}</option>
               <option value="daily">${tr.freqDaily}</option>
               <option value="weekly">${tr.freqWeekly}</option>
@@ -360,7 +530,7 @@ export class IkTaskFormView extends LitElement {
           ? html`
               <label>
                 ${tr.intervalDays}
-                <input type="number" min="1" .value=${String(this._customDays ?? 30)} @input=${(e: Event) => { this._customDays = parseInt((e.target as HTMLInputElement).value, 10); }} />
+                <input type="number" min="1" ?disabled=${isCompleted} .value=${String(this._customDays ?? 30)} @input=${(e: Event) => { this._customDays = parseInt((e.target as HTMLInputElement).value, 10); }} />
               </label>
             `
           : nothing}
@@ -368,8 +538,8 @@ export class IkTaskFormView extends LitElement {
         <label>
           ${tr.dueDate}
           <div style="display:flex;gap:8px;">
-            <input type="date" style="flex:1" .value=${this._dueDate} @change=${(e: Event) => { this._dueDate = (e.target as HTMLInputElement).value; }} />
-            <input type="time" style="width:110px" .value=${this._dueTime} @change=${(e: Event) => { this._dueTime = (e.target as HTMLInputElement).value; }} />
+            <input type="date" style="flex:1" ?disabled=${isCompleted} .value=${this._dueDate} @change=${(e: Event) => { this._dueDate = (e.target as HTMLInputElement).value; }} />
+            <input type="time" style="width:110px" ?disabled=${isCompleted} .value=${this._dueTime} @change=${(e: Event) => { this._dueTime = (e.target as HTMLInputElement).value; }} />
           </div>
         </label>
 
@@ -379,73 +549,117 @@ export class IkTaskFormView extends LitElement {
             ${this._linkedEntities.map(
               (eid, i) => html`
                 <div class="entity-row">
-                  <input .value=${eid} placeholder="sensor.example" @input=${(e: Event) => {
+                  <input .value=${eid} ?disabled=${isCompleted} placeholder="sensor.example" @input=${(e: Event) => {
                     const arr = [...this._linkedEntities];
                     arr[i] = (e.target as HTMLInputElement).value;
                     this._linkedEntities = arr;
                   }} />
-                  <button @click=${() => { this._linkedEntities = this._linkedEntities.filter((_, idx) => idx !== i); }}>✕</button>
+                  <button ?disabled=${isCompleted} @click=${() => { this._linkedEntities = this._linkedEntities.filter((_, idx) => idx !== i); }}>✕</button>
                 </div>
               `
             )}
-            <button class="add-entity" @click=${() => { this._linkedEntities = [...this._linkedEntities, ""]; }}>${tr.addEntity}</button>
+            <button class="add-entity" ?disabled=${isCompleted} @click=${() => { this._linkedEntities = [...this._linkedEntities, ""]; }}>${tr.addEntity}</button>
           </div>
         </div>
 
         <div class="row">
           <label>
             ${tr.notifyBefore}
-            <input type="number" min="0" max="365" .value=${String(this._notifyDaysBefore)} @input=${(e: Event) => { this._notifyDaysBefore = parseInt((e.target as HTMLInputElement).value, 10); }} />
+            <input type="number" min="0" max="365" ?disabled=${isCompleted} .value=${String(this._notifyDaysBefore)} @input=${(e: Event) => { this._notifyDaysBefore = parseInt((e.target as HTMLInputElement).value, 10); }} />
           </label>
           <label class="checkbox-label">
-            <input type="checkbox" .checked=${this._notifyOnOverdue} @change=${(e: Event) => { this._notifyOnOverdue = (e.target as HTMLInputElement).checked; }} />
+            <input type="checkbox" ?disabled=${isCompleted} .checked=${this._notifyOnOverdue} @change=${(e: Event) => { this._notifyOnOverdue = (e.target as HTMLInputElement).checked; }} />
             ${tr.notifyOverdue}
           </label>
         </div>
+      </div>
+    `;
 
-        ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
-
-        ${isEdit ? html`
-          <div class="form-footer">
-            <button class="btn-delete" ?disabled=${this._deleting} @click=${() => { this._showDeleteConfirm = true; }}>
-              <ha-icon icon="mdi:delete"></ha-icon><span class="btn-label"> ${tr.del}</span>
-            </button>
-            <div class="form-footer-spacer"></div>
-            <button class="cancel cancel-mobile" @click=${() => this._navigate("/tasks")}>
-              <ha-icon icon="mdi:close"></ha-icon><span class="btn-label"> ${tr.cancel}</span>
-            </button>
-            ${this.task!.status !== "completed"
-              ? html`<button class="btn-done" ?disabled=${this._completing} @click=${this._complete}>
-                  <ha-icon icon="mdi:check"></ha-icon><span class="btn-label"> ${tr.done}</span>
-                </button>`
-              : html`<button class="btn-undo" ?disabled=${this._completing} @click=${this._complete}>
-                  <ha-icon icon="mdi:undo"></ha-icon><span class="btn-label"> ${tr.undo}</span>
-                </button>`}
-            <button class="save" ?disabled=${this._saving} @click=${this._save}>
-              <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${this._saving ? tr.saving : tr.save}</span>
+    const notesPanel = isEdit ? html`
+      <div class="tab-panel ${this._activeTab === 'notes' ? 'tab-active' : ''}">
+        <div class="notes-add-form">
+          <label>
+            ${tr.taskNotesLabel}
+            <textarea
+              .value=${this._newNoteContent}
+              @input=${(e: Event) => { this._newNoteContent = (e.target as HTMLTextAreaElement).value; }}
+              placeholder=${tr.taskNotesPlaceholder}
+              rows="4"
+            ></textarea>
+          </label>
+          <div class="notes-add-btn-row">
+            <button
+              class="save"
+              ?disabled=${this._addingNote || !this._newNoteContent.trim()}
+              @click=${async () => {
+                if (!this.task || !this._newNoteContent.trim()) return;
+                this._addingNote = true;
+                try {
+                  await addTaskNote(this.hass, this.task.task_id, this._newNoteContent.trim(), this.hass.user?.name ?? "");
+                  this._newNoteContent = "";
+                  this._notesPage = 0;
+                } finally {
+                  this._addingNote = false;
+                }
+              }}
+            >
+              <ha-icon icon="mdi:plus"></ha-icon>
+              <span class="btn-label"> ${tr.addNoteBtn}</span>
             </button>
           </div>
-          <ik-confirm-dialog
-            .heading=${tr.deleteHeading}
-            .body=${tr.deleteBody}
-            .open=${this._showDeleteConfirm}
-            @dialog-closed=${(e: CustomEvent) => this._handleDelete(e.detail.confirmed)}
-          ></ik-confirm-dialog>
-        ` : html`
-          <div class="form-footer">
-            <div class="form-footer-spacer"></div>
-            <button class="cancel" @click=${() => this._navigate("/tasks")}>
-              <ha-icon icon="mdi:close"></ha-icon><span class="btn-label"> ${tr.cancel}</span>
-            </button>
-            <button class="save" ?disabled=${this._saving} @click=${this._save}>
-              <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${this._saving ? tr.saving : tr.createTask}</span>
-            </button>
-          </div>
-        `}
-        ` : html`
-          ${executions.length === 0
-            ? html`<div class="history-empty">${tr.noExecutions}</div>`
+        </div>
+        <hr class="notes-divider" />
+        ${(() => {
+          const allNotes = [...(this.task!.notes || [])].reverse();
+          const notesPageSize = (this.constructor as typeof IkTaskFormView)._NOTES_PAGE_SIZE;
+          const notesTotalPages = Math.max(1, Math.ceil(allNotes.length / notesPageSize));
+          const notesPage = Math.min(this._notesPage, notesTotalPages - 1);
+          const notesStart = notesPage * notesPageSize;
+          const pageNotes = allNotes.slice(notesStart, notesStart + notesPageSize);
+          return allNotes.length === 0
+            ? html`<div class="history-empty">${tr.noNotes}</div>`
             : html`
+              <div class="notes-list">
+                ${pageNotes.map((note) => html`
+                  <div class="note-item">
+                    <div class="note-meta">${this._formatDate(note.created_at)}${note.added_by ? html` · ${note.added_by}` : nothing}</div>
+                    <div class="note-content">${note.content}</div>
+                  </div>
+                `)}
+              </div>
+              ${allNotes.length > notesPageSize ? html`
+                <div class="history-pagination">
+                  <span>${notesStart + 1}–${Math.min(notesStart + notesPageSize, allNotes.length)} ${tr.of} ${allNotes.length}</span>
+                  <button class="history-page-btn" ?disabled=${notesPage === 0} @click=${() => { this._notesPage = notesPage - 1; }}>&lt;</button>
+                  <button class="history-page-btn" ?disabled=${notesPage >= notesTotalPages - 1} @click=${() => { this._notesPage = notesPage + 1; }}>&gt;</button>
+                </div>
+              ` : nothing}
+            `;
+        })()}
+      </div>
+    ` : nothing;
+
+    // For children: previous_task_id is the root/family ID.
+    // Show all family members (root itself + siblings) created before this task.
+    const relatedTasks = isEdit && this.task!.previous_task_id
+      ? (() => {
+          const rootId = this.task!.previous_task_id!;
+          const currentCreatedAt = new Date(this.task!.created_at).getTime();
+          return this.tasks
+            .filter(t =>
+              (t.task_id === rootId || t.previous_task_id === rootId) &&
+              new Date(t.created_at).getTime() < currentCreatedAt
+            )
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        })()
+      : [];
+
+    const historyPanel = isEdit ? html`
+      <div class="tab-panel ${this._activeTab === 'history' ? 'tab-active' : ''}">
+        ${executions.length === 0
+          ? html`<div class="history-empty">${tr.noExecutions}</div>`
+          : html`
+            <div class="exec-table-wrap">
               <table class="exec-table">
                 <thead>
                   <tr>
@@ -457,27 +671,117 @@ export class IkTaskFormView extends LitElement {
                 <tbody>
                   ${pageExecs.map((ex) => html`
                     <tr>
-                      <td>${this._formatDate(ex.completed_at)}</td>
+                      <td>${this._formatDate(ex.completed_at)}${ex.was_late ? html`<span class="late-badge">${tr.lateLabel}</span>` : nothing}</td>
                       <td>${ex.completed_by || "—"}</td>
                       <td>${ex.notes || "—"}</td>
                     </tr>
                   `)}
                 </tbody>
               </table>
-              ${executions.length > 0 ? html`
-                <div class="history-pagination">
-                  <span>${tr.rowsPerPage}</span>
-                  <select .value=${String(this._historyPageSize)} @change=${(e: Event) => { this._historyPageSize = Number((e.target as HTMLSelectElement).value) as 10 | 25 | 50; this._historyPage = 0; }}>
-                    <option value="10">10</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                  </select>
-                  <span class="history-summary">${histStart + 1}–${Math.min(histStart + this._historyPageSize, executions.length)} ${tr.of} ${executions.length}</span>
-                  <button class="history-page-btn" ?disabled=${histPage === 0} @click=${() => { this._historyPage = histPage - 1; }}>&lt;</button>
-                  <button class="history-page-btn" ?disabled=${histPage >= totalPages - 1} @click=${() => { this._historyPage = histPage + 1; }}>&gt;</button>
+            </div>
+            ${executions.length > 0 ? html`
+              <div class="history-pagination">
+                <span>${tr.rowsPerPage}</span>
+                <select .value=${String(this._historyPageSize)} @change=${(e: Event) => { this._historyPageSize = Number((e.target as HTMLSelectElement).value) as 10 | 25 | 50; this._historyPage = 0; }}>
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                </select>
+                <span class="history-summary">${histStart + 1}–${Math.min(histStart + this._historyPageSize, executions.length)} ${tr.of} ${executions.length}</span>
+                <button class="history-page-btn" ?disabled=${histPage === 0} @click=${() => { this._historyPage = histPage - 1; }}>&lt;</button>
+                <button class="history-page-btn" ?disabled=${histPage >= totalPages - 1} @click=${() => { this._historyPage = histPage + 1; }}>&gt;</button>
+              </div>
+            ` : nothing}
+          `}
+        ${this.task!.previous_task_id ? html`
+          <div class="related-section">
+            <div class="related-section-title">${tr.relatedTasksTitle}</div>
+            ${(() => {
+              const prevPageSize = (this.constructor as typeof IkTaskFormView)._PREV_OCC_PAGE_SIZE;
+              const prevTotalPages = Math.max(1, Math.ceil(relatedTasks.length / prevPageSize));
+              const prevPage = Math.min(this._prevOccPage, prevTotalPages - 1);
+              const prevStart = prevPage * prevPageSize;
+              const pageOcc = relatedTasks.slice(prevStart, prevStart + prevPageSize);
+              return html`
+                <div class="related-list">
+                  ${pageOcc.map((rt) => html`
+                    <div class="related-item">
+                      <div class="related-item-num">${rt.task_number ? `#${String(rt.task_number).padStart(3,'0')}` : '—'}</div>
+                      <div class="related-item-info">
+                        <span class="related-item-name">
+                          ${rt.due_date ? new Date(rt.due_date).toLocaleDateString() : "—"}
+                        </span>
+                        ${rt.executions.length > 0 ? html`
+                          <span class="related-item-meta">
+                            ${tr.completedBy}: ${rt.executions[rt.executions.length - 1].completed_by || "—"}
+                          </span>
+                        ` : nothing}
+                      </div>
+                      <span class="related-item-status ${rt.status}">${(tr as Record<string, unknown>)[rt.status] as string ?? rt.status}</span>
+                      <button class="btn-related-view" @click=${() => this._navigate(`/edit/${rt.task_id}`)}>
+                        <ha-icon icon="mdi:open-in-app"></ha-icon>${tr.viewTask}
+                      </button>
+                    </div>
+                  `)}
                 </div>
-              ` : nothing}
-            `}
+                ${relatedTasks.length > prevPageSize ? html`
+                  <div class="history-pagination">
+                    <span>${prevStart + 1}–${Math.min(prevStart + prevPageSize, relatedTasks.length)} ${tr.of} ${relatedTasks.length}</span>
+                    <button class="history-page-btn" ?disabled=${prevPage === 0} @click=${() => { this._prevOccPage = prevPage - 1; }}>&lt;</button>
+                    <button class="history-page-btn" ?disabled=${prevPage >= prevTotalPages - 1} @click=${() => { this._prevOccPage = prevPage + 1; }}>&gt;</button>
+                  </div>
+                ` : nothing}
+              `;
+            })()}
+          </div>
+        ` : nothing}
+      </div>
+    ` : nothing;
+
+    return html`
+      <div class="form">
+        ${isEdit ? html`
+          <div class="form-tabs">
+            <div class="form-tab ${this._activeTab === 'edit' ? 'active' : ''}" @click=${() => { this._activeTab = "edit"; }}>${tr.editTab}</div>
+            <div class="form-tab ${this._activeTab === 'notes' ? 'active' : ''}" @click=${() => { this._activeTab = "notes"; }}>${tr.notesTab}</div>
+            <div class="form-tab ${this._activeTab === 'history' ? 'active' : ''}" @click=${() => { this._activeTab = "history"; this._historyPage = 0; }}>${tr.historyTab(executions.length)}</div>
+          </div>
+        ` : nothing}
+        ${isEdit
+          ? html`<div class="tab-panels">${editPanel}${notesPanel}${historyPanel}</div>`
+          : editPanel}
+                ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
+          ${isEdit ? html`
+          <div class="form-footer">
+            <button class="btn-delete" ?disabled=${this._deleting} @click=${() => { this._showDeleteConfirm = true; }}>
+              <ha-icon icon="mdi:delete"></ha-icon><span class="btn-label"> ${tr.del}</span>
+            </button>
+            <div class="form-footer-spacer"></div>
+            ${this.task!.status !== "completed"
+              ? html`<button class="btn-done" ?disabled=${this._completing} @click=${this._complete}>
+                  <ha-icon icon="mdi:check"></ha-icon><span class="btn-label"> ${tr.done}</span>
+                </button>`
+              : html`<button class="btn-undo" ?disabled=${this._completing} @click=${this._complete}>
+                  <ha-icon icon="mdi:undo"></ha-icon><span class="btn-label"> ${tr.undo}</span>
+                </button>`}
+            ${!isCompleted ? html`
+              <button class="save" ?disabled=${this._saving} @click=${this._save}>
+                <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${this._saving ? tr.saving : tr.save}</span>
+              </button>` : nothing}
+          </div>
+          <ik-confirm-dialog
+            .heading=${tr.deleteHeading}
+            .body=${tr.deleteBody}
+            .open=${this._showDeleteConfirm}
+            @dialog-closed=${(e: CustomEvent) => this._handleDelete(e.detail.confirmed)}
+          ></ik-confirm-dialog>
+        ` : html`
+          <div class="form-footer">
+            <div class="form-footer-spacer"></div>
+            <button class="save" ?disabled=${this._saving} @click=${this._save}>
+              <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${this._saving ? tr.saving : tr.createTask}</span>
+            </button>
+          </div>
         `}
       </div>
     `;
