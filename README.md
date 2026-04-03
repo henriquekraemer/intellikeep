@@ -1,6 +1,10 @@
 # IntelliKeep
 
-IntelliKeep is a home maintenance task management system built as a custom integration for Home Assistant.
+**⚠️ Active Development**: This project is currently undergoing significant changes. A stable release is coming soon — stay tuned!
+
+<img width="734" height="208" alt="intellikeep_logo_black" src="https://github.com/user-attachments/assets/712d6e2f-4d14-4e73-bdd3-a73bb320caf1" />
+
+**IntelliKeep** is a home maintenance task management system built as a free, open-source custom integration for Home Assistant. It centralizes all your household tasks—from simple filter replacements to periodic check-ups—offering automatic alerts and a complete task history.
 
 ---
 
