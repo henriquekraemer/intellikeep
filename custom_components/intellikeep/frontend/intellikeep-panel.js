@@ -2845,7 +2845,11 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
         const dueCount = this._tasks.filter((t) => t.status === "due" || t.status === "overdue").length;
         return b `
       <div class="appbar">
-        <ha-icon icon="mdi:clipboard-check-multiple-outline"></ha-icon>
+        ${isMobile && (isNew || isEdit) ? b `
+          <button class="appbar-btn appbar-back" @click=${() => this._navigate("/tasks")} aria-label=${tr.back}>
+            <ha-icon icon="mdi:arrow-left" style="--mdc-icon-size:20px"></ha-icon>
+          </button>
+        ` : b `<ha-icon icon="mdi:clipboard-check-multiple-outline"></ha-icon>`}
         <span class="appbar-title">IntelliKeep</span>
         <div class="appbar-actions">
           <button class="appbar-btn" @click=${() => {
@@ -2982,6 +2986,7 @@ IntelliKeepPanel.styles = i$3 `
     }
     .appbar-btn:hover { background: rgba(255,255,255,.25); }
     .appbar-btn.active { background: rgba(255,255,255,.3); font-weight: 600; }
+    .appbar-back { padding: 6px 8px; margin-right: 4px; }
 
     /* Nav tabs */
     .tabs {
