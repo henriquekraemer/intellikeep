@@ -13,6 +13,7 @@ from .const import (
     SERVICE_CREATE_TASK,
     SERVICE_DELETE_ALL_DATA,
     SERVICE_DELETE_TASK,
+    SERVICE_DELETE_TASK_NOTE,
     SERVICE_LOAD_SAMPLE_DATA,
     SERVICE_REOPEN_TASK,
     SERVICE_UPDATE_TASK,
@@ -116,6 +117,16 @@ def async_register_services(
         else:
             await coordinator.async_refresh()
 
+    async def handle_delete_task_note(call: ServiceCall) -> None:
+        deleted = await task_manager.async_delete_task_note(
+            call.data["task_id"],
+            note_id=call.data["note_id"],
+        )
+        if not deleted:
+            _LOGGER.warning("delete_task_note: not found task=%s note=%s", call.data["task_id"], call.data["note_id"])
+        else:
+            await coordinator.async_refresh()
+
     async def handle_delete_all_data(_call: ServiceCall) -> None:
         count = task_manager._storage.clear_all_tasks()
         await task_manager._storage.async_save()
@@ -129,6 +140,7 @@ def async_register_services(
     hass.services.async_register(DOMAIN, SERVICE_DELETE_TASK, handle_delete_task)
     hass.services.async_register(DOMAIN, SERVICE_UPDATE_TASK, handle_update_task)
     hass.services.async_register(DOMAIN, SERVICE_ADD_TASK_NOTE, handle_add_task_note)
+    hass.services.async_register(DOMAIN, SERVICE_DELETE_TASK_NOTE, handle_delete_task_note)
     hass.services.async_register(DOMAIN, SERVICE_DELETE_ALL_DATA, handle_delete_all_data)
     _LOGGER.debug("IntelliKeep services registered")
 
@@ -142,6 +154,7 @@ def async_unregister_services(hass: HomeAssistant) -> None:
         SERVICE_DELETE_TASK,
         SERVICE_UPDATE_TASK,
         SERVICE_ADD_TASK_NOTE,
+        SERVICE_DELETE_TASK_NOTE,
         SERVICE_DELETE_ALL_DATA,
     ):
         hass.services.async_remove(DOMAIN, service)

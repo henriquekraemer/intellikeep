@@ -105,6 +105,12 @@ async function addTaskNote(hass, taskId, content, addedBy = "") {
         added_by: addedBy,
     });
 }
+async function deleteTaskNote(hass, taskId, noteId) {
+    await hass.callService(DOMAIN, "delete_task_note", {
+        task_id: taskId,
+        note_id: noteId,
+    });
+}
 async function deleteAllData(hass) {
     await hass.callService(DOMAIN, "delete_all_data", {});
 }
@@ -189,6 +195,8 @@ const messages = {
         taskNotesPlaceholder: "Write a note about this task...",
         addNoteBtn: "Add note",
         noNotes: "No notes yet.",
+        deleteNoteHeading: "Delete note?",
+        deleteNoteBody: "This action cannot be undone.",
         completedAt: "Completed at",
         completedBy: "Completed by",
         notes: "Notes",
@@ -303,6 +311,8 @@ const messages = {
         taskNotesPlaceholder: "Escreva uma nota sobre esta tarefa...",
         addNoteBtn: "Adicionar nota",
         noNotes: "Nenhuma nota ainda.",
+        deleteNoteHeading: "Excluir nota?",
+        deleteNoteBody: "Esta ação não pode ser desfeita.",
         completedAt: "Concluída em",
         completedBy: "Concluída por",
         notes: "Observações",
@@ -1578,6 +1588,9 @@ let IkTaskFormView = class IkTaskFormView extends i {
         this._activeTab = "edit";
         this._newNoteContent = "";
         this._addingNote = false;
+        this._deletingNoteId = null;
+        this._showDeleteNoteConfirm = false;
+        this._deleteNoteTarget = null;
         this._historyPage = 0;
         this._historyPageSize = 10;
         this._notesPage = 0;
@@ -1833,7 +1846,12 @@ let IkTaskFormView = class IkTaskFormView extends i {
               <div class="notes-list">
                 ${pageNotes.map((note) => b `
                   <div class="note-item">
-                    <div class="note-meta">${this._formatDate(note.created_at)}${note.added_by ? b ` · ${note.added_by}` : A}</div>
+                    <div class="note-header">
+                      <span class="note-meta">${this._formatDate(note.created_at)}${note.added_by ? b ` · ${note.added_by}` : A}</span>
+                      <button class="btn-delete-note" title=${tr.del} @click=${() => { this._deleteNoteTarget = note.note_id; this._showDeleteNoteConfirm = true; }}>
+                        <ha-icon icon="mdi:delete-outline"></ha-icon>
+                      </button>
+                    </div>
                     <div class="note-content">${note.content}</div>
                   </div>
                 `)}
@@ -1848,6 +1866,24 @@ let IkTaskFormView = class IkTaskFormView extends i {
             `;
         })()}
         </div>
+        <ik-confirm-dialog
+          .heading=${tr.deleteNoteHeading}
+          .body=${tr.deleteNoteBody}
+          .open=${this._showDeleteNoteConfirm}
+          @dialog-closed=${async (e) => {
+            this._showDeleteNoteConfirm = false;
+            if (!e.detail.confirmed || !this._deleteNoteTarget || !this.task)
+                return;
+            this._deletingNoteId = this._deleteNoteTarget;
+            try {
+                await deleteTaskNote(this.hass, this.task.task_id, this._deleteNoteTarget);
+            }
+            finally {
+                this._deletingNoteId = null;
+                this._deleteNoteTarget = null;
+            }
+        }}
+        ></ik-confirm-dialog>
       </div>
     ` : A;
         // For children: previous_task_id is the root/family ID.
@@ -2351,6 +2387,26 @@ IkTaskFormView.styles = i$3 `
       white-space: pre-wrap;
       word-break: break-word;
     }
+    .note-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .note-meta { font-size: 11px; color: var(--secondary-text-color); flex: 1; }
+    .btn-delete-note {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--secondary-text-color);
+      padding: 2px 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      --mdc-icon-size: 15px;
+      opacity: 0.6;
+    }
+    .btn-delete-note:hover { opacity: 1; color: var(--error-color, #f44336); }
   `;
 __decorate([
     n({ attribute: false })
@@ -2418,6 +2474,15 @@ __decorate([
 __decorate([
     r()
 ], IkTaskFormView.prototype, "_addingNote", void 0);
+__decorate([
+    r()
+], IkTaskFormView.prototype, "_deletingNoteId", void 0);
+__decorate([
+    r()
+], IkTaskFormView.prototype, "_showDeleteNoteConfirm", void 0);
+__decorate([
+    r()
+], IkTaskFormView.prototype, "_deleteNoteTarget", void 0);
 __decorate([
     r()
 ], IkTaskFormView.prototype, "_historyPage", void 0);

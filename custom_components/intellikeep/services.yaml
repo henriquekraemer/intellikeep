@@ -193,6 +193,23 @@ add_task_note:
       selector:
         text:
 
+delete_task_note:
+  name: Delete Task Note
+  description: Delete a specific note from an IntelliKeep task.
+  fields:
+    task_id:
+      name: Task ID
+      description: The unique ID of the task that owns the note.
+      required: true
+      selector:
+        text:
+    note_id:
+      name: Note ID
+      description: The unique ID of the note to delete.
+      required: true
+      selector:
+        text:
+
 delete_all_data:
   name: Delete All Data
   description: Permanently delete all IntelliKeep tasks, notes and execution history.

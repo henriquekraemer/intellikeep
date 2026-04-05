@@ -131,6 +131,26 @@ class TaskManager:
         _LOGGER.debug("Added note to task %s", task_id)
         return note
 
+    async def async_delete_task_note(
+        self,
+        task_id: str,
+        note_id: str,
+    ) -> bool:
+        task = self._storage.get_task(task_id)
+        if task is None:
+            _LOGGER.warning("delete_task_note called for unknown task_id: %s", task_id)
+            return False
+        original_len = len(task.notes)
+        task.notes = [n for n in task.notes if n.note_id != note_id]
+        if len(task.notes) == original_len:
+            _LOGGER.warning("delete_task_note: note_id not found: %s", note_id)
+            return False
+        task.updated_at = dt_util.utcnow()
+        self._storage.upsert_task(task)
+        await self._storage.async_save()
+        _LOGGER.debug("Deleted note %s from task %s", note_id, task_id)
+        return True
+
     async def async_reopen_task(self, task_id: str) -> Task | None:
         task = self._storage.get_task(task_id)
         if task is None:
