@@ -19,7 +19,7 @@ export class IntelliKeepPanel extends LitElement {
   @state() private _currentPath = "/tasks";
   @state() private _loading = true;
   @state() private _enableAnimations = true;
-  @state() private _modalTaskId: string | null = null;
+  @state() private _modalStack: string[] = [];
 
   private _unsubscribe?: () => void;
 
@@ -213,7 +213,7 @@ export class IntelliKeepPanel extends LitElement {
         <div class="appbar-actions">
           <button class="appbar-btn" @click=${() => {
             if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-              this._modalTaskId = "__new__";
+              this._modalStack = ["__new__"];
             } else {
               this._navigate("/new");
             }
@@ -234,7 +234,7 @@ export class IntelliKeepPanel extends LitElement {
         </div>
       ` : nothing}
 
-      <div class="content" @navigate=${(e: CustomEvent) => this._navigate(e.detail)} @open-task-modal=${(e: CustomEvent) => { this._modalTaskId = e.detail; }}>
+      <div class="content" @navigate=${(e: CustomEvent) => this._navigate(e.detail)} @open-task-modal=${(e: CustomEvent) => { this._modalStack = [e.detail]; }}>
         ${isTasks && !this._loading
           ? html`
               <ik-task-list-view
@@ -284,19 +284,24 @@ export class IntelliKeepPanel extends LitElement {
           </div>`}
       </div>
 
-      ${this._modalTaskId !== null ? html`
-        <div class="modal-overlay" @click=${(e: MouseEvent) => { if (e.target === e.currentTarget) this._modalTaskId = null; }}>
+      ${this._modalStack.length > 0 ? html`
+        <div class="modal-overlay" @click=${(e: MouseEvent) => { if (e.target === e.currentTarget) this._modalStack = []; }}>
           <div class="modal-container">
             <div class="modal-header">
-              <span class="modal-title">${(() => { if (this._modalTaskId === "__new__") return tr.newTaskTitle; const mt = this._tasks.find(t => t.task_id === this._modalTaskId); return mt?.task_number ? `${tr.editTask} #${String(mt.task_number).padStart(3,'0')}` : tr.editTask; })()}</span>
-              <button class="modal-close" @click=${() => { this._modalTaskId = null; }}><ha-icon icon="mdi:close" style="--mdc-icon-size:20px"></ha-icon></button>
+              <span class="modal-title">${(() => {
+                const top = this._modalStack[this._modalStack.length - 1];
+                if (top === "__new__") return tr.newTaskTitle;
+                const mt = this._tasks.find(t => t.task_id === top);
+                return mt?.task_number ? `${tr.editTask} #${String(mt.task_number).padStart(3,'0')}` : tr.editTask;
+              })()}</span>
+              <button class="modal-close" @click=${() => { this._modalStack = []; }}><ha-icon icon="mdi:close" style="--mdc-icon-size:20px"></ha-icon></button>
             </div>
             <ik-task-form-view
               .hass=${this.hass}
-              .task=${this._modalTaskId === "__new__" ? null : (this._tasks.find(t => t.task_id === this._modalTaskId) ?? null)}
+              .task=${(() => { const top = this._modalStack[this._modalStack.length - 1]; return top === "__new__" ? null : (this._tasks.find(t => t.task_id === top) ?? null); })()}
               .tasks=${this._tasks}
               .enableAnimations=${this._enableAnimations}
-              @navigate=${(e: CustomEvent) => { e.stopPropagation(); this._modalTaskId = null; }}
+              @navigate=${(e: CustomEvent) => { e.stopPropagation(); this._modalStack = []; }}
             ></ik-task-form-view>
           </div>
         </div>

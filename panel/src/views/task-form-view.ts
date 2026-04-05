@@ -350,21 +350,7 @@ export class IkTaskFormView extends LitElement {
     .related-item-status.due { background: var(--warning-color, #ff9800); color: #fff; }
     .related-item-status.pending { background: transparent; color: var(--secondary-text-color); border: 1px solid var(--divider-color); }
     .related-item-status.completed { background: var(--success-color, #4caf50); color: #fff; }
-    .btn-related-view {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      padding: 4px 9px;
-      border-radius: 6px;
-      border: 1px solid var(--divider-color);
-      background: transparent;
-      color: var(--primary-color);
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-      --mdc-icon-size: 13px;
-    }
-    .btn-related-view:hover { background: var(--card-background-color); }
+
     .notes-textarea {
       min-height: 200px;
     }
@@ -780,9 +766,6 @@ export class IkTaskFormView extends LitElement {
                         ` : nothing}
                       </div>
                       <span class="related-item-status ${rt.status}">${(tr as Record<string, unknown>)[rt.status] as string ?? rt.status}</span>
-                      <button class="btn-related-view" @click=${() => this._navigate(`/edit/${rt.task_id}`)}>
-                        <ha-icon icon="mdi:open-in-app"></ha-icon>${tr.viewTask}
-                      </button>
                     </div>
                   `)}
                 </div>
