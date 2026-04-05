@@ -1642,6 +1642,9 @@ let IkTaskFormView = class IkTaskFormView extends i {
             this._deleting = false;
         }
     }
+    _cancel() {
+        this._navigate("/tasks");
+    }
     async _save() {
         const tr = t(this.hass?.language);
         if (!this._name.trim()) {
@@ -1959,6 +1962,10 @@ let IkTaskFormView = class IkTaskFormView extends i {
               <ha-icon icon="mdi:delete"></ha-icon><span class="btn-label"> ${tr.del}</span>
             </button>
             <div class="form-footer-spacer"></div>
+            ${!isCompleted ? b `
+              <button class="cancel" @click=${this._cancel}>
+                <span class="btn-label">${tr.cancel}</span>
+              </button>` : A}
             ${this.task.status !== "completed"
             ? b `<button class="btn-done" ?disabled=${this._completing} @click=${this._complete}>
                   <ha-icon icon="mdi:check"></ha-icon><span class="btn-label"> ${tr.done}</span>
@@ -1980,6 +1987,9 @@ let IkTaskFormView = class IkTaskFormView extends i {
         ` : b `
           <div class="form-footer">
             <div class="form-footer-spacer"></div>
+            <button class="cancel" @click=${this._cancel}>
+              <span class="btn-label">${tr.cancel}</span>
+            </button>
             <button class="save" ?disabled=${this._saving} @click=${this._save}>
               <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${this._saving ? tr.saving : tr.createTask}</span>
             </button>
@@ -2059,6 +2069,7 @@ IkTaskFormView.styles = i$3 `
       button:not(:disabled):active { transform: translateY(0); filter: brightness(0.97); }
     }
     .save { background: var(--primary-color); color: var(--text-primary-color, #fff); }
+    .cancel { background: var(--secondary-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); }
     .error { color: var(--error-color, #f44336); font-size: 13px; }
     .form-footer {
       display: flex;
