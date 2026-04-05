@@ -1962,9 +1962,6 @@ let IkTaskFormView = class IkTaskFormView extends i {
                         ` : A}
                       </div>
                       <span class="related-item-status ${rt.status}">${tr[rt.status] ?? rt.status}</span>
-                      <button class="btn-related-view" @click=${() => this._navigate(`/edit/${rt.task_id}`)}>
-                        <ha-icon icon="mdi:open-in-app"></ha-icon>${tr.viewTask}
-                      </button>
                     </div>
                   `)}
                 </div>
@@ -2325,21 +2322,7 @@ IkTaskFormView.styles = i$3 `
     .related-item-status.due { background: var(--warning-color, #ff9800); color: #fff; }
     .related-item-status.pending { background: transparent; color: var(--secondary-text-color); border: 1px solid var(--divider-color); }
     .related-item-status.completed { background: var(--success-color, #4caf50); color: #fff; }
-    .btn-related-view {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      padding: 4px 9px;
-      border-radius: 6px;
-      border: 1px solid var(--divider-color);
-      background: transparent;
-      color: var(--primary-color);
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-      --mdc-icon-size: 13px;
-    }
-    .btn-related-view:hover { background: var(--card-background-color); }
+
     .notes-textarea {
       min-height: 200px;
     }
@@ -2885,7 +2868,7 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
         this._currentPath = "/tasks";
         this._loading = true;
         this._enableAnimations = true;
-        this._modalTaskId = null;
+        this._modalStack = [];
     }
     async connectedCallback() {
         super.connectedCallback();
@@ -2943,7 +2926,7 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
         <div class="appbar-actions">
           <button class="appbar-btn" @click=${() => {
             if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-                this._modalTaskId = "__new__";
+                this._modalStack = ["__new__"];
             }
             else {
                 this._navigate("/new");
@@ -2965,7 +2948,7 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
         </div>
       ` : A}
 
-      <div class="content" @navigate=${(e) => this._navigate(e.detail)} @open-task-modal=${(e) => { this._modalTaskId = e.detail; }}>
+      <div class="content" @navigate=${(e) => this._navigate(e.detail)} @open-task-modal=${(e) => { this._modalStack = [e.detail]; }}>
         ${isTasks && !this._loading
             ? b `
               <ik-task-list-view
@@ -3015,21 +2998,26 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
           </div>`}
       </div>
 
-      ${this._modalTaskId !== null ? b `
+      ${this._modalStack.length > 0 ? b `
         <div class="modal-overlay" @click=${(e) => { if (e.target === e.currentTarget)
-            this._modalTaskId = null; }}>
+            this._modalStack = []; }}>
           <div class="modal-container">
             <div class="modal-header">
-              <span class="modal-title">${(() => { if (this._modalTaskId === "__new__")
-            return tr.newTaskTitle; const mt = this._tasks.find(t => t.task_id === this._modalTaskId); return mt?.task_number ? `${tr.editTask} #${String(mt.task_number).padStart(3, '0')}` : tr.editTask; })()}</span>
-              <button class="modal-close" @click=${() => { this._modalTaskId = null; }}><ha-icon icon="mdi:close" style="--mdc-icon-size:20px"></ha-icon></button>
+              <span class="modal-title">${(() => {
+            const top = this._modalStack[this._modalStack.length - 1];
+            if (top === "__new__")
+                return tr.newTaskTitle;
+            const mt = this._tasks.find(t => t.task_id === top);
+            return mt?.task_number ? `${tr.editTask} #${String(mt.task_number).padStart(3, '0')}` : tr.editTask;
+        })()}</span>
+              <button class="modal-close" @click=${() => { this._modalStack = []; }}><ha-icon icon="mdi:close" style="--mdc-icon-size:20px"></ha-icon></button>
             </div>
             <ik-task-form-view
               .hass=${this.hass}
-              .task=${this._modalTaskId === "__new__" ? null : (this._tasks.find(t => t.task_id === this._modalTaskId) ?? null)}
+              .task=${(() => { const top = this._modalStack[this._modalStack.length - 1]; return top === "__new__" ? null : (this._tasks.find(t => t.task_id === top) ?? null); })()}
               .tasks=${this._tasks}
               .enableAnimations=${this._enableAnimations}
-              @navigate=${(e) => { e.stopPropagation(); this._modalTaskId = null; }}
+              @navigate=${(e) => { e.stopPropagation(); this._modalStack = []; }}
             ></ik-task-form-view>
           </div>
         </div>
@@ -3187,7 +3175,7 @@ __decorate([
 ], IntelliKeepPanel.prototype, "_enableAnimations", void 0);
 __decorate([
     r()
-], IntelliKeepPanel.prototype, "_modalTaskId", void 0);
+], IntelliKeepPanel.prototype, "_modalStack", void 0);
 IntelliKeepPanel = __decorate([
     t$1("intellikeep-panel")
 ], IntelliKeepPanel);
