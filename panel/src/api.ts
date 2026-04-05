@@ -85,6 +85,17 @@ export async function addTaskNote(
   });
 }
 
+export async function deleteTaskNote(
+  hass: HomeAssistant,
+  taskId: string,
+  noteId: string
+): Promise<void> {
+  await hass.callService(DOMAIN, "delete_task_note", {
+    task_id: taskId,
+    note_id: noteId,
+  });
+}
+
 export async function deleteAllData(hass: HomeAssistant): Promise<void> {
   await hass.callService(DOMAIN, "delete_all_data", {});
 }

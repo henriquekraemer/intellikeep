@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant, Task, TaskFrequency, TaskPriority } from "../types";
-import { createTask, updateTask, completeTask, reopenTask, deleteTask, addTaskNote } from "../api";
+import { createTask, updateTask, completeTask, reopenTask, deleteTask, addTaskNote, deleteTaskNote } from "../api";
 import { t } from "../translations";
 import "../components/confirm-dialog";
 
@@ -30,6 +30,9 @@ export class IkTaskFormView extends LitElement {
   @state() private _activeTab: "edit" | "notes" | "history" = "edit";
   @state() private _newNoteContent = "";
   @state() private _addingNote = false;
+  @state() private _deletingNoteId: string | null = null;
+  @state() private _showDeleteNoteConfirm = false;
+  @state() private _deleteNoteTarget: string | null = null;
   @state() private _historyPage = 0;
   @state() private _historyPageSize: 10 | 25 | 50 = 10;
   @state() private _notesPage = 0;
@@ -409,6 +412,26 @@ export class IkTaskFormView extends LitElement {
       white-space: pre-wrap;
       word-break: break-word;
     }
+    .note-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .note-meta { font-size: 11px; color: var(--secondary-text-color); flex: 1; }
+    .btn-delete-note {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--secondary-text-color);
+      padding: 2px 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      --mdc-icon-size: 15px;
+      opacity: 0.6;
+    }
+    .btn-delete-note:hover { opacity: 1; color: var(--error-color, #f44336); }
   `;
 
   private _navigate(path: string) {
@@ -639,7 +662,12 @@ export class IkTaskFormView extends LitElement {
               <div class="notes-list">
                 ${pageNotes.map((note) => html`
                   <div class="note-item">
-                    <div class="note-meta">${this._formatDate(note.created_at)}${note.added_by ? html` · ${note.added_by}` : nothing}</div>
+                    <div class="note-header">
+                      <span class="note-meta">${this._formatDate(note.created_at)}${note.added_by ? html` · ${note.added_by}` : nothing}</span>
+                      <button class="btn-delete-note" title=${tr.del} @click=${() => { this._deleteNoteTarget = note.note_id; this._showDeleteNoteConfirm = true; }}>
+                        <ha-icon icon="mdi:delete-outline"></ha-icon>
+                      </button>
+                    </div>
                     <div class="note-content">${note.content}</div>
                   </div>
                 `)}
@@ -654,6 +682,22 @@ export class IkTaskFormView extends LitElement {
             `;
         })()}
         </div>
+        <ik-confirm-dialog
+          .heading=${tr.deleteNoteHeading}
+          .body=${tr.deleteNoteBody}
+          .open=${this._showDeleteNoteConfirm}
+          @dialog-closed=${async (e: CustomEvent) => {
+            this._showDeleteNoteConfirm = false;
+            if (!e.detail.confirmed || !this._deleteNoteTarget || !this.task) return;
+            this._deletingNoteId = this._deleteNoteTarget;
+            try {
+              await deleteTaskNote(this.hass, this.task.task_id, this._deleteNoteTarget);
+            } finally {
+              this._deletingNoteId = null;
+              this._deleteNoteTarget = null;
+            }
+          }}
+        ></ik-confirm-dialog>
       </div>
     ` : nothing;
 
