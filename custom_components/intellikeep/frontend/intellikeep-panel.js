@@ -1819,6 +1819,7 @@ let IkTaskFormView = class IkTaskFormView extends i {
           </div>
         </div>
         <hr class="notes-divider" />
+        <div class="notes-scroll-area">
         ${(() => {
             const allNotes = [...(this.task.notes || [])].reverse();
             const notesPageSize = this.constructor._NOTES_PAGE_SIZE;
@@ -1846,6 +1847,7 @@ let IkTaskFormView = class IkTaskFormView extends i {
               ` : A}
             `;
         })()}
+        </div>
       </div>
     ` : A;
         // For children: previous_task_id is the root/family ID.
@@ -2003,11 +2005,13 @@ IkTaskFormView._NOTES_PAGE_SIZE = 5;
 IkTaskFormView._PREV_OCC_PAGE_SIZE = 5;
 IkTaskFormView.styles = i$3 `
     :host { display: block; }
-    .form { display: flex; flex-direction: column; gap: 16px; max-width: 600px; }
+    .form { display: flex; flex-direction: column; gap: 16px; max-width: 600px; min-height: 0; }
     .tab-panels {
       display: grid;
       grid-template-columns: 1fr;
-      grid-template-rows: auto;
+      grid-template-rows: 480px;
+      height: 480px;
+      overflow: hidden;
     }
     .tab-panel {
       grid-column: 1;
@@ -2017,6 +2021,8 @@ IkTaskFormView.styles = i$3 `
       gap: 16px;
       visibility: hidden;
       pointer-events: none;
+      height: 480px;
+      overflow: hidden;
     }
     .tab-panel.tab-active {
       visibility: visible;
@@ -2314,13 +2320,20 @@ IkTaskFormView.styles = i$3 `
       border: none;
       border-top: 1px solid var(--divider-color);
       margin: 16px 0 12px;
+      flex-shrink: 0;
+    }
+    .notes-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
     .notes-list {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      max-height: 320px;
-      overflow-y: auto;
     }
     .note-item {
       background: var(--secondary-background-color);
