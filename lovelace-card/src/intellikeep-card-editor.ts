@@ -39,7 +39,7 @@ export class IntelliKeepCardEditor extends LitElement {
       <div class="form-row">
         <ha-textfield
           label="Title"
-          .value=${this.config.title ?? "Home Maintenance"}
+          .value=${this.config.title ?? "IntelliKeep"}
           @change=${(e: Event) =>
             this._valueChanged("title", (e.target as HTMLInputElement).value)}
         ></ha-textfield>

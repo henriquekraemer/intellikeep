@@ -11,7 +11,7 @@ CONF_NOTIFY_DAYS_BEFORE_DEFAULT = "notify_days_before_default"
 CONF_NOTIFICATION_SERVICE = "notification_service"
 
 # Defaults
-DEFAULT_INSTANCE_NAME = "Home Maintenance"
+DEFAULT_INSTANCE_NAME = "IntelliKeep"
 DEFAULT_NOTIFY_DAYS_BEFORE = 1
 
 # Sensor unique IDs
