@@ -214,7 +214,11 @@ return html`
           <ha-icon-button class="appbar-back" .label=${tr.back} @click=${() => this._navigate("/tasks")} path="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z">
           </ha-icon-button>
         ` : html`<ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>`}
-        <span class="appbar-title">IntelliKeep</span>
+        <span class="appbar-title">${isMobile && (isNew || isEdit || isSettings)
+          ? isNew ? tr.newTaskTitle
+          : isSettings ? tr.settingsTitle
+          : (() => { const t2 = this._getEditTask(); return t2?.task_number ? `${tr.editTask} #${String(t2.task_number).padStart(3, "0")}` : tr.editTask; })()
+          : "IntelliKeep"}</span>
         <div class="appbar-actions">
           ${isTasks ? html`
             <ha-icon-button class="appbar-back" .label=${tr.newTask} @click=${() => {
@@ -253,7 +257,7 @@ return html`
               ? html`<p>${tr.loading}</p>`
               : isNew
               ? html`
-                  <div class="page-title">${tr.newTaskTitle}</div>
+                  ${!isMobile ? html`<div class="page-title">${tr.newTaskTitle}</div>` : nothing}
                   <ik-task-form-view
                     .hass=${this.hass}
                     .tasks=${this._tasks}
@@ -263,7 +267,7 @@ return html`
                 `
               : isEdit
               ? html`
-                  <div class="page-title">${(() => { const t2 = this._getEditTask(); return t2?.task_number ? `${tr.editTask} #${String(t2.task_number).padStart(3,'0')}` : tr.editTask; })()}</div>
+                  ${!isMobile ? html`<div class="page-title">${(() => { const t2 = this._getEditTask(); return t2?.task_number ? `${tr.editTask} #${String(t2.task_number).padStart(3,'0')}` : tr.editTask; })()}</div>` : nothing}
                   <ik-task-form-view
                     .hass=${this.hass}
                     .task=${this._getEditTask()}
@@ -274,7 +278,7 @@ return html`
                 `
               : isSettings
               ? html`
-                  <div class="page-title">${tr.settingsTitle}</div>
+                  ${!isMobile ? html`<div class="page-title">${tr.settingsTitle}</div>` : nothing}
                   <ik-settings-view
                     .hass=${this.hass}
                     .enableAnimations=${this._enableAnimations}
