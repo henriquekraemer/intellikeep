@@ -1063,7 +1063,10 @@ let IkTaskListView = class IkTaskListView extends i {
             const bDate = b.due_date ? new Date(b.due_date).getTime() : Infinity;
             if (aDate !== bDate)
                 return aDate - bDate;
-            return (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99);
+            const prDiff = (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99);
+            if (prDiff !== 0)
+                return prDiff;
+            return a.task_number - b.task_number;
         };
         const today = new Date();
         today.setHours(0, 0, 0, 0);
