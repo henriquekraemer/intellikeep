@@ -14,7 +14,12 @@ export class IkSettingsView extends LitElement {
 
   static styles = css`
     :host { display: block; }
-    ha-card { padding: 20px; }
+    ha-card {
+      padding: 20px;
+      box-shadow: none;
+      border: none;
+      background: transparent;
+    }
     h3 { margin: 0 0 8px; font-size: 16px; }
     p { color: var(--secondary-text-color); font-size: 14px; line-height: 1.5; }
     .info-row {
@@ -77,6 +82,9 @@ export class IkSettingsView extends LitElement {
       margin-top: 24px;
       padding-top: 16px;
       border-top: 1px solid var(--divider-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
     .danger-zone h4 {
       margin: 0 0 8px;
@@ -107,10 +115,7 @@ export class IkSettingsView extends LitElement {
     const tr = t(this.hass?.language);
     return html`
       <ha-card>
-        <h3>${tr.settingsHeading}</h3>
-        <p>${tr.settingsBody}</p>
-
-        <div style="margin-top:16px">
+        <div>
           <div class="toggle-row">
             <div>
               <div class="toggle-label">${tr.animationsLabel}</div>
