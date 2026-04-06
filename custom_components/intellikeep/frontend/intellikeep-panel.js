@@ -1385,9 +1385,6 @@ IkTaskListView.styles = i$3 `
       align-items: center;
       gap: 5px;
     }
-    .section-header.urgent {
-      color: var(--error-color, #f44336);
-    }
     .upcoming-filter {
       display: flex;
       align-items: center;
