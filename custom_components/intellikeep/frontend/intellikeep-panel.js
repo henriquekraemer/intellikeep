@@ -2903,6 +2903,7 @@ IkSettingsView = __decorate([
 let IntelliKeepPanel = class IntelliKeepPanel extends i {
     constructor() {
         super(...arguments);
+        this.narrow = false;
         this._tasks = [];
         this._currentPath = "/tasks";
         this._loading = true;
@@ -2959,7 +2960,7 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
         ${isMobile && (isNew || isEdit) ? b `
           <ha-icon-button class="appbar-back" .label=${tr.back} @click=${() => this._navigate("/tasks")} path="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z">
           </ha-icon-button>
-        ` : b `<ha-icon icon="mdi:clipboard-check-multiple-outline"></ha-icon>`}
+        ` : b `<ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>`}
         <span class="appbar-title">IntelliKeep</span>
         <div class="appbar-actions">
           <button class="appbar-btn" @click=${() => {
@@ -3204,6 +3205,9 @@ __decorate([
 __decorate([
     n({ attribute: false })
 ], IntelliKeepPanel.prototype, "route", void 0);
+__decorate([
+    n({ type: Boolean })
+], IntelliKeepPanel.prototype, "narrow", void 0);
 __decorate([
     r()
 ], IntelliKeepPanel.prototype, "_tasks", void 0);
