@@ -14,6 +14,7 @@ export class IntelliKeepPanel extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) panel?: { config?: Record<string, unknown> };
   @property({ attribute: false }) route?: Route;
+  @property({ type: Boolean }) narrow = false;
 
   @state() private _tasks: Task[] = [];
   @state() private _currentPath = "/tasks";
@@ -212,7 +213,7 @@ export class IntelliKeepPanel extends LitElement {
         ${isMobile && (isNew || isEdit) ? html`
           <ha-icon-button class="appbar-back" .label=${tr.back} @click=${() => this._navigate("/tasks")} path="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z">
           </ha-icon-button>
-        ` : html`<ha-icon icon="mdi:clipboard-check-multiple-outline"></ha-icon>`}
+        ` : html`<ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>`}
         <span class="appbar-title">IntelliKeep</span>
         <div class="appbar-actions">
           <button class="appbar-btn" @click=${() => {
