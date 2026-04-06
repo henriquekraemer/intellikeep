@@ -288,7 +288,7 @@ let IntelliKeepCard = class IntelliKeepCard extends i {
     }
     static getStubConfig() {
         return {
-            title: "Home Maintenance",
+            title: "IntelliKeep",
             max_tasks: 5,
             show_linked_entities: true,
             show_description: false,
@@ -365,7 +365,7 @@ let IntelliKeepCard = class IntelliKeepCard extends i {
         }
     }
     render() {
-        const title = this.config?.title ?? "Home Maintenance";
+        const title = this.config?.title ?? "IntelliKeep";
         const tasks = this._filteredTasks;
         return b `
       <ha-card>
