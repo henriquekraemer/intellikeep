@@ -49,6 +49,6 @@ FRONTEND_CARD_URL = f"/{FRONTEND_STATIC_PATH}/intellikeep-card.js"
 FRONTEND_PANEL_URL = f"/{FRONTEND_STATIC_PATH}/intellikeep-panel.js"
 PANEL_URL = DOMAIN
 PANEL_TITLE = "IntelliKeep"
-PANEL_ICON = "mdi:clipboard-check-multiple-outline"
+PANEL_ICON = "intellikeep:master"
 
 VERSION = "1.0.0"

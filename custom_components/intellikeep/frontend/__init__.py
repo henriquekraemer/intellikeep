@@ -5,6 +5,7 @@ import logging
 import os
 from pathlib import Path
 
+from homeassistant.components import frontend as ha_frontend
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_call_later
@@ -14,6 +15,7 @@ _LOGGER = logging.getLogger(__name__)
 FRONTEND_DIR = Path(__file__).parent
 CARD_FILENAME = "intellikeep-card.js"
 PANEL_FILENAME = "intellikeep-panel.js"
+ICONS_FILENAME = "intellikeep-icons.js"
 
 
 STATIC_PATH = "intellikeep_static"
@@ -29,6 +31,8 @@ async def async_register_frontend(hass: HomeAssistant, component_domain: str) ->
         )
     ])
     _LOGGER.debug("IntelliKeep frontend registered at /%s", STATIC_PATH)
+
+    ha_frontend.add_extra_js_url(hass, f"/{STATIC_PATH}/{ICONS_FILENAME}")
 
     # Register the Lovelace card resource so it auto-loads in dashboards
     _async_register_card_resource(hass, component_domain)
