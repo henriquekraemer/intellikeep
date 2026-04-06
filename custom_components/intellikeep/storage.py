@@ -52,7 +52,7 @@ class IntelliKeepStorage:
         return self._tasks.get(task_id)
 
     def get_all_tasks(self) -> list[Task]:
-        return list(self._tasks.values())
+        return sorted(self._tasks.values(), key=lambda t: t.task_number)
 
     def upsert_task(self, task: Task) -> None:
         self._tasks[task.task_id] = task
