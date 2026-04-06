@@ -2729,10 +2729,7 @@ let IkSettingsView = class IkSettingsView extends i {
         const tr = t(this.hass?.language);
         return b `
       <ha-card>
-        <h3>${tr.settingsHeading}</h3>
-        <p>${tr.settingsBody}</p>
-
-        <div style="margin-top:16px">
+        <div>
           <div class="toggle-row">
             <div>
               <div class="toggle-label">${tr.animationsLabel}</div>
@@ -2795,7 +2792,12 @@ let IkSettingsView = class IkSettingsView extends i {
 };
 IkSettingsView.styles = i$3 `
     :host { display: block; }
-    ha-card { padding: 20px; }
+    ha-card {
+      padding: 20px;
+      box-shadow: none;
+      border: none;
+      background: transparent;
+    }
     h3 { margin: 0 0 8px; font-size: 16px; }
     p { color: var(--secondary-text-color); font-size: 14px; line-height: 1.5; }
     .info-row {
@@ -2858,6 +2860,9 @@ IkSettingsView.styles = i$3 `
       margin-top: 24px;
       padding-top: 16px;
       border-top: 1px solid var(--divider-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
     .danger-zone h4 {
       margin: 0 0 8px;
@@ -2909,6 +2914,7 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
         this._loading = true;
         this._enableAnimations = true;
         this._modalStack = [];
+        this._showSettings = false;
     }
     async connectedCallback() {
         super.connectedCallback();
@@ -2954,40 +2960,39 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
         const isEdit = path.startsWith("/edit/");
         const isSettings = path === "/settings";
         const isTasks = !isNew && !isEdit && !isSettings;
-        const dueCount = this._tasks.filter((t) => t.status === "due" || t.status === "overdue").length;
         return b `
       <div class="appbar">
-        ${isMobile && (isNew || isEdit) ? b `
+        ${isMobile && (isNew || isEdit || isSettings) ? b `
           <ha-icon-button class="appbar-back" .label=${tr.back} @click=${() => this._navigate("/tasks")} path="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z">
           </ha-icon-button>
         ` : b `<ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>`}
         <span class="appbar-title">IntelliKeep</span>
         <div class="appbar-actions">
-          <button class="appbar-btn" @click=${() => {
-            if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-                this._modalStack = ["__new__"];
-            }
-            else {
+          ${isTasks ? b `
+            <ha-icon-button class="appbar-back" .label=${tr.newTask} @click=${() => {
+            if (isMobile) {
                 this._navigate("/new");
             }
-        }}>
-            <ha-icon icon="mdi:plus" style="--mdc-icon-size:16px"></ha-icon>
-            ${tr.newTask}
-          </button>
+            else {
+                this._modalStack = ["__new__"];
+            }
+        }} path="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z">
+            </ha-icon-button>
+            <ha-icon-button class="appbar-back" .label=${tr.settings} @click=${() => {
+            if (isMobile) {
+                this._navigate("/settings");
+            }
+            else {
+                this._showSettings = true;
+            }
+        }} path="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z">
+            </ha-icon-button>
+          ` : A}
         </div>
       </div>
 
-      ${!(isMobile && (isNew || isEdit)) ? b `
-        <div class="tabs">
-          <div class="tab ${isTasks ? "active" : ""}" @click=${() => this._navigate("/tasks")}>
-            ${tr.tasks}
-            ${dueCount > 0 ? b `<span style="background:var(--error-color,#f44336);color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:5px;font-weight:700">${dueCount}</span>` : A}
-          </div>
-          <div class="tab ${isSettings ? "active" : ""}" @click=${() => this._navigate("/settings")}>${tr.settings}</div>
-        </div>
-      ` : A}
 
-      <div class="content" @navigate=${(e) => this._navigate(e.detail)} @open-task-modal=${(e) => { this._modalStack = [e.detail]; }}>
+<div class="content" @navigate=${(e) => this._navigate(e.detail)} @open-task-modal=${(e) => { this._modalStack = [e.detail]; }}>
         ${isTasks && !this._loading
             ? b `
               <ik-task-list-view
@@ -3058,6 +3063,26 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
               .enableAnimations=${this._enableAnimations}
               @navigate=${(e) => { e.stopPropagation(); this._modalStack = []; }}
             ></ik-task-form-view>
+          </div>
+        </div>
+      ` : A}
+
+      ${this._showSettings ? b `
+        <div class="modal-overlay" @click=${(e) => { if (e.target === e.currentTarget)
+            this._showSettings = false; }}>
+          <div class="modal-container">
+            <div class="modal-header">
+              <span class="modal-title">${tr.settingsTitle}</span>
+              <button class="modal-close" @click=${() => { this._showSettings = false; }}><ha-icon icon="mdi:close" style="--mdc-icon-size:20px"></ha-icon></button>
+            </div>
+            <ik-settings-view
+              .hass=${this.hass}
+              .enableAnimations=${this._enableAnimations}
+              @animations-changed=${(e) => {
+            this._enableAnimations = e.detail;
+            localStorage.setItem("intellikeep.animations", String(e.detail));
+        }}
+            ></ik-settings-view>
           </div>
         </div>
       ` : A}
@@ -3223,6 +3248,9 @@ __decorate([
 __decorate([
     r()
 ], IntelliKeepPanel.prototype, "_modalStack", void 0);
+__decorate([
+    r()
+], IntelliKeepPanel.prototype, "_showSettings", void 0);
 IntelliKeepPanel = __decorate([
     t$1("intellikeep-panel")
 ], IntelliKeepPanel);
