@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from custom_components.intellikeep.notifications import NotificationManager
+from custom_components.intellikeep.notifications import NOTIFICATION_CHECK_INTERVAL, NotificationManager
 from tests.conftest import make_task
 
 
@@ -138,3 +138,44 @@ class TestCustomNotificationService:
             c[0][:2] for c in mock_hass.services.async_call.call_args_list
         ]
         assert ("notify", "mobile") in service_calls
+
+    async def test_invalid_custom_service_logs_warning(self, mock_hass, task_manager, mock_storage):
+        mgr = NotificationManager(
+            mock_hass, task_manager, notification_service="invalid-service"
+        )
+        task = make_task(
+            due_date=datetime.now(timezone.utc) - timedelta(days=2),
+            notify_on_overdue=True,
+        )
+        mock_storage.upsert_task(task)
+
+        with patch("custom_components.intellikeep.notifications._LOGGER.warning") as warning:
+            await mgr._async_check_notifications(None)
+
+        warning.assert_called_once()
+
+
+class TestLifecycle:
+    def test_start_registers_interval_listener(self, mock_hass, task_manager):
+        with patch(
+            "custom_components.intellikeep.notifications.async_track_time_interval",
+            return_value=MagicMock(),
+        ) as track_interval:
+            mgr = NotificationManager(mock_hass, task_manager)
+            mgr.start()
+
+        track_interval.assert_called_once_with(
+            mock_hass,
+            mgr._async_check_notifications,
+            NOTIFICATION_CHECK_INTERVAL,
+        )
+
+    def test_stop_cancels_interval_listener(self, mock_hass, task_manager):
+        mgr = NotificationManager(mock_hass, task_manager)
+        cancel = MagicMock()
+        mgr._cancel_interval = cancel
+
+        mgr.stop()
+
+        cancel.assert_called_once()
+        assert mgr._cancel_interval is None

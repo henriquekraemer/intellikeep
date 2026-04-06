@@ -13,10 +13,43 @@
         "data_description": {
           "notification_service": "ex: notify.mobile_app_meu_celular — deixe vazio para usar apenas notificações persistentes"
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigurar IntelliKeep",
+        "description": "Atualize as configurações da instância do IntelliKeep.",
+        "data": {
+          "instance_name": "Nome da Instância",
+          "notify_days_before_default": "Antecedência Padrão para Notificações (dias)",
+          "notification_service": "Serviço de Notificação (opcional)"
+        }
       }
     },
     "abort": {
       "single_instance_allowed": "Apenas uma instância do IntelliKeep é permitida."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "tasks_due_today": {
+        "name": "Tarefas com Vencimento Hoje"
+      },
+      "tasks_overdue": {
+        "name": "Tarefas Atrasadas"
+      },
+      "next_due_task": {
+        "name": "Próxima Tarefa a Vencer"
+      }
+    }
+  },
+  "exceptions": {
+    "not_configured": {
+      "message": "Configure o IntelliKeep antes de usar suas ações."
+    },
+    "task_not_found": {
+      "message": "A tarefa {task_id} não foi encontrada."
+    },
+    "task_note_not_found": {
+      "message": "A nota {note_id} da tarefa {task_id} não foi encontrada."
     }
   },
   "options": {
