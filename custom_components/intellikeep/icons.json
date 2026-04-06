@@ -1,0 +1,15 @@
+{
+  "entity": {
+    "sensor": {
+      "tasks_due_today": {
+        "default": "mdi:clipboard-check-outline"
+      },
+      "tasks_overdue": {
+        "default": "mdi:clipboard-alert-outline"
+      },
+      "next_due_task": {
+        "default": "mdi:calendar-clock"
+      }
+    }
+  }
+}

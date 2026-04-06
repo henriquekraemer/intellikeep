@@ -2,24 +2,33 @@
 from __future__ import annotations
 
 import logging
+from typing import cast
 
 import voluptuous as vol
 from homeassistant.components import websocket_api
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant, callback
 
 from .const import DOMAIN, VERSION, WS_GET_TASK, WS_GET_TASKS, WS_GET_VERSION, WS_SUBSCRIBE
-from .coordinator import IntelliKeepCoordinator
-from .task_manager import TaskManager
+from .runtime_data import IntelliKeepRuntimeData
 
 _LOGGER = logging.getLogger(__name__)
 
 
+def _get_runtime_data(hass: HomeAssistant) -> IntelliKeepRuntimeData:
+    """Return runtime data for the loaded IntelliKeep entry."""
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if entry.state is ConfigEntryState.LOADED and entry.runtime_data is not None:
+            return cast(IntelliKeepRuntimeData, entry.runtime_data)
+    raise ValueError("IntelliKeep is not configured")
+
+
 def async_register_websocket_commands(
     hass: HomeAssistant,
-    task_manager: TaskManager,
-    coordinator: IntelliKeepCoordinator,
 ) -> None:
     """Register all WebSocket API commands."""
+    if hass.data.setdefault(DOMAIN, {}).get("websocket_registered"):
+        return
 
     @websocket_api.websocket_command(
         {
@@ -32,6 +41,8 @@ def async_register_websocket_commands(
         connection: websocket_api.ActiveConnection,
         msg: dict,
     ) -> None:
+        runtime_data = _get_runtime_data(hass)
+        task_manager = runtime_data.task_manager
         tasks = task_manager.get_all_tasks_with_status()
         connection.send_result(msg["id"], {"tasks": tasks})
 
@@ -47,7 +58,9 @@ def async_register_websocket_commands(
         connection: websocket_api.ActiveConnection,
         msg: dict,
     ) -> None:
-        task = task_manager._storage.get_task(msg["task_id"])
+        runtime_data = _get_runtime_data(hass)
+        task_manager = runtime_data.task_manager
+        task = runtime_data.storage.get_task(msg["task_id"])
         if task is None:
             connection.send_error(msg["id"], "not_found", f"Task {msg['task_id']} not found")
             return
@@ -66,6 +79,9 @@ def async_register_websocket_commands(
         msg: dict,
     ) -> None:
         """Subscribe to coordinator updates. Fires a message on every refresh."""
+        runtime_data = _get_runtime_data(hass)
+        task_manager = runtime_data.task_manager
+        coordinator = runtime_data.coordinator
 
         @callback
         def _send_update(_: None = None) -> None:
@@ -98,11 +114,13 @@ def async_register_websocket_commands(
         connection: websocket_api.ActiveConnection,
         msg: dict,
     ) -> None:
+        del hass
         connection.send_result(msg["id"], {"version": VERSION})
 
     websocket_api.async_register_command(hass, ws_get_tasks)
     websocket_api.async_register_command(hass, ws_get_task)
     websocket_api.async_register_command(hass, ws_subscribe)
     websocket_api.async_register_command(hass, ws_get_version)
+    hass.data[DOMAIN]["websocket_registered"] = True
 
     _LOGGER.debug("IntelliKeep WebSocket commands registered")

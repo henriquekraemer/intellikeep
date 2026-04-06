@@ -12,10 +12,43 @@
         "data_description": {
           "notification_service": "e.g. notify.mobile_app_my_phone — leave empty to use only persistent notifications"
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigure IntelliKeep",
+        "description": "Update the IntelliKeep instance settings.",
+        "data": {
+          "instance_name": "Instance Name",
+          "notify_days_before_default": "Default Notification Lead Time (days)",
+          "notification_service": "Notification Service (optional)"
+        }
       }
     },
     "abort": {
       "single_instance_allowed": "Only one IntelliKeep instance is allowed."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "tasks_due_today": {
+        "name": "Tasks Due Today"
+      },
+      "tasks_overdue": {
+        "name": "Tasks Overdue"
+      },
+      "next_due_task": {
+        "name": "Next Due Task"
+      }
+    }
+  },
+  "exceptions": {
+    "not_configured": {
+      "message": "Configure IntelliKeep before using its actions."
+    },
+    "task_not_found": {
+      "message": "Task {task_id} was not found."
+    },
+    "task_note_not_found": {
+      "message": "Note {note_id} for task {task_id} was not found."
     }
   },
   "options": {

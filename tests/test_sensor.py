@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
+from custom_components.intellikeep.sensor import async_setup_entry
 from custom_components.intellikeep.models import TaskFrequency, TaskPriority
 from tests.conftest import make_task
 
@@ -75,3 +76,75 @@ class TestTaskWithStatus:
 
         result = task_manager.get_all_tasks_with_status()
         assert result[0]["status"] == "overdue"
+
+
+class TestSensorEntities:
+    async def test_async_setup_entry_adds_three_entities(
+        self, mock_hass, mock_config_entry, runtime_data
+    ):
+        task = make_task(
+            name="Overdue",
+            due_date=datetime.now(timezone.utc) - timedelta(days=2),
+        )
+        runtime_data.coordinator.data = {
+            "all_tasks": [task],
+            "tasks_due_count": 1,
+            "tasks_overdue_count": 1,
+            "next_due_task": task,
+        }
+
+        added_entities = []
+
+        await async_setup_entry(
+            mock_hass,
+            mock_config_entry,
+            lambda entities: added_entities.extend(entities),
+        )
+
+        assert len(added_entities) == 3
+        assert added_entities[0].native_value == 1
+        assert added_entities[1].native_value == 1
+        assert added_entities[2].native_value == "Overdue"
+
+    async def test_sensor_attributes_include_device_and_task_details(
+        self, mock_hass, mock_config_entry, runtime_data
+    ):
+        task = make_task(
+            name="Replace filter",
+            due_date=datetime.now(timezone.utc) + timedelta(days=1),
+            linked_entity_ids=["climate.living_room"],
+        )
+        runtime_data.coordinator.data = {
+            "all_tasks": [task],
+            "tasks_due_count": 0,
+            "tasks_overdue_count": 1,
+            "next_due_task": task,
+        }
+
+        added_entities = []
+        await async_setup_entry(
+            mock_hass,
+            mock_config_entry,
+            lambda entities: added_entities.extend(entities),
+        )
+
+        due_sensor, overdue_sensor, next_due_sensor = added_entities
+
+        assert due_sensor.device_info["name"] == "IntelliKeep"
+        assert overdue_sensor.extra_state_attributes == {
+            "overdue_tasks": [
+                {
+                    "task_id": task.task_id,
+                    "name": "Replace filter",
+                    "due_date": task.due_date.isoformat(),
+                    "priority": str(task.priority),
+                }
+            ]
+        }
+        assert next_due_sensor.extra_state_attributes == {
+            "task_id": task.task_id,
+            "due_date": task.due_date.isoformat(),
+            "priority": str(task.priority),
+            "linked_entity_ids": ["climate.living_room"],
+            "frequency": str(task.frequency),
+        }

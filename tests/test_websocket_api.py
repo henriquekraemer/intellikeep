@@ -1,12 +1,15 @@
 """Tests for IntelliKeep WebSocket API commands."""
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from custom_components.intellikeep.const import VERSION
 from custom_components.intellikeep.models import TaskFrequency
+from custom_components.intellikeep.websocket_api import _get_runtime_data, async_register_websocket_commands
 from tests.conftest import make_task
 
 
@@ -72,3 +75,117 @@ class TestTaskDictSerialization:
             "executions_count",
         ):
             assert field in result, f"Missing field: {field}"
+
+
+@pytest.fixture
+def websocket_commands(mock_hass, mock_config_entry):
+    registered = {}
+    background_tasks = []
+    mock_hass.config_entries.async_entries.return_value = [mock_config_entry]
+    mock_hass.async_create_background_task = MagicMock(
+        side_effect=lambda coro, *_args, **_kwargs: background_tasks.append(
+            asyncio.create_task(coro)
+        )
+        or background_tasks[-1]
+    )
+
+    def capture_command(_hass, command):
+        registered[command.__name__] = command
+
+    with patch(
+        "custom_components.intellikeep.websocket_api.websocket_api.async_register_command",
+        side_effect=capture_command,
+    ):
+        async_register_websocket_commands(mock_hass)
+
+    return registered, background_tasks
+
+
+class TestRegisteredWebsocketCommands:
+    async def test_get_tasks_returns_all_tasks(
+        self, websocket_commands, runtime_data, mock_hass
+    ):
+        commands, background_tasks = websocket_commands
+        runtime_data.storage.upsert_task(make_task(name="WS task"))
+        connection = MagicMock()
+
+        commands["ws_get_tasks"](mock_hass, connection, {"id": 1})
+        await asyncio.gather(*background_tasks)
+
+        connection.send_result.assert_called_once()
+        assert connection.send_result.call_args.args[0] == 1
+        assert connection.send_result.call_args.args[1]["tasks"][0]["name"] == "WS task"
+
+    async def test_get_task_returns_error_for_unknown_task(
+        self, websocket_commands, mock_hass
+    ):
+        commands, background_tasks = websocket_commands
+        connection = MagicMock()
+
+        commands["ws_get_task"](
+            mock_hass,
+            connection,
+            {"id": 2, "task_id": "missing"},
+        )
+        await asyncio.gather(*background_tasks)
+
+        connection.send_error.assert_called_once_with(2, "not_found", "Task missing not found")
+
+    async def test_get_task_returns_serialized_task(
+        self, websocket_commands, runtime_data, mock_hass
+    ):
+        commands, background_tasks = websocket_commands
+        task = make_task(name="One task")
+        runtime_data.storage.upsert_task(task)
+        connection = MagicMock()
+
+        commands["ws_get_task"](
+            mock_hass,
+            connection,
+            {"id": 3, "task_id": task.task_id},
+        )
+        await asyncio.gather(*background_tasks)
+
+        connection.send_result.assert_called_once()
+        assert connection.send_result.call_args.args[1]["task"]["task_id"] == task.task_id
+
+    def test_subscribe_registers_listener_and_sends_initial_state(
+        self, websocket_commands, runtime_data, mock_hass
+    ):
+        commands, _ = websocket_commands
+        runtime_data.storage.upsert_task(make_task(name="Subscribe"))
+        unsubscribe = MagicMock()
+        runtime_data.coordinator.async_add_listener.return_value = unsubscribe
+        connection = MagicMock()
+        connection.subscriptions = {}
+
+        commands["ws_subscribe"](mock_hass, connection, {"id": 4})
+
+        connection.send_message.assert_called_once()
+        connection.send_result.assert_called_once_with(4)
+        assert 4 in connection.subscriptions
+        connection.subscriptions[4]()
+        unsubscribe.assert_called_once()
+
+    def test_get_version_returns_version(self, websocket_commands, mock_hass):
+        commands, _ = websocket_commands
+        connection = MagicMock()
+
+        commands["ws_get_version"](mock_hass, connection, {"id": 5})
+
+        connection.send_result.assert_called_once_with(5, {"version": VERSION})
+
+    def test_websocket_registration_is_idempotent(self, mock_hass, mock_config_entry):
+        mock_hass.config_entries.async_entries.return_value = [mock_config_entry]
+
+        with patch(
+            "custom_components.intellikeep.websocket_api.websocket_api.async_register_command"
+        ) as register_command:
+            async_register_websocket_commands(mock_hass)
+            async_register_websocket_commands(mock_hass)
+
+        assert register_command.call_count == 4
+
+    def test_runtime_data_lookup_fails_when_not_configured(self, mock_hass):
+        with pytest.raises(ValueError, match="not configured"):
+            _get_runtime_data(mock_hass)
