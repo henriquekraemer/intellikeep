@@ -46,7 +46,7 @@ During setup you can configure:
 
 | Option | Default | Description |
 |---|---|---|
-| Instance Name | `Home Maintenance` | Label shown in HA |
+| Instance Name | `IntelliKeep` | Label shown in HA |
 | Notify Days Before | `1` | Days before due date to send a reminder |
 | Notification Service | *(empty)* | Optional `notify.*` service, e.g. `notify.mobile_app_my_phone` |
 
