@@ -79,7 +79,10 @@ def async_register_services(
         _LOGGER.info("IntelliKeep sample data loaded (%d tasks)", len(tasks))
 
     async def handle_reopen_task(call: ServiceCall) -> None:
-        task = await task_manager.async_reopen_task(call.data["task_id"])
+        task = await task_manager.async_reopen_task(
+            call.data["task_id"],
+            performed_by=call.data.get("performed_by", ""),
+        )
         if task is None:
             _LOGGER.warning("reopen_task: task_id not found: %s", call.data["task_id"])
         else:
@@ -96,11 +99,12 @@ def async_register_services(
         data = _coerce_int_fields(dict(call.data), "custom_days_interval", "notify_days_before")
         data = _coerce_due_date(data)
         task_id = data.pop("task_id")
+        updated_by = data.pop("updated_by", "")
         if "priority" in data:
             data["priority"] = TaskPriority(data["priority"])
         if "frequency" in data:
             data["frequency"] = TaskFrequency(data["frequency"])
-        task = await task_manager.async_update_task(task_id, **data)
+        task = await task_manager.async_update_task(task_id, updated_by=updated_by, **data)
         if task is None:
             _LOGGER.warning("update_task: task_id not found: %s", task_id)
         else:

@@ -33,13 +33,13 @@ export class IkTaskFormView extends LitElement {
   @state() private _deletingNoteId: string | null = null;
   @state() private _showDeleteNoteConfirm = false;
   @state() private _deleteNoteTarget: string | null = null;
-  @state() private _historyPage = 0;
-  @state() private _historyPageSize: 10 | 25 | 50 = 10;
   @state() private _notesPage = 0;
   @state() private _prevOccPage = 0;
+  @state() private _activityPage = 0;
 
   private static readonly _NOTES_PAGE_SIZE = 5;
   private static readonly _PREV_OCC_PAGE_SIZE = 5;
+  private static readonly _ACTIVITY_PAGE_SIZE = 5;
 
   connectedCallback() {
     super.connectedCallback();
@@ -287,6 +287,35 @@ export class IkTaskFormView extends LitElement {
       padding-top: 14px;
       border-top: 1px solid var(--divider-color);
     }
+    .activity-section {
+      margin-top: 0;
+      padding-top: 0;
+    }
+    .activity-section-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--secondary-text-color);
+      margin-bottom: 10px;
+    }
+    .activity-list { display: flex; flex-direction: column; gap: 8px; }
+    .activity-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+    }
+    .activity-icon {
+      flex-shrink: 0;
+      color: var(--secondary-text-color);
+      --mdc-icon-size: 16px;
+      margin-top: 1px;
+    }
+    .activity-body { flex: 1; }
+    .activity-action { color: var(--primary-text-color); font-weight: 500; }
+    .activity-meta { font-size: 11px; color: var(--secondary-text-color); margin-top: 1px; }
+    .activity-details { font-size: 11px; color: var(--secondary-text-color); margin-top: 2px; font-style: italic; }
     .related-section-title {
       font-size: 12px;
       font-weight: 600;
@@ -419,7 +448,7 @@ export class IkTaskFormView extends LitElement {
       if (this.task.status !== "completed") {
         await completeTask(this.hass, this.task.task_id, this.hass.user?.name ?? "");
       } else {
-        await reopenTask(this.hass, this.task.task_id);
+        await reopenTask(this.hass, this.task.task_id, this.hass.user?.name ?? "");
       }
       this._navigate("/tasks");
     } finally {
@@ -465,7 +494,7 @@ export class IkTaskFormView extends LitElement {
       };
 
       if (this.task) {
-        await updateTask(this.hass, this.task.task_id, data);
+        await updateTask(this.hass, this.task.task_id, data, this.hass.user?.name ?? "");
       } else {
         await createTask(this.hass, data);
       }
@@ -487,12 +516,6 @@ export class IkTaskFormView extends LitElement {
       this.removeAttribute("no-animations");
     }
     const executions = isEdit ? [...(this.task!.executions || [])].reverse() : [];
-
-    const pageSize = this._historyPageSize;
-    const totalPages = Math.max(1, Math.ceil(executions.length / pageSize));
-    const histPage = Math.min(this._historyPage, totalPages - 1);
-    const histStart = histPage * pageSize;
-    const pageExecs = executions.slice(histStart, histStart + pageSize);
 
     const editPanel = html`
       <div class="tab-panel ${!isEdit || this._activeTab === 'edit' ? 'tab-active' : ''}">
@@ -688,41 +711,59 @@ export class IkTaskFormView extends LitElement {
 
     const historyPanel = isEdit ? html`
       <div class="tab-panel ${this._activeTab === 'history' ? 'tab-active' : ''}">
-        ${executions.length === 0
-          ? html`<div class="history-empty">${tr.noExecutions}</div>`
-          : html`
-            <div class="exec-table-wrap">
-              <table class="exec-table">
-                <thead>
-                  <tr>
-                    <th>${tr.completedAt}</th>
-                    <th>${tr.completedBy}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${pageExecs.map((ex) => html`
-                    <tr>
-                      <td>${this._formatDate(ex.completed_at)}${ex.was_late ? html`<span class="late-badge">${tr.lateLabel}</span>` : nothing}</td>
-                      <td>${ex.completed_by || "—"}</td>
-                    </tr>
-                  `)}
-                </tbody>
-              </table>
+        ${(() => {
+          const allActivities = [...(this.task!.activities || [])].reverse();
+          const actPageSize = (this.constructor as typeof IkTaskFormView)._ACTIVITY_PAGE_SIZE;
+          const actTotalPages = Math.max(1, Math.ceil(allActivities.length / actPageSize));
+          const actPage = Math.min(this._activityPage, actTotalPages - 1);
+          const actStart = actPage * actPageSize;
+          const pageActs = allActivities.slice(actStart, actStart + actPageSize);
+          const actionIcon: Record<string, string> = {
+            edited: "mdi:pencil-outline",
+            completed: "mdi:check-circle-outline",
+            reopened: "mdi:undo-variant",
+            note_added: "mdi:note-plus-outline",
+            note_deleted: "mdi:note-remove-outline",
+          };
+          const actionLabel = (action: string) => {
+            const m: Record<string, string> = {
+              edited: tr.activityEdited,
+              completed: tr.activityCompleted,
+              reopened: tr.activityReopened,
+              note_added: tr.activityNoteAdded,
+              note_deleted: tr.activityNoteDeleted,
+            };
+            return m[action] ?? action;
+          };
+          return html`
+            <div class="activity-section">
+              <div class="activity-section-title">${tr.activityLog}</div>
+              ${allActivities.length === 0
+                ? html`<div class="history-empty">${tr.noActivity}</div>`
+                : html`
+                  <div class="activity-list">
+                    ${pageActs.map(a => html`
+                      <div class="activity-item">
+                        <ha-icon class="activity-icon" icon=${actionIcon[a.action] ?? "mdi:history"}></ha-icon>
+                        <div class="activity-body">
+                          <div class="activity-action">${actionLabel(a.action)}${a.performed_by ? html` <span style="font-weight:400">${tr.activityBy} ${a.performed_by}</span>` : nothing}</div>
+                          <div class="activity-meta">${this._formatDate(a.timestamp)}</div>
+                          ${a.details ? html`<div class="activity-details">${a.details}</div>` : nothing}
+                        </div>
+                      </div>
+                    `)}
+                  </div>
+                  ${allActivities.length > actPageSize ? html`
+                    <div class="history-pagination">
+                      <span>${actStart + 1}–${Math.min(actStart + actPageSize, allActivities.length)} ${tr.of} ${allActivities.length}</span>
+                      <button class="history-page-btn" ?disabled=${actPage === 0} @click=${() => { this._activityPage = actPage - 1; }}>&lt;</button>
+                      <button class="history-page-btn" ?disabled=${actPage >= actTotalPages - 1} @click=${() => { this._activityPage = actPage + 1; }}>&gt;</button>
+                    </div>
+                  ` : nothing}
+                `}
             </div>
-            ${executions.length > 0 ? html`
-              <div class="history-pagination">
-                <span>${tr.rowsPerPage}</span>
-                <select .value=${String(this._historyPageSize)} @change=${(e: Event) => { this._historyPageSize = Number((e.target as HTMLSelectElement).value) as 10 | 25 | 50; this._historyPage = 0; }}>
-                  <option value="10">10</option>
-                  <option value="25">25</option>
-                  <option value="50">50</option>
-                </select>
-                <span class="history-summary">${histStart + 1}–${Math.min(histStart + this._historyPageSize, executions.length)} ${tr.of} ${executions.length}</span>
-                <button class="history-page-btn" ?disabled=${histPage === 0} @click=${() => { this._historyPage = histPage - 1; }}>&lt;</button>
-                <button class="history-page-btn" ?disabled=${histPage >= totalPages - 1} @click=${() => { this._historyPage = histPage + 1; }}>&gt;</button>
-              </div>
-            ` : nothing}
-          `}
+          `;
+        })()}
         ${this.task!.previous_task_id ? html`
           <div class="related-section">
             <div class="related-section-title">${tr.relatedTasksTitle}</div>
@@ -771,7 +812,7 @@ export class IkTaskFormView extends LitElement {
           <div class="form-tabs">
             <div class="form-tab ${this._activeTab === 'edit' ? 'active' : ''}" @click=${() => { this._activeTab = "edit"; }}>${tr.editTab}</div>
             <div class="form-tab ${this._activeTab === 'notes' ? 'active' : ''}" @click=${() => { this._activeTab = "notes"; }}>${tr.notesTab}</div>
-            <div class="form-tab ${this._activeTab === 'history' ? 'active' : ''}" @click=${() => { this._activeTab = "history"; this._historyPage = 0; }}>${tr.historyTab(executions.length)}</div>
+            <div class="form-tab ${this._activeTab === 'history' ? 'active' : ''}" @click=${() => { this._activeTab = "history"; }}>${tr.historyTab(executions.length)}</div>
           </div>
         ` : nothing}
         ${isEdit

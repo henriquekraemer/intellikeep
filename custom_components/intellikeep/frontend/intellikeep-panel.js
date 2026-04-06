@@ -79,10 +79,11 @@ async function subscribeTasks(hass, callback) {
 async function createTask(hass, data) {
     await hass.callService(DOMAIN, "create_task", data);
 }
-async function updateTask(hass, taskId, data) {
+async function updateTask(hass, taskId, data, updatedBy = "") {
     await hass.callService(DOMAIN, "update_task", {
         task_id: taskId,
         ...data,
+        updated_by: updatedBy,
     });
 }
 async function completeTask(hass, taskId, completedBy = "", notes = "") {
@@ -92,8 +93,8 @@ async function completeTask(hass, taskId, completedBy = "", notes = "") {
         notes,
     });
 }
-async function reopenTask(hass, taskId) {
-    await hass.callService(DOMAIN, "reopen_task", { task_id: taskId });
+async function reopenTask(hass, taskId, performedBy = "") {
+    await hass.callService(DOMAIN, "reopen_task", { task_id: taskId, performed_by: performedBy });
 }
 async function deleteTask(hass, taskId) {
     await hass.callService(DOMAIN, "delete_task", { task_id: taskId });
@@ -200,6 +201,14 @@ const messages = {
         completedAt: "Completed at",
         completedBy: "Completed by",
         notes: "Notes",
+        activityLog: "Activity Log",
+        noActivity: "No activity recorded yet.",
+        activityBy: "by",
+        activityEdited: "Edited",
+        activityCompleted: "Marked as done",
+        activityReopened: "Reopened",
+        activityNoteAdded: "Note added",
+        activityNoteDeleted: "Note deleted",
         settingsHeading: "IntelliKeep Settings",
         settingsBody: "To change integration settings, go to Settings → Devices & Services → IntelliKeep → Configure.",
         rowsPerPage: "Rows per page:",
@@ -316,6 +325,14 @@ const messages = {
         completedAt: "Concluída em",
         completedBy: "Concluída por",
         notes: "Observações",
+        activityLog: "Registro de Atividades",
+        noActivity: "Nenhuma atividade registrada ainda.",
+        activityBy: "por",
+        activityEdited: "Editado",
+        activityCompleted: "Marcado como concluído",
+        activityReopened: "Reaberto",
+        activityNoteAdded: "Nota adicionada",
+        activityNoteDeleted: "Nota excluída",
         settingsHeading: "Configurações do IntelliKeep",
         settingsBody: "Para alterar as configurações da integração, acesse Configurações → Dispositivos e Serviços → IntelliKeep → Configurar.",
         rowsPerPage: "Linhas por página:",
@@ -1591,10 +1608,9 @@ let IkTaskFormView = class IkTaskFormView extends i {
         this._deletingNoteId = null;
         this._showDeleteNoteConfirm = false;
         this._deleteNoteTarget = null;
-        this._historyPage = 0;
-        this._historyPageSize = 10;
         this._notesPage = 0;
         this._prevOccPage = 0;
+        this._activityPage = 0;
     }
     connectedCallback() {
         super.connectedCallback();
@@ -1634,7 +1650,7 @@ let IkTaskFormView = class IkTaskFormView extends i {
                 await completeTask(this.hass, this.task.task_id, this.hass.user?.name ?? "");
             }
             else {
-                await reopenTask(this.hass, this.task.task_id);
+                await reopenTask(this.hass, this.task.task_id, this.hass.user?.name ?? "");
             }
             this._navigate("/tasks");
         }
@@ -1679,7 +1695,7 @@ let IkTaskFormView = class IkTaskFormView extends i {
                 notify_on_overdue: this._notifyOnOverdue,
             };
             if (this.task) {
-                await updateTask(this.hass, this.task.task_id, data);
+                await updateTask(this.hass, this.task.task_id, data, this.hass.user?.name ?? "");
             }
             else {
                 await createTask(this.hass, data);
@@ -1704,11 +1720,6 @@ let IkTaskFormView = class IkTaskFormView extends i {
             this.removeAttribute("no-animations");
         }
         const executions = isEdit ? [...(this.task.executions || [])].reverse() : [];
-        const pageSize = this._historyPageSize;
-        const totalPages = Math.max(1, Math.ceil(executions.length / pageSize));
-        const histPage = Math.min(this._historyPage, totalPages - 1);
-        const histStart = histPage * pageSize;
-        const pageExecs = executions.slice(histStart, histStart + pageSize);
         const editPanel = b `
       <div class="tab-panel ${!isEdit || this._activeTab === 'edit' ? 'tab-active' : ''}">
         ${isCompleted ? b `
@@ -1900,41 +1911,59 @@ let IkTaskFormView = class IkTaskFormView extends i {
             : [];
         const historyPanel = isEdit ? b `
       <div class="tab-panel ${this._activeTab === 'history' ? 'tab-active' : ''}">
-        ${executions.length === 0
-            ? b `<div class="history-empty">${tr.noExecutions}</div>`
-            : b `
-            <div class="exec-table-wrap">
-              <table class="exec-table">
-                <thead>
-                  <tr>
-                    <th>${tr.completedAt}</th>
-                    <th>${tr.completedBy}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${pageExecs.map((ex) => b `
-                    <tr>
-                      <td>${this._formatDate(ex.completed_at)}${ex.was_late ? b `<span class="late-badge">${tr.lateLabel}</span>` : A}</td>
-                      <td>${ex.completed_by || "—"}</td>
-                    </tr>
-                  `)}
-                </tbody>
-              </table>
+        ${(() => {
+            const allActivities = [...(this.task.activities || [])].reverse();
+            const actPageSize = this.constructor._ACTIVITY_PAGE_SIZE;
+            const actTotalPages = Math.max(1, Math.ceil(allActivities.length / actPageSize));
+            const actPage = Math.min(this._activityPage, actTotalPages - 1);
+            const actStart = actPage * actPageSize;
+            const pageActs = allActivities.slice(actStart, actStart + actPageSize);
+            const actionIcon = {
+                edited: "mdi:pencil-outline",
+                completed: "mdi:check-circle-outline",
+                reopened: "mdi:undo-variant",
+                note_added: "mdi:note-plus-outline",
+                note_deleted: "mdi:note-remove-outline",
+            };
+            const actionLabel = (action) => {
+                const m = {
+                    edited: tr.activityEdited,
+                    completed: tr.activityCompleted,
+                    reopened: tr.activityReopened,
+                    note_added: tr.activityNoteAdded,
+                    note_deleted: tr.activityNoteDeleted,
+                };
+                return m[action] ?? action;
+            };
+            return b `
+            <div class="activity-section">
+              <div class="activity-section-title">${tr.activityLog}</div>
+              ${allActivities.length === 0
+                ? b `<div class="history-empty">${tr.noActivity}</div>`
+                : b `
+                  <div class="activity-list">
+                    ${pageActs.map(a => b `
+                      <div class="activity-item">
+                        <ha-icon class="activity-icon" icon=${actionIcon[a.action] ?? "mdi:history"}></ha-icon>
+                        <div class="activity-body">
+                          <div class="activity-action">${actionLabel(a.action)}${a.performed_by ? b ` <span style="font-weight:400">${tr.activityBy} ${a.performed_by}</span>` : A}</div>
+                          <div class="activity-meta">${this._formatDate(a.timestamp)}</div>
+                          ${a.details ? b `<div class="activity-details">${a.details}</div>` : A}
+                        </div>
+                      </div>
+                    `)}
+                  </div>
+                  ${allActivities.length > actPageSize ? b `
+                    <div class="history-pagination">
+                      <span>${actStart + 1}–${Math.min(actStart + actPageSize, allActivities.length)} ${tr.of} ${allActivities.length}</span>
+                      <button class="history-page-btn" ?disabled=${actPage === 0} @click=${() => { this._activityPage = actPage - 1; }}>&lt;</button>
+                      <button class="history-page-btn" ?disabled=${actPage >= actTotalPages - 1} @click=${() => { this._activityPage = actPage + 1; }}>&gt;</button>
+                    </div>
+                  ` : A}
+                `}
             </div>
-            ${executions.length > 0 ? b `
-              <div class="history-pagination">
-                <span>${tr.rowsPerPage}</span>
-                <select .value=${String(this._historyPageSize)} @change=${(e) => { this._historyPageSize = Number(e.target.value); this._historyPage = 0; }}>
-                  <option value="10">10</option>
-                  <option value="25">25</option>
-                  <option value="50">50</option>
-                </select>
-                <span class="history-summary">${histStart + 1}–${Math.min(histStart + this._historyPageSize, executions.length)} ${tr.of} ${executions.length}</span>
-                <button class="history-page-btn" ?disabled=${histPage === 0} @click=${() => { this._historyPage = histPage - 1; }}>&lt;</button>
-                <button class="history-page-btn" ?disabled=${histPage >= totalPages - 1} @click=${() => { this._historyPage = histPage + 1; }}>&gt;</button>
-              </div>
-            ` : A}
-          `}
+          `;
+        })()}
         ${this.task.previous_task_id ? b `
           <div class="related-section">
             <div class="related-section-title">${tr.relatedTasksTitle}</div>
@@ -1982,7 +2011,7 @@ let IkTaskFormView = class IkTaskFormView extends i {
           <div class="form-tabs">
             <div class="form-tab ${this._activeTab === 'edit' ? 'active' : ''}" @click=${() => { this._activeTab = "edit"; }}>${tr.editTab}</div>
             <div class="form-tab ${this._activeTab === 'notes' ? 'active' : ''}" @click=${() => { this._activeTab = "notes"; }}>${tr.notesTab}</div>
-            <div class="form-tab ${this._activeTab === 'history' ? 'active' : ''}" @click=${() => { this._activeTab = "history"; this._historyPage = 0; }}>${tr.historyTab(executions.length)}</div>
+            <div class="form-tab ${this._activeTab === 'history' ? 'active' : ''}" @click=${() => { this._activeTab = "history"; }}>${tr.historyTab(executions.length)}</div>
           </div>
         ` : A}
         ${isEdit
@@ -2034,6 +2063,7 @@ let IkTaskFormView = class IkTaskFormView extends i {
 };
 IkTaskFormView._NOTES_PAGE_SIZE = 5;
 IkTaskFormView._PREV_OCC_PAGE_SIZE = 5;
+IkTaskFormView._ACTIVITY_PAGE_SIZE = 5;
 IkTaskFormView.styles = i$3 `
     :host { display: block; }
     .form { display: flex; flex-direction: column; gap: 16px; max-width: 600px; }
@@ -2257,6 +2287,35 @@ IkTaskFormView.styles = i$3 `
       padding-top: 14px;
       border-top: 1px solid var(--divider-color);
     }
+    .activity-section {
+      margin-top: 0;
+      padding-top: 0;
+    }
+    .activity-section-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--secondary-text-color);
+      margin-bottom: 10px;
+    }
+    .activity-list { display: flex; flex-direction: column; gap: 8px; }
+    .activity-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+    }
+    .activity-icon {
+      flex-shrink: 0;
+      color: var(--secondary-text-color);
+      --mdc-icon-size: 16px;
+      margin-top: 1px;
+    }
+    .activity-body { flex: 1; }
+    .activity-action { color: var(--primary-text-color); font-weight: 500; }
+    .activity-meta { font-size: 11px; color: var(--secondary-text-color); margin-top: 1px; }
+    .activity-details { font-size: 11px; color: var(--secondary-text-color); margin-top: 2px; font-style: italic; }
     .related-section-title {
       font-size: 12px;
       font-weight: 600;
@@ -2450,16 +2509,13 @@ __decorate([
 ], IkTaskFormView.prototype, "_deleteNoteTarget", void 0);
 __decorate([
     r()
-], IkTaskFormView.prototype, "_historyPage", void 0);
-__decorate([
-    r()
-], IkTaskFormView.prototype, "_historyPageSize", void 0);
-__decorate([
-    r()
 ], IkTaskFormView.prototype, "_notesPage", void 0);
 __decorate([
     r()
 ], IkTaskFormView.prototype, "_prevOccPage", void 0);
+__decorate([
+    r()
+], IkTaskFormView.prototype, "_activityPage", void 0);
 IkTaskFormView = __decorate([
     t$1("ik-task-form-view")
 ], IkTaskFormView);
