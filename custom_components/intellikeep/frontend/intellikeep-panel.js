@@ -2007,8 +2007,8 @@ let IkTaskFormView = class IkTaskFormView extends i {
             }
             else {
                 await createTask(this.hass, data);
-                this._navigate("/tasks");
             }
+            this._navigate("/tasks");
         }
         catch (err) {
             this._error = String(err);
@@ -2471,8 +2471,8 @@ IkTaskFormView.styles = i$3 `
       button:not(:disabled):hover { filter: brightness(1.08); transform: translateY(-1px); }
       button:not(:disabled):active { transform: translateY(0); filter: brightness(0.97); }
     }
-    .save { background: var(--primary-color); color: var(--text-primary-color, #fff); }
-    .cancel { background: var(--secondary-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); }
+    .save { background: transparent; color: var(--primary-color); border: 1px solid var(--primary-color); }
+    .cancel { background: transparent; color: var(--primary-text-color); border: 1px solid var(--divider-color); }
     .error { color: var(--error-color, #f44336); font-size: 13px; }
     .form-footer {
       display: flex;
@@ -2484,17 +2484,19 @@ IkTaskFormView.styles = i$3 `
     }
     .form-footer-spacer { flex: 1; }
     .btn-done {
-      background: var(--primary-color);
-      color: var(--text-primary-color, #fff);
+      background: transparent;
+      color: var(--primary-color);
+      border: 1px solid var(--primary-color);
     }
     .btn-undo {
-      background: var(--warning-color, #ff9800);
-      color: #fff;
+      background: transparent;
+      color: var(--warning-color, #ff9800);
+      border: 1px solid var(--warning-color, #ff9800);
     }
     .btn-delete {
-      background: var(--error-color, #f44336);
-      color: #fff;
-      margin-left: auto;
+      background: transparent;
+      color: var(--error-color, #f44336);
+      border: 1px solid var(--error-color, #f44336);
     }
     .btn-done, .btn-undo, .btn-delete, .save {
       display: inline-flex;
