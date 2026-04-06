@@ -4,6 +4,7 @@ import { HomeAssistant, Task, TaskFrequency, TaskPriority } from "../types";
 import { createTask, updateTask, completeTask, reopenTask, deleteTask, addTaskNote, deleteTaskNote } from "../api";
 import { t } from "../translations";
 import "../components/confirm-dialog";
+import "../components/searchable-select";
 
 @customElement("ik-task-form-view")
 export class IkTaskFormView extends LitElement {
@@ -36,6 +37,8 @@ export class IkTaskFormView extends LitElement {
   @state() private _notesPage = 0;
   @state() private _prevOccPage = 0;
   @state() private _activityPage = 0;
+  @state() private _areas: { area_id: string; name: string }[] = [];
+  @state() private _deviceRegistry: { id: string; area_id: string | null; name_by_user: string | null; name: string }[] = [];
 
   private static readonly _NOTES_PAGE_SIZE = 5;
   private static readonly _PREV_OCC_PAGE_SIZE = 5;
@@ -62,6 +65,16 @@ export class IkTaskFormView extends LitElement {
       this._dueDate = local.substring(0, 10);
       this._dueTime = local.substring(11, 16);
     }
+    this._loadRegistries();
+  }
+
+  private async _loadRegistries() {
+    const [areas, devices] = await Promise.all([
+      this.hass.connection.sendMessagePromise<{ area_id: string; name: string }[]>({ type: "config/area_registry/list" }),
+      this.hass.connection.sendMessagePromise<{ id: string; area_id: string | null; name_by_user: string | null; name: string }[]>({ type: "config/device_registry/list" }),
+    ]);
+    this._areas = areas.sort((a, b) => a.name.localeCompare(b.name));
+    this._deviceRegistry = devices;
   }
 
   static styles = css`
@@ -154,10 +167,10 @@ export class IkTaskFormView extends LitElement {
       --mdc-icon-size: 18px;
     }
     .error { color: var(--error-color, #f44336); font-size: 13px; }
-    .entity-list { display: flex; flex-direction: column; gap: 4px; }
+    .entity-list { display: flex; flex-direction: column; gap: 6px; }
     .entity-row { display: flex; gap: 6px; align-items: center; }
-    .entity-row input { flex: 1; }
-    .entity-row button { padding: 6px 10px; background: var(--secondary-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 6px; cursor: pointer; }
+    .entity-row ik-searchable-select { flex: 1; min-width: 0; }
+    .entity-row button { padding: 6px 10px; background: var(--secondary-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 6px; cursor: pointer; flex-shrink: 0; }
     .add-entity { background: transparent; border: 1px dashed var(--divider-color); color: var(--secondary-text-color); border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; align-self: flex-start; }
     :host([no-animations]) *, :host([no-animations]) *::before, :host([no-animations]) *::after {
       transition: none !important;
@@ -441,6 +454,17 @@ export class IkTaskFormView extends LitElement {
     return new Date(iso).toLocaleString();
   }
 
+  private _resolveActivityDetails(details: string): string {
+    return details.replace(/\b(area|device):([a-zA-Z0-9_-]+)/g, (_match, type, id) => {
+      if (type === "area") {
+        const area = this._areas.find(a => a.area_id === id);
+        return area ? area.name : id;
+      }
+      const device = this._deviceRegistry.find(d => d.id === id);
+      return device ? (device.name_by_user || device.name) : id;
+    });
+  }
+
   private async _complete() {
     if (!this.task) return;
     this._completing = true;
@@ -497,8 +521,8 @@ export class IkTaskFormView extends LitElement {
         await updateTask(this.hass, this.task.task_id, data, this.hass.user?.name ?? "");
       } else {
         await createTask(this.hass, data);
+        this._navigate("/tasks");
       }
-      this._navigate("/tasks");
     } catch (err) {
       this._error = String(err);
     } finally {
@@ -578,18 +602,59 @@ export class IkTaskFormView extends LitElement {
         <div>
           <div style="font-size:13px;color:var(--secondary-text-color);margin-bottom:6px;">${tr.linkedEntities}</div>
           <div class="entity-list">
-            ${this._linkedEntities.map(
-              (eid, i) => html`
-                <div class="entity-row">
-                  <input .value=${eid} ?disabled=${isCompleted} placeholder="sensor.example" @input=${(e: Event) => {
-                    const arr = [...this._linkedEntities];
-                    arr[i] = (e.target as HTMLInputElement).value;
-                    this._linkedEntities = arr;
-                  }} />
-                  <button ?disabled=${isCompleted} @click=${() => { this._linkedEntities = this._linkedEntities.filter((_, idx) => idx !== i); }}>✕</button>
-                </div>
-              `
-            )}
+            ${(() => {
+              type Device = { id: string; area_id: string | null; name_by_user: string | null; name: string };
+              const selectedDeviceIds = new Set(
+                this._linkedEntities
+                  .filter(v => v.startsWith("device:"))
+                  .map(v => v.slice(7))
+              );
+              return this._linkedEntities.map((val, i) => {
+                const isArea = val.startsWith("area:");
+                const currentDeviceId = isArea ? "" : val.slice(7);
+                const selectedArea = isArea ? val.slice(5) : (this._deviceRegistry.find((d: Device) => d.id === currentDeviceId)?.area_id ?? "");
+                const devicesInArea = this._deviceRegistry
+                  .filter((d: Device) => (!selectedArea || d.area_id === selectedArea) && (!selectedDeviceIds.has(d.id) || d.id === currentDeviceId))
+                  .sort((a: Device, b: Device) => (a.name_by_user || a.name).localeCompare(b.name_by_user || b.name));
+                const areaItems = [
+                  { value: "", label: tr.allAreas },
+                  ...this._areas.map(a => ({ value: a.area_id, label: a.name })),
+                ];
+                const deviceItems = [
+                  { value: "", label: tr.noSpecificDevice },
+                  ...devicesInArea.map((d: Device) => ({ value: d.id, label: d.name_by_user || d.name })),
+                ];
+                return html`
+                  <div class="entity-row">
+                    <ik-searchable-select
+                      .items=${areaItems}
+                      .value=${selectedArea}
+                      .placeholder=${tr.allAreas}
+                      ?disabled=${isCompleted}
+                      @value-changed=${(e: CustomEvent) => {
+                        const areaId = e.detail.value;
+                        const arr = [...this._linkedEntities];
+                        arr[i] = areaId ? `area:${areaId}` : "";
+                        this._linkedEntities = arr;
+                      }}
+                    ></ik-searchable-select>
+                    <ik-searchable-select
+                      .items=${deviceItems}
+                      .value=${isArea ? "" : val.slice(7)}
+                      .placeholder=${tr.noSpecificDevice}
+                      ?disabled=${isCompleted}
+                      @value-changed=${(e: CustomEvent) => {
+                        const deviceId = e.detail.value;
+                        const arr = [...this._linkedEntities];
+                        arr[i] = deviceId ? `device:${deviceId}` : (selectedArea ? `area:${selectedArea}` : "");
+                        this._linkedEntities = arr;
+                      }}
+                    ></ik-searchable-select>
+                    <button ?disabled=${isCompleted} @click=${() => { this._linkedEntities = this._linkedEntities.filter((_, idx) => idx !== i); }}>✕</button>
+                  </div>
+                `;
+              });
+            })()}
             <button class="add-entity" ?disabled=${isCompleted} @click=${() => { this._linkedEntities = [...this._linkedEntities, ""]; }}>${tr.addEntity}</button>
           </div>
         </div>
@@ -748,7 +813,7 @@ export class IkTaskFormView extends LitElement {
                         <div class="activity-body">
                           <div class="activity-action">${actionLabel(a.action)}${a.performed_by ? html` <span style="font-weight:400">${tr.activityBy} ${a.performed_by}</span>` : nothing}</div>
                           <div class="activity-meta">${this._formatDate(a.timestamp)}</div>
-                          ${a.details ? html`<div class="activity-details">${a.details}</div>` : nothing}
+                          ${a.details ? html`<div class="activity-details">${this._resolveActivityDetails(a.details)}</div>` : nothing}
                         </div>
                       </div>
                     `)}
@@ -839,7 +904,7 @@ export class IkTaskFormView extends LitElement {
                 </button>`}
             ${!isCompleted ? html`
               <button class="save" ?disabled=${this._saving} @click=${this._save}>
-                <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${this._saving ? tr.saving : tr.save}</span>
+                <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${tr.save}</span>
               </button>` : nothing}
           </div>` : nothing}
           <ik-confirm-dialog
@@ -855,7 +920,7 @@ export class IkTaskFormView extends LitElement {
               <span class="btn-label">${tr.cancel}</span>
             </button>
             <button class="save" ?disabled=${this._saving} @click=${this._save}>
-              <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${this._saving ? tr.saving : tr.createTask}</span>
+              <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${tr.createTask}</span>
             </button>
           </div>
         `}

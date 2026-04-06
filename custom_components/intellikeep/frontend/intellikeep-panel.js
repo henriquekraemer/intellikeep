@@ -161,6 +161,9 @@ const messages = {
         dueDate: "Due date",
         linkedEntities: "Linked entities",
         addEntity: "+ Add entity",
+        allAreas: "All areas",
+        selectEntity: "Select entity…",
+        noSpecificDevice: "No specific device",
         notifyBefore: "Notify N days before due",
         notifyOverdue: "Notify when overdue",
         taskNameRequired: "Task name is required.",
@@ -214,7 +217,7 @@ const messages = {
         rowsPerPage: "Rows per page:",
         of: "of",
         animationsLabel: "Task animations",
-        animationsDesc: "Animate tasks when marked as done or deleted.",
+        animationsDesc: "Enable transitions and slide-out effects when completing, deleting, reopening or navigating tasks.",
         deleteAllBtn: "Delete all data",
         deleteAllHeading: "Delete all data?",
         deleteAllBody: "This will permanently delete all tasks, notes and execution history. This action cannot be undone.",
@@ -285,6 +288,9 @@ const messages = {
         dueDate: "Data prevista",
         linkedEntities: "Entidades vinculadas",
         addEntity: "+ Adicionar entidade",
+        allAreas: "Todas as áreas",
+        selectEntity: "Selecionar entidade…",
+        noSpecificDevice: "Nenhum device específico",
         notifyBefore: "Notificar N dias antes do vencimento",
         notifyOverdue: "Notificar quando atrasada",
         taskNameRequired: "O nome da tarefa é obrigatório.",
@@ -338,7 +344,7 @@ const messages = {
         rowsPerPage: "Linhas por página:",
         of: "de",
         animationsLabel: "Animações de tarefas",
-        animationsDesc: "Animar tarefas ao marcar como concluída ou excluir.",
+        animationsDesc: "Habilita transições e efeitos de saída ao concluir, excluir, reabrir ou navegar entre tarefas.",
         deleteAllBtn: "Deletar todos os dados",
         deleteAllHeading: "Deletar todos os dados?",
         deleteAllBody: "Isso irá apagar permanentemente todas as tarefas, notas e histórico de execuções. Esta ação não pode ser desfeita.",
@@ -1581,6 +1587,160 @@ IkTaskListView = __decorate([
     t$1("ik-task-list-view")
 ], IkTaskListView);
 
+let IkSearchableSelect = class IkSearchableSelect extends i {
+    constructor() {
+        super(...arguments);
+        this.items = [];
+        this.value = "";
+        this.placeholder = "";
+        this.disabled = false;
+        this._search = "";
+        this._open = false;
+    }
+    get _selectedLabel() {
+        return this.items.find(i => i.value === this.value)?.label ?? "";
+    }
+    get _filtered() {
+        const q = this._search.toLowerCase();
+        return q ? this.items.filter(i => i.label.toLowerCase().includes(q)) : this.items;
+    }
+    _onFocus() {
+        if (this.disabled)
+            return;
+        this._search = "";
+        this._open = true;
+    }
+    _onInput(e) {
+        this._search = e.target.value;
+        this._open = true;
+    }
+    _select(item) {
+        this._open = false;
+        this._search = "";
+        if (item.value === this.value)
+            return;
+        this.dispatchEvent(new CustomEvent("value-changed", { detail: { value: item.value }, bubbles: true, composed: true }));
+    }
+    _clear(e) {
+        e.stopPropagation();
+        this._open = false;
+        this._search = "";
+        if (this.value === "")
+            return;
+        this.dispatchEvent(new CustomEvent("value-changed", { detail: { value: "" }, bubbles: true, composed: true }));
+    }
+    _onBlur() {
+        // Delay to allow click on option
+        setTimeout(() => { this._open = false; this._search = ""; }, 150);
+    }
+    render() {
+        const displayValue = this._open ? this._search : this._selectedLabel;
+        const filtered = this._filtered;
+        return b `
+      <div class="input-wrap">
+        <input
+          .value=${displayValue}
+          placeholder=${this._open ? (this._selectedLabel || this.placeholder) : this.placeholder}
+          ?disabled=${this.disabled}
+          @focus=${this._onFocus}
+          @input=${this._onInput}
+          @blur=${this._onBlur}
+        />
+        ${this.value ? b `<button class="clear-btn" @mousedown=${this._clear}>✕</button>` : A}
+      </div>
+      ${this._open ? b `
+        <div class="dropdown">
+          ${filtered.length === 0
+            ? b `<div class="option empty">No results</div>`
+            : filtered.map(item => b `
+                <div
+                  class="option ${item.value === this.value ? "selected" : ""}"
+                  @mousedown=${() => this._select(item)}
+                >${item.label}</div>
+              `)}
+        </div>
+      ` : A}
+    `;
+    }
+};
+IkSearchableSelect.styles = i$3 `
+    :host { display: block; position: relative; }
+    .input-wrap {
+      display: flex;
+      align-items: center;
+      border: 1px solid var(--divider-color);
+      border-radius: 6px;
+      background: var(--card-background-color);
+      overflow: hidden;
+    }
+    input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: var(--primary-text-color);
+      font-size: 14px;
+      font-family: inherit;
+      padding: 8px 10px;
+      outline: none;
+      min-width: 0;
+    }
+    input:disabled { opacity: 0.6; cursor: not-allowed; }
+    .clear-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--secondary-text-color);
+      padding: 0 8px;
+      font-size: 16px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .clear-btn:hover { color: var(--primary-text-color); }
+    .dropdown {
+      position: absolute;
+      top: calc(100% + 2px);
+      left: 0;
+      right: 0;
+      background: var(--card-background-color);
+      border: 1px solid var(--divider-color);
+      border-radius: 6px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+      z-index: 100;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .option {
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      color: var(--primary-text-color);
+    }
+    .option:hover, .option.focused { background: var(--secondary-background-color); }
+    .option.selected { color: var(--primary-color); font-weight: 500; }
+    .option.empty { color: var(--secondary-text-color); font-style: italic; cursor: default; }
+  `;
+__decorate([
+    n({ type: Array })
+], IkSearchableSelect.prototype, "items", void 0);
+__decorate([
+    n()
+], IkSearchableSelect.prototype, "value", void 0);
+__decorate([
+    n()
+], IkSearchableSelect.prototype, "placeholder", void 0);
+__decorate([
+    n({ type: Boolean })
+], IkSearchableSelect.prototype, "disabled", void 0);
+__decorate([
+    r()
+], IkSearchableSelect.prototype, "_search", void 0);
+__decorate([
+    r()
+], IkSearchableSelect.prototype, "_open", void 0);
+IkSearchableSelect = __decorate([
+    t$1("ik-searchable-select")
+], IkSearchableSelect);
+
 let IkTaskFormView = class IkTaskFormView extends i {
     constructor() {
         super(...arguments);
@@ -1611,6 +1771,8 @@ let IkTaskFormView = class IkTaskFormView extends i {
         this._notesPage = 0;
         this._prevOccPage = 0;
         this._activityPage = 0;
+        this._areas = [];
+        this._deviceRegistry = [];
     }
     connectedCallback() {
         super.connectedCallback();
@@ -1634,12 +1796,31 @@ let IkTaskFormView = class IkTaskFormView extends i {
             this._dueDate = local.substring(0, 10);
             this._dueTime = local.substring(11, 16);
         }
+        this._loadRegistries();
+    }
+    async _loadRegistries() {
+        const [areas, devices] = await Promise.all([
+            this.hass.connection.sendMessagePromise({ type: "config/area_registry/list" }),
+            this.hass.connection.sendMessagePromise({ type: "config/device_registry/list" }),
+        ]);
+        this._areas = areas.sort((a, b) => a.name.localeCompare(b.name));
+        this._deviceRegistry = devices;
     }
     _navigate(path) {
         this.dispatchEvent(new CustomEvent("navigate", { detail: path, bubbles: true, composed: true }));
     }
     _formatDate(iso) {
         return new Date(iso).toLocaleString();
+    }
+    _resolveActivityDetails(details) {
+        return details.replace(/\b(area|device):([a-zA-Z0-9_-]+)/g, (_match, type, id) => {
+            if (type === "area") {
+                const area = this._areas.find(a => a.area_id === id);
+                return area ? area.name : id;
+            }
+            const device = this._deviceRegistry.find(d => d.id === id);
+            return device ? (device.name_by_user || device.name) : id;
+        });
     }
     async _complete() {
         if (!this.task)
@@ -1699,8 +1880,8 @@ let IkTaskFormView = class IkTaskFormView extends i {
             }
             else {
                 await createTask(this.hass, data);
+                this._navigate("/tasks");
             }
-            this._navigate("/tasks");
         }
         catch (err) {
             this._error = String(err);
@@ -1781,16 +1962,56 @@ let IkTaskFormView = class IkTaskFormView extends i {
         <div>
           <div style="font-size:13px;color:var(--secondary-text-color);margin-bottom:6px;">${tr.linkedEntities}</div>
           <div class="entity-list">
-            ${this._linkedEntities.map((eid, i) => b `
-                <div class="entity-row">
-                  <input .value=${eid} ?disabled=${isCompleted} placeholder="sensor.example" @input=${(e) => {
-            const arr = [...this._linkedEntities];
-            arr[i] = e.target.value;
-            this._linkedEntities = arr;
-        }} />
-                  <button ?disabled=${isCompleted} @click=${() => { this._linkedEntities = this._linkedEntities.filter((_, idx) => idx !== i); }}>✕</button>
-                </div>
-              `)}
+            ${(() => {
+            const selectedDeviceIds = new Set(this._linkedEntities
+                .filter(v => v.startsWith("device:"))
+                .map(v => v.slice(7)));
+            return this._linkedEntities.map((val, i) => {
+                const isArea = val.startsWith("area:");
+                const currentDeviceId = isArea ? "" : val.slice(7);
+                const selectedArea = isArea ? val.slice(5) : (this._deviceRegistry.find((d) => d.id === currentDeviceId)?.area_id ?? "");
+                const devicesInArea = this._deviceRegistry
+                    .filter((d) => (!selectedArea || d.area_id === selectedArea) && (!selectedDeviceIds.has(d.id) || d.id === currentDeviceId))
+                    .sort((a, b) => (a.name_by_user || a.name).localeCompare(b.name_by_user || b.name));
+                const areaItems = [
+                    { value: "", label: tr.allAreas },
+                    ...this._areas.map(a => ({ value: a.area_id, label: a.name })),
+                ];
+                const deviceItems = [
+                    { value: "", label: tr.noSpecificDevice },
+                    ...devicesInArea.map((d) => ({ value: d.id, label: d.name_by_user || d.name })),
+                ];
+                return b `
+                  <div class="entity-row">
+                    <ik-searchable-select
+                      .items=${areaItems}
+                      .value=${selectedArea}
+                      .placeholder=${tr.allAreas}
+                      ?disabled=${isCompleted}
+                      @value-changed=${(e) => {
+                    const areaId = e.detail.value;
+                    const arr = [...this._linkedEntities];
+                    arr[i] = areaId ? `area:${areaId}` : "";
+                    this._linkedEntities = arr;
+                }}
+                    ></ik-searchable-select>
+                    <ik-searchable-select
+                      .items=${deviceItems}
+                      .value=${isArea ? "" : val.slice(7)}
+                      .placeholder=${tr.noSpecificDevice}
+                      ?disabled=${isCompleted}
+                      @value-changed=${(e) => {
+                    const deviceId = e.detail.value;
+                    const arr = [...this._linkedEntities];
+                    arr[i] = deviceId ? `device:${deviceId}` : (selectedArea ? `area:${selectedArea}` : "");
+                    this._linkedEntities = arr;
+                }}
+                    ></ik-searchable-select>
+                    <button ?disabled=${isCompleted} @click=${() => { this._linkedEntities = this._linkedEntities.filter((_, idx) => idx !== i); }}>✕</button>
+                  </div>
+                `;
+            });
+        })()}
             <button class="add-entity" ?disabled=${isCompleted} @click=${() => { this._linkedEntities = [...this._linkedEntities, ""]; }}>${tr.addEntity}</button>
           </div>
         </div>
@@ -1948,7 +2169,7 @@ let IkTaskFormView = class IkTaskFormView extends i {
                         <div class="activity-body">
                           <div class="activity-action">${actionLabel(a.action)}${a.performed_by ? b ` <span style="font-weight:400">${tr.activityBy} ${a.performed_by}</span>` : A}</div>
                           <div class="activity-meta">${this._formatDate(a.timestamp)}</div>
-                          ${a.details ? b `<div class="activity-details">${a.details}</div>` : A}
+                          ${a.details ? b `<div class="activity-details">${this._resolveActivityDetails(a.details)}</div>` : A}
                         </div>
                       </div>
                     `)}
@@ -2038,7 +2259,7 @@ let IkTaskFormView = class IkTaskFormView extends i {
                 </button>`}
             ${!isCompleted ? b `
               <button class="save" ?disabled=${this._saving} @click=${this._save}>
-                <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${this._saving ? tr.saving : tr.save}</span>
+                <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${tr.save}</span>
               </button>` : A}
           </div>` : A}
           <ik-confirm-dialog
@@ -2054,7 +2275,7 @@ let IkTaskFormView = class IkTaskFormView extends i {
               <span class="btn-label">${tr.cancel}</span>
             </button>
             <button class="save" ?disabled=${this._saving} @click=${this._save}>
-              <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${this._saving ? tr.saving : tr.createTask}</span>
+              <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${tr.createTask}</span>
             </button>
           </div>
         `}
@@ -2155,10 +2376,10 @@ IkTaskFormView.styles = i$3 `
       --mdc-icon-size: 18px;
     }
     .error { color: var(--error-color, #f44336); font-size: 13px; }
-    .entity-list { display: flex; flex-direction: column; gap: 4px; }
+    .entity-list { display: flex; flex-direction: column; gap: 6px; }
     .entity-row { display: flex; gap: 6px; align-items: center; }
-    .entity-row input { flex: 1; }
-    .entity-row button { padding: 6px 10px; background: var(--secondary-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 6px; cursor: pointer; }
+    .entity-row ik-searchable-select { flex: 1; min-width: 0; }
+    .entity-row button { padding: 6px 10px; background: var(--secondary-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 6px; cursor: pointer; flex-shrink: 0; }
     .add-entity { background: transparent; border: 1px dashed var(--divider-color); color: var(--secondary-text-color); border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; align-self: flex-start; }
     :host([no-animations]) *, :host([no-animations]) *::before, :host([no-animations]) *::after {
       transition: none !important;
@@ -2517,6 +2738,12 @@ __decorate([
 __decorate([
     r()
 ], IkTaskFormView.prototype, "_activityPage", void 0);
+__decorate([
+    r()
+], IkTaskFormView.prototype, "_areas", void 0);
+__decorate([
+    r()
+], IkTaskFormView.prototype, "_deviceRegistry", void 0);
 IkTaskFormView = __decorate([
     t$1("ik-task-form-view")
 ], IkTaskFormView);

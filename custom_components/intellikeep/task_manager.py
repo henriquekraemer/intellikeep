@@ -22,7 +22,7 @@ _TRACKED_FIELD_LABELS: dict[str, str] = {
     "due_date": "due date",
     "notify_days_before": "notify before",
     "notify_on_overdue": "notify overdue",
-    "linked_entity_ids": "linked entities",
+    "linked_entity_ids": "linked",
 }
 
 
@@ -36,6 +36,27 @@ def _fmt_val(val: object) -> str:
     if isinstance(val, bool):
         return "yes" if val else "no"
     return str(val)
+
+
+def _item_label(val: str) -> str:
+    if val.startswith("area:"):
+        return f"area:{val[5:]}"
+    if val.startswith("device:"):
+        return f"device:{val[7:]}"
+    return val
+
+
+def _fmt_list_diff(_label: str, old: list, new: list) -> str:
+    old_set = set(old)
+    new_set = set(new)
+    added = new_set - old_set
+    removed = old_set - new_set
+    parts: list[str] = []
+    if added:
+        parts.append("added " + ", ".join(_item_label(v) for v in sorted(added)))
+    if removed:
+        parts.append("removed " + ", ".join(_item_label(v) for v in sorted(removed)))
+    return "linked: " + "; ".join(parts)
 
 
 class TaskManager:
@@ -70,7 +91,7 @@ class TaskManager:
             new_val = kwargs[field_name]
             if isinstance(old_val, list) and isinstance(new_val, list):
                 if set(old_val) != set(new_val):
-                    changes.append(f"{label}: {_fmt_val(old_val)} → {_fmt_val(new_val)}")
+                    changes.append(_fmt_list_diff(label, old_val, new_val))
             elif old_val != new_val:
                 changes.append(f"{label}: {_fmt_val(old_val)} → {_fmt_val(new_val)}")
         for key, value in kwargs.items():
