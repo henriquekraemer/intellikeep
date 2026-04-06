@@ -2019,6 +2019,7 @@ let IkTaskFormView = class IkTaskFormView extends i {
             : editPanel}
                 ${this._error ? b `<div class="error">${this._error}</div>` : A}
           ${isEdit ? b `
+          ${this._activeTab === 'edit' ? b `
           <div class="form-footer">
             <button class="btn-delete" ?disabled=${this._deleting} @click=${() => { this._showDeleteConfirm = true; }}>
               <ha-icon icon="mdi:delete"></ha-icon><span class="btn-label"> ${tr.del}</span>
@@ -2039,7 +2040,7 @@ let IkTaskFormView = class IkTaskFormView extends i {
               <button class="save" ?disabled=${this._saving} @click=${this._save}>
                 <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${this._saving ? tr.saving : tr.save}</span>
               </button>` : A}
-          </div>
+          </div>` : A}
           <ik-confirm-dialog
             .heading=${tr.deleteHeading}
             .body=${tr.deleteBody}

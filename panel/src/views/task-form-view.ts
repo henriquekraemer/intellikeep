@@ -820,6 +820,7 @@ export class IkTaskFormView extends LitElement {
           : editPanel}
                 ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
           ${isEdit ? html`
+          ${this._activeTab === 'edit' ? html`
           <div class="form-footer">
             <button class="btn-delete" ?disabled=${this._deleting} @click=${() => { this._showDeleteConfirm = true; }}>
               <ha-icon icon="mdi:delete"></ha-icon><span class="btn-label"> ${tr.del}</span>
@@ -840,7 +841,7 @@ export class IkTaskFormView extends LitElement {
               <button class="save" ?disabled=${this._saving} @click=${this._save}>
                 <ha-icon icon="mdi:content-save"></ha-icon><span class="btn-label"> ${this._saving ? tr.saving : tr.save}</span>
               </button>` : nothing}
-          </div>
+          </div>` : nothing}
           <ik-confirm-dialog
             .heading=${tr.deleteHeading}
             .body=${tr.deleteBody}
