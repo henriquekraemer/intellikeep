@@ -37,11 +37,13 @@ export async function createTask(
 export async function updateTask(
   hass: HomeAssistant,
   taskId: string,
-  data: Partial<Task>
+  data: Partial<Task>,
+  updatedBy = ""
 ): Promise<void> {
   await hass.callService(DOMAIN, "update_task", {
     task_id: taskId,
     ...(data as Record<string, unknown>),
+    updated_by: updatedBy,
   });
 }
 
@@ -60,9 +62,10 @@ export async function completeTask(
 
 export async function reopenTask(
   hass: HomeAssistant,
-  taskId: string
+  taskId: string,
+  performedBy = ""
 ): Promise<void> {
-  await hass.callService(DOMAIN, "reopen_task", { task_id: taskId });
+  await hass.callService(DOMAIN, "reopen_task", { task_id: taskId, performed_by: performedBy });
 }
 
 export async function deleteTask(
@@ -70,4 +73,32 @@ export async function deleteTask(
   taskId: string
 ): Promise<void> {
   await hass.callService(DOMAIN, "delete_task", { task_id: taskId });
+}
+
+export async function addTaskNote(
+  hass: HomeAssistant,
+  taskId: string,
+  content: string,
+  addedBy = ""
+): Promise<void> {
+  await hass.callService(DOMAIN, "add_task_note", {
+    task_id: taskId,
+    content,
+    added_by: addedBy,
+  });
+}
+
+export async function deleteTaskNote(
+  hass: HomeAssistant,
+  taskId: string,
+  noteId: string
+): Promise<void> {
+  await hass.callService(DOMAIN, "delete_task_note", {
+    task_id: taskId,
+    note_id: noteId,
+  });
+}
+
+export async function deleteAllData(hass: HomeAssistant): Promise<void> {
+  await hass.callService(DOMAIN, "delete_all_data", {});
 }

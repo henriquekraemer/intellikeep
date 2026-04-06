@@ -10,16 +10,37 @@ export type TaskFrequency =
 export type TaskPriority = "low" | "medium" | "high" | "critical";
 export type TaskStatus = "pending" | "due" | "overdue" | "completed" | "snoozed";
 
+export interface TaskNote {
+  note_id: string;
+  task_id: string;
+  created_at: string;
+  content: string;
+  added_by: string;
+}
+
+export type TaskActivityType = "edited" | "completed" | "reopened" | "note_added" | "note_deleted";
+
+export interface TaskActivity {
+  activity_id: string;
+  task_id: string;
+  timestamp: string;
+  action: TaskActivityType;
+  performed_by: string;
+  details: string;
+}
+
 export interface TaskExecution {
   execution_id: string;
   task_id: string;
   completed_at: string;
   completed_by: string;
   notes: string;
+  was_late: boolean;
 }
 
 export interface Task {
   task_id: string;
+  task_number: number;
   name: string;
   description: string;
   priority: TaskPriority;
@@ -34,8 +55,11 @@ export interface Task {
   last_completed_at: string | null;
   executions: TaskExecution[];
   executions_count: number;
+  notes: TaskNote[];
+  activities: TaskActivity[];
   enabled: boolean;
   status: TaskStatus;
+  previous_task_id?: string | null;
 }
 
 export interface HomeAssistant {

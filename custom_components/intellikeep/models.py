@@ -41,6 +41,7 @@ class TaskExecution:
     completed_at: datetime = field(default_factory=dt_util.utcnow)
     completed_by: str = ""
     notes: str = ""
+    was_late: bool = False
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -49,6 +50,7 @@ class TaskExecution:
             "completed_at": self.completed_at.isoformat(),
             "completed_by": self.completed_by,
             "notes": self.notes,
+            "was_late": self.was_late,
         }
 
     @classmethod
@@ -59,12 +61,81 @@ class TaskExecution:
             completed_at=dt_util.as_utc(datetime.fromisoformat(data["completed_at"])),
             completed_by=data.get("completed_by", ""),
             notes=data.get("notes", ""),
+            was_late=data.get("was_late", False),
+        )
+
+
+@dataclass
+class TaskNote:
+    note_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    task_id: str = ""
+    created_at: datetime = field(default_factory=dt_util.utcnow)
+    content: str = ""
+    added_by: str = ""
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "note_id": self.note_id,
+            "task_id": self.task_id,
+            "created_at": self.created_at.isoformat(),
+            "content": self.content,
+            "added_by": self.added_by,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "TaskNote":
+        return cls(
+            note_id=data["note_id"],
+            task_id=data["task_id"],
+            created_at=dt_util.as_utc(datetime.fromisoformat(data["created_at"])),
+            content=data.get("content", ""),
+            added_by=data.get("added_by", ""),
+        )
+
+
+class TaskActivityType(StrEnum):
+    EDITED = "edited"
+    COMPLETED = "completed"
+    REOPENED = "reopened"
+    NOTE_ADDED = "note_added"
+    NOTE_DELETED = "note_deleted"
+
+
+@dataclass
+class TaskActivity:
+    activity_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    task_id: str = ""
+    timestamp: datetime = field(default_factory=dt_util.utcnow)
+    action: TaskActivityType = TaskActivityType.EDITED
+    performed_by: str = ""
+    details: str = ""
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "activity_id": self.activity_id,
+            "task_id": self.task_id,
+            "timestamp": self.timestamp.isoformat(),
+            "action": str(self.action),
+            "performed_by": self.performed_by,
+            "details": self.details,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "TaskActivity":
+        return cls(
+            activity_id=data["activity_id"],
+            task_id=data["task_id"],
+            timestamp=dt_util.as_utc(datetime.fromisoformat(data["timestamp"])),
+            action=TaskActivityType(data["action"]),
+            performed_by=data.get("performed_by", ""),
+            details=data.get("details", ""),
         )
 
 
 @dataclass
 class Task:
     task_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    task_number: int = 0
     name: str = ""
     description: str = ""
     priority: TaskPriority = TaskPriority.MEDIUM
@@ -78,11 +149,15 @@ class Task:
     updated_at: datetime = field(default_factory=dt_util.utcnow)
     last_completed_at: datetime | None = None
     executions: list[TaskExecution] = field(default_factory=list)
+    notes: list["TaskNote"] = field(default_factory=list)
+    activities: list[TaskActivity] = field(default_factory=list)
     enabled: bool = True
+    previous_task_id: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "task_id": self.task_id,
+            "task_number": self.task_number,
             "name": self.name,
             "description": self.description,
             "priority": str(self.priority),
@@ -98,13 +173,17 @@ class Task:
                 self.last_completed_at.isoformat() if self.last_completed_at else None
             ),
             "executions": [e.as_dict() for e in self.executions],
+            "notes": [n.as_dict() for n in self.notes],
+            "activities": [a.as_dict() for a in self.activities],
             "enabled": self.enabled,
+            "previous_task_id": self.previous_task_id,
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Task:
         task = cls(
             task_id=data["task_id"],
+            task_number=data.get("task_number", 0),
             name=data["name"],
             description=data.get("description", ""),
             priority=TaskPriority(data.get("priority", TaskPriority.MEDIUM)),
@@ -127,9 +206,20 @@ class Task:
             ),
             enabled=data.get("enabled", True),
         )
+        task.previous_task_id = data.get("previous_task_id") or None
         task.executions = [
             TaskExecution.from_dict(e) for e in data.get("executions", [])
         ]
+        raw_notes = data.get("notes", [])
+        if isinstance(raw_notes, list):
+            task.notes = [TaskNote.from_dict(n) for n in raw_notes if isinstance(n, dict)]
+        else:
+            task.notes = []
+        raw_activities = data.get("activities", [])
+        if isinstance(raw_activities, list):
+            task.activities = [TaskActivity.from_dict(a) for a in raw_activities if isinstance(a, dict)]
+        else:
+            task.activities = []
         return task
 
     def as_dict_with_status(self, status: TaskStatus) -> dict[str, Any]:

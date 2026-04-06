@@ -41,7 +41,7 @@ export class IntelliKeepCard extends LitElement {
 
   static getStubConfig() {
     return {
-      title: "Home Maintenance",
+      title: "IntelliKeep",
       max_tasks: 5,
       show_linked_entities: true,
       show_description: false,
@@ -132,7 +132,7 @@ export class IntelliKeepCard extends LitElement {
   }
 
   protected render() {
-    const title = this.config?.title ?? "Home Maintenance";
+    const title = this.config?.title ?? "IntelliKeep";
     const tasks = this._filteredTasks;
 
     return html`
