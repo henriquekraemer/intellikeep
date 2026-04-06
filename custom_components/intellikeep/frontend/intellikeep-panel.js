@@ -3320,7 +3320,11 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
           <ha-icon-button class="appbar-back" .label=${tr.back} @click=${() => this._navigate("/tasks")} path="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z">
           </ha-icon-button>
         ` : b `<ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>`}
-        <span class="appbar-title">IntelliKeep</span>
+        <span class="appbar-title">${isMobile && (isNew || isEdit || isSettings)
+            ? isNew ? tr.newTaskTitle
+                : isSettings ? tr.settingsTitle
+                    : (() => { const t2 = this._getEditTask(); return t2?.task_number ? `${tr.editTask} #${String(t2.task_number).padStart(3, "0")}` : tr.editTask; })()
+            : "IntelliKeep"}</span>
         <div class="appbar-actions">
           ${isTasks ? b `
             <ha-icon-button class="appbar-back" .label=${tr.newTask} @click=${() => {
@@ -3361,7 +3365,7 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
                 ? b `<p>${tr.loading}</p>`
                 : isNew
                     ? b `
-                  <div class="page-title">${tr.newTaskTitle}</div>
+                  ${!isMobile ? b `<div class="page-title">${tr.newTaskTitle}</div>` : A}
                   <ik-task-form-view
                     .hass=${this.hass}
                     .tasks=${this._tasks}
@@ -3371,7 +3375,7 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
                 `
                     : isEdit
                         ? b `
-                  <div class="page-title">${(() => { const t2 = this._getEditTask(); return t2?.task_number ? `${tr.editTask} #${String(t2.task_number).padStart(3, '0')}` : tr.editTask; })()}</div>
+                  ${!isMobile ? b `<div class="page-title">${(() => { const t2 = this._getEditTask(); return t2?.task_number ? `${tr.editTask} #${String(t2.task_number).padStart(3, '0')}` : tr.editTask; })()}</div>` : A}
                   <ik-task-form-view
                     .hass=${this.hass}
                     .task=${this._getEditTask()}
@@ -3382,7 +3386,7 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
                 `
                         : isSettings
                             ? b `
-                  <div class="page-title">${tr.settingsTitle}</div>
+                  ${!isMobile ? b `<div class="page-title">${tr.settingsTitle}</div>` : A}
                   <ik-settings-view
                     .hass=${this.hass}
                     .enableAnimations=${this._enableAnimations}
