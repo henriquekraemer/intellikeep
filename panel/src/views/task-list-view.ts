@@ -163,9 +163,6 @@ export class IkTaskListView extends LitElement {
       align-items: center;
       gap: 5px;
     }
-    .section-header.urgent {
-      color: var(--error-color, #f44336);
-    }
     .upcoming-filter {
       display: flex;
       align-items: center;
