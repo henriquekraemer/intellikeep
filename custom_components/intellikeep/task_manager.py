@@ -8,10 +8,34 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from .models import Task, TaskExecution, TaskNote, TaskFrequency, TaskStatus
+from .models import Task, TaskActivity, TaskActivityType, TaskExecution, TaskNote, TaskFrequency, TaskStatus
 from .storage import IntelliKeepStorage
 
 _LOGGER = logging.getLogger(__name__)
+
+_TRACKED_FIELD_LABELS: dict[str, str] = {
+    "name": "name",
+    "description": "description",
+    "priority": "priority",
+    "frequency": "frequency",
+    "custom_days_interval": "interval",
+    "due_date": "due date",
+    "notify_days_before": "notify before",
+    "notify_on_overdue": "notify overdue",
+    "linked_entity_ids": "linked entities",
+}
+
+
+def _fmt_val(val: object) -> str:
+    if val is None:
+        return "—"
+    if isinstance(val, datetime):
+        return val.date().isoformat()
+    if isinstance(val, list):
+        return f"{len(val)} entr{'y' if len(val) == 1 else 'ies'}"
+    if isinstance(val, bool):
+        return "yes" if val else "no"
+    return str(val)
 
 
 class TaskManager:
@@ -33,17 +57,35 @@ class TaskManager:
         _LOGGER.debug("Created task %s (%s)", task.task_id, task.name)
         return task
 
-    async def async_update_task(self, task_id: str, **kwargs: Any) -> Task | None:
+    async def async_update_task(self, task_id: str, updated_by: str = "", **kwargs: Any) -> Task | None:
         task = self._storage.get_task(task_id)
         if task is None:
             _LOGGER.warning("Update called for unknown task_id: %s", task_id)
             return None
+        changes: list[str] = []
+        for field_name, label in _TRACKED_FIELD_LABELS.items():
+            if field_name not in kwargs:
+                continue
+            old_val = getattr(task, field_name, None)
+            new_val = kwargs[field_name]
+            if isinstance(old_val, list) and isinstance(new_val, list):
+                if set(old_val) != set(new_val):
+                    changes.append(f"{label}: {_fmt_val(old_val)} → {_fmt_val(new_val)}")
+            elif old_val != new_val:
+                changes.append(f"{label}: {_fmt_val(old_val)} → {_fmt_val(new_val)}")
         for key, value in kwargs.items():
             if key == "notes":
-                continue  # notes are managed via add_task_note service
+                continue
             if hasattr(task, key):
                 setattr(task, key, value)
         task.updated_at = dt_util.utcnow()
+        if changes:
+            task.activities.append(TaskActivity(
+                task_id=task_id,
+                action=TaskActivityType.EDITED,
+                performed_by=updated_by,
+                details=", ".join(changes),
+            ))
         self._storage.upsert_task(task)
         await self._storage.async_save()
         return task
@@ -72,6 +114,11 @@ class TaskManager:
         task.last_completed_at = now
         task.enabled = False
         task.updated_at = now
+        task.activities.append(TaskActivity(
+            task_id=task_id,
+            action=TaskActivityType.COMPLETED,
+            performed_by=completed_by,
+        ))
         self._storage.upsert_task(task)
 
         if task.frequency != TaskFrequency.ONE_TIME:
@@ -125,6 +172,11 @@ class TaskManager:
             return None
         note = TaskNote(task_id=task_id, content=content, added_by=added_by)
         task.notes.append(note)
+        task.activities.append(TaskActivity(
+            task_id=task_id,
+            action=TaskActivityType.NOTE_ADDED,
+            performed_by=added_by,
+        ))
         task.updated_at = dt_util.utcnow()
         self._storage.upsert_task(task)
         await self._storage.async_save()
@@ -145,13 +197,17 @@ class TaskManager:
         if len(task.notes) == original_len:
             _LOGGER.warning("delete_task_note: note_id not found: %s", note_id)
             return False
+        task.activities.append(TaskActivity(
+            task_id=task_id,
+            action=TaskActivityType.NOTE_DELETED,
+        ))
         task.updated_at = dt_util.utcnow()
         self._storage.upsert_task(task)
         await self._storage.async_save()
         _LOGGER.debug("Deleted note %s from task %s", note_id, task_id)
         return True
 
-    async def async_reopen_task(self, task_id: str) -> Task | None:
+    async def async_reopen_task(self, task_id: str, performed_by: str = "") -> Task | None:
         task = self._storage.get_task(task_id)
         if task is None:
             _LOGGER.warning("Reopen called for unknown task_id: %s", task_id)
@@ -159,6 +215,11 @@ class TaskManager:
         task.enabled = True
         task.last_completed_at = None
         task.updated_at = dt_util.utcnow()
+        task.activities.append(TaskActivity(
+            task_id=task_id,
+            action=TaskActivityType.REOPENED,
+            performed_by=performed_by,
+        ))
         self._storage.upsert_task(task)
         await self._storage.async_save()
         _LOGGER.debug("Reopened task %s", task_id)

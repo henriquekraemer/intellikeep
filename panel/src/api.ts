@@ -37,11 +37,13 @@ export async function createTask(
 export async function updateTask(
   hass: HomeAssistant,
   taskId: string,
-  data: Partial<Task>
+  data: Partial<Task>,
+  updatedBy = ""
 ): Promise<void> {
   await hass.callService(DOMAIN, "update_task", {
     task_id: taskId,
     ...(data as Record<string, unknown>),
+    updated_by: updatedBy,
   });
 }
 
@@ -60,9 +62,10 @@ export async function completeTask(
 
 export async function reopenTask(
   hass: HomeAssistant,
-  taskId: string
+  taskId: string,
+  performedBy = ""
 ): Promise<void> {
-  await hass.callService(DOMAIN, "reopen_task", { task_id: taskId });
+  await hass.callService(DOMAIN, "reopen_task", { task_id: taskId, performed_by: performedBy });
 }
 
 export async function deleteTask(

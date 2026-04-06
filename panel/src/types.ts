@@ -18,6 +18,17 @@ export interface TaskNote {
   added_by: string;
 }
 
+export type TaskActivityType = "edited" | "completed" | "reopened" | "note_added" | "note_deleted";
+
+export interface TaskActivity {
+  activity_id: string;
+  task_id: string;
+  timestamp: string;
+  action: TaskActivityType;
+  performed_by: string;
+  details: string;
+}
+
 export interface TaskExecution {
   execution_id: string;
   task_id: string;
@@ -45,6 +56,7 @@ export interface Task {
   executions: TaskExecution[];
   executions_count: number;
   notes: TaskNote[];
+  activities: TaskActivity[];
   enabled: boolean;
   status: TaskStatus;
   previous_task_id?: string | null;

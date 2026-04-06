@@ -169,6 +169,11 @@ update_task:
       name: Enabled
       selector:
         boolean:
+    updated_by:
+      name: Updated By
+      description: Name or identifier of who made the update.
+      selector:
+        text:
 
 add_task_note:
   name: Add Task Note
