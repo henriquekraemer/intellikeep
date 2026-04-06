@@ -61,7 +61,12 @@ export class IntelliKeepPanel extends LitElement {
     }
     .appbar-btn:hover { background: rgba(255,255,255,.25); }
     .appbar-btn.active { background: rgba(255,255,255,.3); font-weight: 600; }
-    .appbar-back { padding: 6px 8px; margin-right: 4px; }
+    .appbar-back {
+      margin-right: -8px;
+      color: var(--app-header-text-color, #fff);
+      --mdc-icon-button-size: 40px;
+      --mdc-ripple-color: var(--app-header-text-color, #fff);
+    }
 
     /* Nav tabs */
     .tabs {
@@ -205,9 +210,8 @@ export class IntelliKeepPanel extends LitElement {
     return html`
       <div class="appbar">
         ${isMobile && (isNew || isEdit) ? html`
-          <button class="appbar-btn appbar-back" @click=${() => this._navigate("/tasks")} aria-label=${tr.back}>
-            <ha-icon icon="mdi:arrow-left" style="--mdc-icon-size:20px"></ha-icon>
-          </button>
+          <ha-icon-button class="appbar-back" .label=${tr.back} @click=${() => this._navigate("/tasks")} path="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z">
+          </ha-icon-button>
         ` : html`<ha-icon icon="mdi:clipboard-check-multiple-outline"></ha-icon>`}
         <span class="appbar-title">IntelliKeep</span>
         <div class="appbar-actions">
