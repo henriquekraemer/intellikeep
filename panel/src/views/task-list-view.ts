@@ -15,10 +15,12 @@ export class IkTaskListView extends LitElement {
   @state() private _filterTab: "pending" | "completed" = "pending";
   @state() private _filterPriority: TaskPriority | "all" = "all";
   @state() private _searchQuery = "";
-  @state() private _upcomingRange: "all" | "week" | "2weeks" | "30" | "90" | "year" | "custom" =
-    (localStorage.getItem("intellikeep.upcomingRange") as "all" | "week" | "2weeks" | "30" | "90" | "year" | "custom") ?? "all";
+  @state() private _upcomingRange: "week" | "nextweek" | "month" | "all" | "custom" =
+    (localStorage.getItem("intellikeep.upcomingRange") as "week" | "nextweek" | "month" | "all" | "custom") ?? "week";
   @state() private _upcomingCustomFrom = localStorage.getItem("intellikeep.upcomingCustomFrom") ?? "";
   @state() private _upcomingCustomTo = localStorage.getItem("intellikeep.upcomingCustomTo") ?? "";
+  @state() private _customFromDraft = localStorage.getItem("intellikeep.upcomingCustomFrom") ?? "";
+  @state() private _customToDraft = localStorage.getItem("intellikeep.upcomingCustomTo") ?? "";
 
   connectedCallback() {
     super.connectedCallback();
@@ -32,6 +34,8 @@ export class IkTaskListView extends LitElement {
   @state() private _reopening: Set<string> = new Set();
   @state() private _page = 0;
   @state() private _pageSize: 25 | 50 | 100 = 25;
+  @state() private _pendingPage = 0;
+  @state() private _urgentPage = 0;
   @state() private _exitingDone: Set<string> = new Set();
   @state() private _exitingDelete: Set<string> = new Set();
   @state() private _exitingUndo: Set<string> = new Set();
@@ -133,7 +137,12 @@ export class IkTaskListView extends LitElement {
     }
     .search-input::placeholder { color: var(--secondary-text-color); }
 
-    .full-card { flex: 1; min-height: 0; overflow-y: auto; }
+    .full-card { display: block; }
+    .list-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
     .sections-scroll {
       flex: 1;
       min-height: 0;
@@ -153,9 +162,6 @@ export class IkTaskListView extends LitElement {
       display: flex;
       align-items: center;
       gap: 5px;
-    }
-    .section-header.urgent {
-      color: var(--error-color, #f44336);
     }
     .upcoming-filter {
       display: flex;
@@ -206,6 +212,27 @@ export class IkTaskListView extends LitElement {
     .custom-range span {
       font-size: 12px;
       color: var(--secondary-text-color);
+    }
+    .custom-range-btn {
+      padding: 3px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--divider-color);
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .custom-range-btn:hover {
+      background: var(--secondary-background-color);
+    }
+    .apply-btn {
+      background: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+      border-color: var(--primary-color);
+    }
+    .apply-btn:hover {
+      opacity: 0.9;
     }
     .empty {
       text-align: center;
@@ -291,7 +318,7 @@ export class IkTaskListView extends LitElement {
       align-items: center;
       justify-content: flex-end;
       gap: 8px;
-      padding: 12px 0 0;
+      padding: 12px 0;
       flex-wrap: wrap;
     }
     .pagination select {
@@ -457,6 +484,8 @@ export class IkTaskListView extends LitElement {
 
   private _resetPage() {
     this._page = 0;
+    this._pendingPage = 0;
+    this._urgentPage = 0;
   }
 
   private get _relaxSuggestion(): string {
@@ -508,7 +537,7 @@ export class IkTaskListView extends LitElement {
       await new Promise((r) => setTimeout(r, 380));
     }
     try {
-      await completeTask(this.hass, taskId);
+      await completeTask(this.hass, taskId, this.hass.user?.name ?? "");
     } catch (err) {
       console.error("[IntelliKeep] complete_task failed:", err);
       alert(`Failed to complete task: ${err}`);
@@ -546,11 +575,12 @@ export class IkTaskListView extends LitElement {
     const tr = t(this.hass?.language);
     const q = this._searchQuery.trim().toLowerCase();
     const matchesQ = (task: Task) =>
-      !q || task.name.toLowerCase().includes(q) || (task.description ?? "").toLowerCase().includes(q);
+      !q || task.name.toLowerCase().includes(q) || (task.description ?? "").toLowerCase().includes(q) ||
+      (task.task_number ? String(task.task_number).padStart(3, '0').includes(q) : false);
     const matchesPr = (task: Task) =>
       this._filterPriority === "all" || task.priority === this._filterPriority;
 
-    const countPending   = this.tasks.filter(t => t.status !== "completed").length;
+    const countPending   = this.tasks.filter(t => t.status === "due" || t.status === "overdue").length;
     const countCompleted = this.tasks.filter(t => t.status === "completed").length;
 
     const chip = (tab: typeof this._filterTab, label: string, count: number, extra = "") => html`
@@ -637,19 +667,23 @@ export class IkTaskListView extends LitElement {
       const aDate = a.due_date ? new Date(a.due_date).getTime() : Infinity;
       const bDate = b.due_date ? new Date(b.due_date).getTime() : Infinity;
       if (aDate !== bDate) return aDate - bDate;
-      return (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99);
+      const prDiff = (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99);
+      if (prDiff !== 0) return prDiff;
+      return a.task_number - b.task_number;
     };
 
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const rangeEnd = (days: number) => { const d = new Date(today); d.setDate(d.getDate() + days); d.setHours(23, 59, 59, 999); return d; };
-    const yearEnd = new Date(today.getFullYear(), 11, 31, 23, 59, 59, 999);
+    // next week: Monday–Sunday of the calendar week after this one
+    const nextMonday = new Date(today); nextMonday.setDate(today.getDate() + (8 - today.getDay()) % 7 || 7);
+    const nextSunday = new Date(nextMonday); nextSunday.setDate(nextMonday.getDate() + 6); nextSunday.setHours(23, 59, 59, 999);
+    // this month: rest of current calendar month
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
     let upcomingMax: Date | null = null;
     let upcomingMin: Date | null = null;
-    if (this._upcomingRange === "week")    upcomingMax = rangeEnd(7);
-    else if (this._upcomingRange === "2weeks") upcomingMax = rangeEnd(14);
-    else if (this._upcomingRange === "30")  upcomingMax = rangeEnd(30);
-    else if (this._upcomingRange === "90")  upcomingMax = rangeEnd(90);
-    else if (this._upcomingRange === "year") upcomingMax = yearEnd;
+    if (this._upcomingRange === "week")         upcomingMax = rangeEnd(7);
+    else if (this._upcomingRange === "nextweek") { upcomingMin = nextMonday; upcomingMax = nextSunday; }
+    else if (this._upcomingRange === "month")    upcomingMax = monthEnd;
     else if (this._upcomingRange === "custom") {
       upcomingMin = this._upcomingCustomFrom ? new Date(this._upcomingCustomFrom) : null;
       upcomingMax = this._upcomingCustomTo ? new Date(this._upcomingCustomTo + "T23:59:59") : null;
@@ -669,34 +703,58 @@ export class IkTaskListView extends LitElement {
     };
 
     if (this._filterTab === "pending") {
-      const urgentTasks = this.tasks.filter(t =>
+      const urgentTasksAll = this.tasks.filter(t =>
         (t.status === "due" || t.status === "overdue") && matchesPr(t) && matchesQ(t));
-      const otherTasks = this.tasks.filter(t =>
+      const urgentTotalPages = Math.max(1, Math.ceil(urgentTasksAll.length / this._pageSize));
+      const urgentPage = Math.min(this._urgentPage, urgentTotalPages - 1);
+      const urgentStart = urgentPage * this._pageSize;
+      const urgentTasks = urgentTasksAll.slice(urgentStart, urgentStart + this._pageSize);
+
+      const otherTasksAll = this.tasks.filter(t =>
         t.status !== "completed" && t.status !== "due" && t.status !== "overdue" && matchesPr(t) && matchesQ(t) && inUpcomingRange(t))
         .sort(sortUpcoming);
+
+      const pendingTotalPages = Math.max(1, Math.ceil(otherTasksAll.length / this._pageSize));
+      const pendingPage = Math.min(this._pendingPage, pendingTotalPages - 1);
+      const pendingStart = pendingPage * this._pageSize;
+      const otherTasks = otherTasksAll.slice(pendingStart, pendingStart + this._pageSize);
 
       const upcomingRangeChip = (v: typeof this._upcomingRange, label: string) => html`
         <button class="upcoming-chip ${this._upcomingRange === v ? "active" : ""}" @click=${() => setUpcomingRange(v)}>${label}</button>
       `;
       const upcomingFilterBar = html`
         <div class="upcoming-filter">
-          ${upcomingRangeChip("all",    tr.rangeAll)}
-          ${upcomingRangeChip("week",   tr.rangeWeek)}
-          ${upcomingRangeChip("2weeks", tr.range2Weeks)}
-          ${upcomingRangeChip("30",     tr.range30)}
-          ${upcomingRangeChip("90",     tr.range90)}
-          ${upcomingRangeChip("year",   tr.rangeYear)}
-          ${upcomingRangeChip("custom", tr.rangeCustom)}
+          ${upcomingRangeChip("week",     tr.rangeWeek)}
+          ${upcomingRangeChip("nextweek", tr.rangeNextWeek)}
+          ${upcomingRangeChip("month",    tr.rangeMonth)}
+          ${upcomingRangeChip("all",      tr.rangeAll)}
+          ${upcomingRangeChip("custom",   tr.rangeCustom)}
         </div>
         ${this._upcomingRange === "custom" ? html`
           <div class="custom-range">
-            <input type="date" .value=${this._upcomingCustomFrom}
-              @change=${(e: Event) => { this._upcomingCustomFrom = (e.target as HTMLInputElement).value; localStorage.setItem("intellikeep.upcomingCustomFrom", this._upcomingCustomFrom); }}
+            <input type="date" .value=${this._customFromDraft}
+              @change=${(e: Event) => { this._customFromDraft = (e.target as HTMLInputElement).value; }}
             />
             <span>${tr.rangeTo}</span>
-            <input type="date" .value=${this._upcomingCustomTo}
-              @change=${(e: Event) => { this._upcomingCustomTo = (e.target as HTMLInputElement).value; localStorage.setItem("intellikeep.upcomingCustomTo", this._upcomingCustomTo); }}
+            <input type="date" .value=${this._customToDraft}
+              @change=${(e: Event) => { this._customToDraft = (e.target as HTMLInputElement).value; }}
             />
+            <button class="custom-range-btn apply-btn" @click=${() => {
+              this._upcomingCustomFrom = this._customFromDraft;
+              this._upcomingCustomTo = this._customToDraft;
+              localStorage.setItem("intellikeep.upcomingCustomFrom", this._upcomingCustomFrom);
+              localStorage.setItem("intellikeep.upcomingCustomTo", this._upcomingCustomTo);
+              this._pendingPage = 0;
+            }}>${tr.rangeApply}</button>
+            <button class="custom-range-btn" ?disabled=${!this._customFromDraft && !this._customToDraft} @click=${() => {
+              this._customFromDraft = "";
+              this._customToDraft = "";
+              this._upcomingCustomFrom = "";
+              this._upcomingCustomTo = "";
+              localStorage.removeItem("intellikeep.upcomingCustomFrom");
+              localStorage.removeItem("intellikeep.upcomingCustomTo");
+              this._pendingPage = 0;
+            }}>${tr.rangeClear}</button>
           </div>` : ""
         }
       `;
@@ -710,7 +768,7 @@ export class IkTaskListView extends LitElement {
               ${tr.urgentSection}
             </div>
             <ha-card>
-              ${urgentTasks.length === 0 && !q && this._filterPriority === "all"
+              ${urgentTasksAll.length === 0 && !q && this._filterPriority === "all"
                 ? html`
                   <div class="all-clear">
                     <div class="all-clear-emoji">🎉</div>
@@ -718,12 +776,24 @@ export class IkTaskListView extends LitElement {
                     <p class="all-clear-sub">${tr.allClearSub}</p>
                     <span class="all-clear-suggestion">${this._relaxSuggestion}</span>
                   </div>`
-                : urgentTasks.length === 0
+                : urgentTasksAll.length === 0
                 ? html`<div class="empty">${tr.noTasks}</div>`
                 : html`<div class="list-container">${urgentTasks.map(taskItem)}</div>`}
             </ha-card>
+            ${urgentTasksAll.length > 0 ? html`
+            <div class="pagination">
+              <span>${tr.rowsPerPage}</span>
+              <select .value=${String(this._pageSize)} @change=${(e: Event) => { this._pageSize = Number((e.target as HTMLSelectElement).value) as 25 | 50 | 100; this._urgentPage = 0; }}>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span>${urgentStart + 1}–${Math.min(urgentStart + this._pageSize, urgentTasksAll.length)} ${tr.of} ${urgentTasksAll.length}</span>
+              <button class="page-btn" ?disabled=${urgentPage === 0} @click=${() => { this._urgentPage = urgentPage - 1; }}>&lt;</button>
+              <button class="page-btn" ?disabled=${urgentPage >= urgentTotalPages - 1} @click=${() => { this._urgentPage = urgentPage + 1; }}>&gt;</button>
+            </div>` : ""}
           </div>
-          ${otherTasks.length > 0 ? html`
+          ${otherTasksAll.length > 0 ? html`
           <div>
             <div class="section-header">
               <ha-icon icon="mdi:clock-outline" style="--mdc-icon-size:15px"></ha-icon>
@@ -740,15 +810,31 @@ export class IkTaskListView extends LitElement {
               ${tr.otherPendingSection}
             </div>
             ${upcomingFilterBar}
+            <ha-card>
+              <div class="empty">${tr.noUpcoming}</div>
+            </ha-card>
           </div>`}
+          ${otherTasksAll.length > 0 ? html`
+          <div class="pagination">
+            <span>${tr.rowsPerPage}</span>
+            <select .value=${String(this._pageSize)} @change=${(e: Event) => { this._pageSize = Number((e.target as HTMLSelectElement).value) as 25 | 50 | 100; this._pendingPage = 0; }}>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            <span>${pendingStart + 1}–${Math.min(pendingStart + this._pageSize, otherTasksAll.length)} ${tr.of} ${otherTasksAll.length}</span>
+            <button class="page-btn" ?disabled=${pendingPage === 0} @click=${() => { this._pendingPage = pendingPage - 1; }}>&lt;</button>
+            <button class="page-btn" ?disabled=${pendingPage >= pendingTotalPages - 1} @click=${() => { this._pendingPage = pendingPage + 1; }}>&gt;</button>
+          </div>` : ""}
         </div>
         ${confirmDialog}
       `;
     }
 
     // completed tab
-    const completedTasks = this.tasks.filter(t =>
-      t.status === "completed" && matchesPr(t) && matchesQ(t));
+    const completedTasks = this.tasks
+      .filter(t => t.status === "completed" && matchesPr(t) && matchesQ(t))
+      .sort((a, b) => new Date(b.last_completed_at ?? b.updated_at).getTime() - new Date(a.last_completed_at ?? a.updated_at).getTime());
     const totalPages = Math.max(1, Math.ceil(completedTasks.length / this._pageSize));
     const page = Math.min(this._page, totalPages - 1);
     const start = page * this._pageSize;
@@ -756,23 +842,25 @@ export class IkTaskListView extends LitElement {
 
     return html`
       ${filterSection}
-      <ha-card class="full-card">
-        ${completedTasks.length === 0
-          ? html`<div class="empty">${tr.noTasks}</div>`
-          : html`<div class="list-container">${pageTasks.map(taskItem)}</div>`}
-      </ha-card>
-      ${completedTasks.length > 0 ? html`
-      <div class="pagination">
-        <span>${tr.rowsPerPage}</span>
-        <select .value=${String(this._pageSize)} @change=${(e: Event) => { this._pageSize = Number((e.target as HTMLSelectElement).value) as 25 | 50 | 100; this._resetPage(); }}>
-          <option value="25">25</option>
-          <option value="50">50</option>
-          <option value="100">100</option>
-        </select>
-        <span>${start + 1}–${Math.min(start + this._pageSize, completedTasks.length)} ${tr.of} ${completedTasks.length}</span>
-        <button class="page-btn" ?disabled=${page === 0} @click=${() => { this._page = page - 1; }}>&lt;</button>
-        <button class="page-btn" ?disabled=${page >= totalPages - 1} @click=${() => { this._page = page + 1; }}>&gt;</button>
-      </div>` : ""}
+      <div class="list-scroll">
+        <ha-card class="full-card">
+          ${completedTasks.length === 0
+            ? html`<div class="empty">${tr.noTasks}</div>`
+            : html`<div class="list-container">${pageTasks.map(taskItem)}</div>`}
+        </ha-card>
+        ${completedTasks.length > 0 ? html`
+        <div class="pagination">
+          <span>${tr.rowsPerPage}</span>
+          <select .value=${String(this._pageSize)} @change=${(e: Event) => { this._pageSize = Number((e.target as HTMLSelectElement).value) as 25 | 50 | 100; this._resetPage(); }}>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+          <span>${start + 1}–${Math.min(start + this._pageSize, completedTasks.length)} ${tr.of} ${completedTasks.length}</span>
+          <button class="page-btn" ?disabled=${page === 0} @click=${() => { this._page = page - 1; }}>&lt;</button>
+          <button class="page-btn" ?disabled=${page >= totalPages - 1} @click=${() => { this._page = page + 1; }}>&gt;</button>
+        </div>` : ""}
+      </div>
       ${confirmDialog}
     `;
   }

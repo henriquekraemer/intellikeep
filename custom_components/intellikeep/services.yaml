@@ -169,3 +169,52 @@ update_task:
       name: Enabled
       selector:
         boolean:
+    updated_by:
+      name: Updated By
+      description: Name or identifier of who made the update.
+      selector:
+        text:
+
+add_task_note:
+  name: Add Task Note
+  description: Add a note to an existing IntelliKeep task.
+  fields:
+    task_id:
+      name: Task ID
+      description: The unique ID of the task to add a note to.
+      required: true
+      selector:
+        text:
+    content:
+      name: Content
+      description: The text content of the note.
+      required: true
+      selector:
+        text:
+          multiline: true
+    added_by:
+      name: Added By
+      description: Name or identifier of who added the note.
+      selector:
+        text:
+
+delete_task_note:
+  name: Delete Task Note
+  description: Delete a specific note from an IntelliKeep task.
+  fields:
+    task_id:
+      name: Task ID
+      description: The unique ID of the task that owns the note.
+      required: true
+      selector:
+        text:
+    note_id:
+      name: Note ID
+      description: The unique ID of the note to delete.
+      required: true
+      selector:
+        text:
+
+delete_all_data:
+  name: Delete All Data
+  description: Permanently delete all IntelliKeep tasks, notes and execution history.

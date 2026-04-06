@@ -11,7 +11,7 @@ CONF_NOTIFY_DAYS_BEFORE_DEFAULT = "notify_days_before_default"
 CONF_NOTIFICATION_SERVICE = "notification_service"
 
 # Defaults
-DEFAULT_INSTANCE_NAME = "Home Maintenance"
+DEFAULT_INSTANCE_NAME = "IntelliKeep"
 DEFAULT_NOTIFY_DAYS_BEFORE = 1
 
 # Sensor unique IDs
@@ -26,6 +26,9 @@ SERVICE_COMPLETE_TASK = "complete_task"
 SERVICE_REOPEN_TASK = "reopen_task"
 SERVICE_DELETE_TASK = "delete_task"
 SERVICE_UPDATE_TASK = "update_task"
+SERVICE_ADD_TASK_NOTE = "add_task_note"
+SERVICE_DELETE_TASK_NOTE = "delete_task_note"
+SERVICE_DELETE_ALL_DATA = "delete_all_data"
 
 # WebSocket commands
 WS_GET_TASKS = "get_tasks"
@@ -46,6 +49,6 @@ FRONTEND_CARD_URL = f"/{FRONTEND_STATIC_PATH}/intellikeep-card.js"
 FRONTEND_PANEL_URL = f"/{FRONTEND_STATIC_PATH}/intellikeep-panel.js"
 PANEL_URL = DOMAIN
 PANEL_TITLE = "IntelliKeep"
-PANEL_ICON = "mdi:clipboard-check-multiple-outline"
+PANEL_ICON = "intellikeep:master"
 
 VERSION = "1.0.0"

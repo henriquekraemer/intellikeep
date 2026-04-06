@@ -1,7 +1,5 @@
 # IntelliKeep
 
-**⚠️ Active Development**: This project is currently undergoing significant changes. A stable release is coming soon — stay tuned!
-
 <img width="933" height="256" alt="intellikeep_banner" src="https://github.com/user-attachments/assets/3d579c40-5bbd-4730-872f-45f464456593" />
 
 **IntelliKeep** is a home maintenance task management system built as a free, open-source custom integration for Home Assistant. It centralizes all your household tasks—from simple filter replacements to periodic check-ups—offering automatic alerts and a complete task history.
@@ -11,13 +9,18 @@
 ## Features
 
 - One-time and **recurring tasks** (daily, weekly, monthly, yearly, or custom interval)
-- Link tasks to **Home Assistant entities** (e.g., track which A/C unit needs a filter change)
+- **Priority levels**: low, medium, high, critical — with color-coded priority bar
+- Link tasks to **HA areas or specific devices**
+- **Notes** per task — add, view and delete timestamped notes with author tracking
+- **Activity log** per task — full audit trail of edits, completions, reopens and note changes
 - **Notifications** via persistent notifications + optional mobile push service
-- Full **execution history** with timestamps and notes
-- **Lovelace card** for dashboards
-- **Sidebar panel** (full management UI embedded in HA) with pt-BR / en support
-- Three **sensor entities**: `tasks_due_count`, `tasks_overdue_count`, `next_due_task`
-- Sample data action to quickly populate tasks for testing
+- Full **execution history** with timestamps, completion notes and late flag
+- Three **sensor entities**: `tasks_due_today`, `tasks_overdue`, `next_due_task`
+- Designed for **web and mobile** — responsive panel that follows HA UI patterns
+- **Mobile swipe gestures**: swipe right → done/undo · swipe left → delete
+- **Upcoming range filter**: All / This week / Next week / This month / Custom date range
+- **Completed tab** with pagination, priority filter, and search bar
+- **Lovelace card** for compact dashboard display of due/overdue tasks
 
 ---
 
@@ -43,7 +46,7 @@ During setup you can configure:
 
 | Option | Default | Description |
 |---|---|---|
-| Instance Name | `Home Maintenance` | Label shown in HA |
+| Instance Name | `IntelliKeep` | Label shown in HA |
 | Notify Days Before | `1` | Days before due date to send a reminder |
 | Notification Service | *(empty)* | Optional `notify.*` service, e.g. `notify.mobile_app_my_phone` |
 
@@ -70,7 +73,8 @@ data:
   frequency: monthly
   due_date: "2025-02-01T09:00:00"
   linked_entity_ids:
-    - climate.living_room
+    - area:living_room          # link to an area
+    - device:abc123def456       # or a specific device ID
   notify_days_before: 3
 ```
 
@@ -88,7 +92,7 @@ data:
 
 ```yaml
 type: custom:intellikeep-card
-title: Home Maintenance
+title: IntelliKeep
 max_tasks: 5
 show_linked_entities: true
 show_description: false
@@ -98,7 +102,7 @@ show_description: false
 
 ## Panel
 
-The IntelliKeep panel appears automatically in the HA sidebar after installation. It supports **pt-BR** and **en** — the language follows your HA profile setting.
+The IntelliKeep panel appears automatically in the HA sidebar after installation. It supports multiple languages following your HA profile setting.
 
 ---
 
@@ -191,4 +195,4 @@ pytest tests/ -v
 
 ## License
 
-MIT © [Intellilar](https://intellilar.com.br)
+MIT © [Intellilar](https://intellilar.com)
