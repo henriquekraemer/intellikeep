@@ -137,6 +137,20 @@ const messages = {
         completed: "Done",
         allUrgencies: "All",
         allPriorities: "All priorities",
+        filterAreasLabel: "Areas",
+        filterAreasPlaceholder: "Add area filter…",
+        filterDevicesLabel: "Devices",
+        filterDevicesPlaceholder: "Add device filter…",
+        filterModeLabel: "Combine",
+        filterModeAny: "Area OR device",
+        filterModeAll: "Area AND device",
+        clearFilters: "Clear filters",
+        removeFilter: "Remove filter",
+        noResults: "No results",
+        addFilter: "Add",
+        filterToggleTitle: "Filter by area / device",
+        filterAreaTag: (name) => `Area: ${name}`,
+        filterDeviceTag: (name) => `Device: ${name}`,
         searchPlaceholder: "Search by name or description…",
         critical: "Critical",
         high: "High",
@@ -264,6 +278,20 @@ const messages = {
         completed: "Concluída",
         allUrgencies: "Todas",
         allPriorities: "Todas as prioridades",
+        filterAreasLabel: "Áreas",
+        filterAreasPlaceholder: "Adicionar filtro de área…",
+        filterDevicesLabel: "Dispositivos",
+        filterDevicesPlaceholder: "Adicionar filtro de dispositivo…",
+        filterModeLabel: "Combinar",
+        filterModeAny: "Área OU dispositivo",
+        filterModeAll: "Área E dispositivo",
+        clearFilters: "Limpar filtros",
+        removeFilter: "Remover filtro",
+        noResults: "Sem resultados",
+        addFilter: "Adicionar",
+        filterToggleTitle: "Filtrar por área / dispositivo",
+        filterAreaTag: (name) => `Área: ${name}`,
+        filterDeviceTag: (name) => `Dispositivo: ${name}`,
         searchPlaceholder: "Buscar por nome ou descrição…",
         critical: "Crítica",
         high: "Alta",
@@ -391,6 +419,20 @@ const messages = {
         completed: "Completada",
         allUrgencies: "Todas",
         allPriorities: "Todas las prioridades",
+        filterAreasLabel: "Áreas",
+        filterAreasPlaceholder: "Agregar filtro de área…",
+        filterDevicesLabel: "Dispositivos",
+        filterDevicesPlaceholder: "Agregar filtro de dispositivo…",
+        filterModeLabel: "Combinar",
+        filterModeAny: "Área O dispositivo",
+        filterModeAll: "Área Y dispositivo",
+        clearFilters: "Limpiar filtros",
+        removeFilter: "Quitar filtro",
+        noResults: "Sin resultados",
+        addFilter: "Agregar",
+        filterToggleTitle: "Filtrar por área / dispositivo",
+        filterAreaTag: (name) => `Área: ${name}`,
+        filterDeviceTag: (name) => `Dispositivo: ${name}`,
         searchPlaceholder: "Buscar por nombre o descripción…",
         critical: "Crítica",
         high: "Alta",
@@ -781,6 +823,181 @@ IkConfirmDialog = __decorate([
     t$1("ik-confirm-dialog")
 ], IkConfirmDialog);
 
+let IkSearchableSelect = class IkSearchableSelect extends i {
+    constructor() {
+        super(...arguments);
+        this.items = [];
+        this.value = "";
+        this.placeholder = "";
+        this.disabled = false;
+        this.noResultsText = "No results";
+        this._search = "";
+        this._open = false;
+    }
+    get _selectedLabel() {
+        return this.items.find(i => i.value === this.value)?.label ?? "";
+    }
+    get _filtered() {
+        const q = this._search.toLowerCase();
+        return q ? this.items.filter(i => i.label.toLowerCase().includes(q)) : this.items;
+    }
+    _onFocus() {
+        if (this.disabled)
+            return;
+        this._search = "";
+        this._open = true;
+    }
+    _onInput(e) {
+        this._search = e.target.value;
+        this._open = true;
+    }
+    _select(item) {
+        this._open = false;
+        this._search = "";
+        if (item.value === this.value)
+            return;
+        this.dispatchEvent(new CustomEvent("value-changed", { detail: { value: item.value }, bubbles: true, composed: true }));
+    }
+    _clear(e) {
+        e.stopPropagation();
+        this._open = false;
+        this._search = "";
+        if (this.value === "")
+            return;
+        this.dispatchEvent(new CustomEvent("value-changed", { detail: { value: "" }, bubbles: true, composed: true }));
+    }
+    _onBlur() {
+        // Delay to allow click on option
+        setTimeout(() => { this._open = false; this._search = ""; }, 150);
+    }
+    render() {
+        const displayValue = this._open ? this._search : this._selectedLabel;
+        const filtered = this._filtered;
+        return b `
+      <div class="input-wrap">
+        <input
+          .value=${displayValue}
+          placeholder=${this._open ? (this._selectedLabel || this.placeholder) : this.placeholder}
+          ?disabled=${this.disabled}
+          @focus=${this._onFocus}
+          @input=${this._onInput}
+          @blur=${this._onBlur}
+        />
+        ${this.value ? b `<button class="clear-btn" @mousedown=${this._clear}><ha-icon icon="mdi:close"></ha-icon></button>` : A}
+      </div>
+      ${this._open ? b `
+        <div class="dropdown">
+          ${filtered.length === 0
+            ? b `<div class="option empty">${this.noResultsText}</div>`
+            : filtered.map(item => b `
+                <div
+                  class="option ${item.value === this.value ? "selected" : ""}"
+                  @mousedown=${() => this._select(item)}
+                >${item.label}</div>
+              `)}
+        </div>
+      ` : A}
+    `;
+    }
+};
+IkSearchableSelect.styles = i$3 `
+    :host { display: block; position: relative; }
+    .input-wrap {
+      display: flex;
+      align-items: center;
+      border: 1px solid var(--divider-color);
+      border-radius: 6px;
+      background: var(--card-background-color);
+      overflow: hidden;
+    }
+    input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: var(--primary-text-color);
+      font-size: 14px;
+      font-family: inherit;
+      padding: 8px 10px;
+      outline: none;
+      min-width: 0;
+    }
+    input:disabled { opacity: 0.6; cursor: not-allowed; }
+    .clear-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--secondary-text-color);
+      padding: 0 6px;
+      display: inline-flex;
+      align-items: center;
+      flex-shrink: 0;
+      --mdc-icon-size: 16px;
+    }
+    .clear-btn:hover { color: var(--primary-text-color); }
+    .dropdown {
+      position: absolute;
+      top: calc(100% + 2px);
+      left: 0;
+      right: 0;
+      background: var(--card-background-color);
+      border: 1px solid var(--divider-color);
+      border-radius: 6px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+      z-index: 100;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .option {
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      color: var(--primary-text-color);
+    }
+    .option:hover, .option.focused { background: var(--secondary-background-color); }
+    .option.selected { color: var(--primary-color); font-weight: 500; }
+    .option.empty { color: var(--secondary-text-color); font-style: italic; cursor: default; }
+  `;
+__decorate([
+    n({ type: Array })
+], IkSearchableSelect.prototype, "items", void 0);
+__decorate([
+    n()
+], IkSearchableSelect.prototype, "value", void 0);
+__decorate([
+    n()
+], IkSearchableSelect.prototype, "placeholder", void 0);
+__decorate([
+    n({ type: Boolean })
+], IkSearchableSelect.prototype, "disabled", void 0);
+__decorate([
+    n()
+], IkSearchableSelect.prototype, "noResultsText", void 0);
+__decorate([
+    r()
+], IkSearchableSelect.prototype, "_search", void 0);
+__decorate([
+    r()
+], IkSearchableSelect.prototype, "_open", void 0);
+IkSearchableSelect = __decorate([
+    t$1("ik-searchable-select")
+], IkSearchableSelect);
+
+const FILTER_MODE_STORAGE_KEY = "intellikeep.filterMode";
+const FILTER_AREAS_STORAGE_KEY = "intellikeep.filterAreas";
+const FILTER_DEVICES_STORAGE_KEY = "intellikeep.filterDevices";
+const loadStoredList = (key) => {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) {
+            return [];
+        }
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.filter((value) => typeof value === "string") : [];
+    }
+    catch {
+        return [];
+    }
+};
 let IkTaskListView = class IkTaskListView extends i {
     constructor() {
         super(...arguments);
@@ -794,6 +1011,14 @@ let IkTaskListView = class IkTaskListView extends i {
         this._upcomingCustomTo = localStorage.getItem("intellikeep.upcomingCustomTo") ?? "";
         this._customFromDraft = localStorage.getItem("intellikeep.upcomingCustomFrom") ?? "";
         this._customToDraft = localStorage.getItem("intellikeep.upcomingCustomTo") ?? "";
+        this._filterMode = localStorage.getItem(FILTER_MODE_STORAGE_KEY) ?? "or";
+        this._selectedAreaIds = loadStoredList(FILTER_AREAS_STORAGE_KEY);
+        this._selectedDeviceIds = loadStoredList(FILTER_DEVICES_STORAGE_KEY);
+        this._areas = [];
+        this._devices = [];
+        this._areaPickerValue = "";
+        this._devicePickerValue = "";
+        this._showLinkFilters = false;
         this._deleteTarget = null;
         this._completing = new Set();
         this._reopening = new Set();
@@ -814,6 +1039,7 @@ let IkTaskListView = class IkTaskListView extends i {
         if (saved === "pending" || saved === "completed") {
             this._filterTab = saved;
         }
+        void this._loadRegistries();
     }
     _onPointerDown(id, e) {
         if (e.pointerType !== "touch")
@@ -891,6 +1117,104 @@ let IkTaskListView = class IkTaskListView extends i {
         this._page = 0;
         this._pendingPage = 0;
         this._urgentPage = 0;
+    }
+    async _loadRegistries() {
+        try {
+            const [areas, devices] = await Promise.all([
+                this.hass.connection.sendMessagePromise({ type: "config/area_registry/list" }),
+                this.hass.connection.sendMessagePromise({ type: "config/device_registry/list" }),
+            ]);
+            this._areas = areas.sort((left, right) => left.name.localeCompare(right.name));
+            this._devices = devices.sort((left, right) => this._getDeviceLabel(left).localeCompare(this._getDeviceLabel(right)));
+        }
+        catch (error) {
+            console.error("[IntelliKeep] Failed to load registries for task filters:", error);
+        }
+    }
+    _persistLinkFilters() {
+        localStorage.setItem(FILTER_MODE_STORAGE_KEY, this._filterMode);
+        localStorage.setItem(FILTER_AREAS_STORAGE_KEY, JSON.stringify(this._selectedAreaIds));
+        localStorage.setItem(FILTER_DEVICES_STORAGE_KEY, JSON.stringify(this._selectedDeviceIds));
+    }
+    _setFilterMode(mode) {
+        this._filterMode = mode;
+        this._persistLinkFilters();
+        this._resetPage();
+    }
+    _onAreaPickerChanged(areaId) {
+        this._areaPickerValue = areaId;
+        this._devicePickerValue = "";
+    }
+    _onDevicePickerChanged(deviceId) {
+        this._devicePickerValue = deviceId;
+    }
+    _applyPickerFilters() {
+        if (this._areaPickerValue && !this._selectedAreaIds.includes(this._areaPickerValue)) {
+            this._selectedAreaIds = [...this._selectedAreaIds, this._areaPickerValue];
+        }
+        if (this._devicePickerValue && !this._selectedDeviceIds.includes(this._devicePickerValue)) {
+            this._selectedDeviceIds = [...this._selectedDeviceIds, this._devicePickerValue];
+        }
+        this._areaPickerValue = "";
+        this._devicePickerValue = "";
+        this._persistLinkFilters();
+        this._resetPage();
+    }
+    _removeAreaFilter(areaId) {
+        this._selectedAreaIds = this._selectedAreaIds.filter((value) => value !== areaId);
+        this._persistLinkFilters();
+        this._resetPage();
+    }
+    _removeDeviceFilter(deviceId) {
+        this._selectedDeviceIds = this._selectedDeviceIds.filter((value) => value !== deviceId);
+        this._persistLinkFilters();
+        this._resetPage();
+    }
+    _clearLinkFilters() {
+        this._selectedAreaIds = [];
+        this._selectedDeviceIds = [];
+        this._areaPickerValue = "";
+        this._devicePickerValue = "";
+        this._persistLinkFilters();
+        this._resetPage();
+    }
+    _getAreaName(areaId) {
+        return this._areas.find((area) => area.area_id === areaId)?.name ?? areaId;
+    }
+    _getDeviceLabel(device) {
+        return device.name_by_user || device.name;
+    }
+    _getDeviceName(deviceId) {
+        const device = this._devices.find((entry) => entry.id === deviceId);
+        return device ? this._getDeviceLabel(device) : deviceId;
+    }
+    _matchesLinkedFilters(task) {
+        if (this._selectedAreaIds.length === 0 && this._selectedDeviceIds.length === 0) {
+            return true;
+        }
+        const taskAreaIds = new Set(task.linked_entity_ids.filter((value) => value.startsWith("area:")).map((value) => value.slice(5)));
+        const taskDeviceIds = new Set(task.linked_entity_ids.filter((value) => value.startsWith("device:")).map((value) => value.slice(7)));
+        const matchesArea = this._selectedAreaIds.length === 0
+            ? null
+            : this._selectedAreaIds.some((areaId) => {
+                if (taskAreaIds.has(areaId)) {
+                    return true;
+                }
+                return [...taskDeviceIds].some((deviceId) => {
+                    const device = this._devices.find((entry) => entry.id === deviceId);
+                    return device?.area_id === areaId;
+                });
+            });
+        const matchesDevice = this._selectedDeviceIds.length === 0
+            ? null
+            : this._selectedDeviceIds.some((deviceId) => taskDeviceIds.has(deviceId));
+        if (matchesArea === null) {
+            return Boolean(matchesDevice);
+        }
+        if (matchesDevice === null) {
+            return matchesArea;
+        }
+        return this._filterMode === "and" ? matchesArea && matchesDevice : matchesArea || matchesDevice;
     }
     get _relaxSuggestion() {
         const tr = t(this.hass?.language);
@@ -982,8 +1306,19 @@ let IkTaskListView = class IkTaskListView extends i {
         const matchesQ = (task) => !q || task.name.toLowerCase().includes(q) || (task.description ?? "").toLowerCase().includes(q) ||
             (task.task_number ? String(task.task_number).padStart(3, '0').includes(q) : false);
         const matchesPr = (task) => this._filterPriority === "all" || task.priority === this._filterPriority;
+        const matchesLinked = (task) => this._matchesLinkedFilters(task);
         const countPending = this.tasks.filter(t => t.status === "due" || t.status === "overdue").length;
         const countCompleted = this.tasks.filter(t => t.status === "completed").length;
+        const areaItems = this._areas
+            .filter((area) => !this._selectedAreaIds.includes(area.area_id))
+            .map((area) => ({ value: area.area_id, label: area.name }));
+        const deviceItems = this._devices
+            .filter((device) => !this._selectedDeviceIds.includes(device.id))
+            .filter((device) => !this._areaPickerValue || device.area_id === this._areaPickerValue)
+            .map((device) => ({ value: device.id, label: this._getDeviceLabel(device) }));
+        const hasLinkFilters = this._selectedAreaIds.length > 0 || this._selectedDeviceIds.length > 0;
+        const canCombineFilters = this._selectedAreaIds.length > 0 && this._selectedDeviceIds.length > 0;
+        const canAddFilter = Boolean(this._areaPickerValue || this._devicePickerValue);
         const chip = (tab, label, count, extra = "") => b `
       <button
         class="filter-chip ${extra} ${this._filterTab === tab ? "active" : ""}"
@@ -1034,7 +1369,80 @@ let IkTaskListView = class IkTaskListView extends i {
           <option value="medium">${tr.medium}</option>
           <option value="low">${tr.low}</option>
         </select>
+        <button
+          class="filter-toggle-btn ${this._showLinkFilters ? "active" : ""} ${hasLinkFilters ? "has-filters" : ""}"
+          title=${tr.filterToggleTitle}
+          @click=${() => { this._showLinkFilters = !this._showLinkFilters; }}
+        >
+          <ha-icon icon="mdi:filter"></ha-icon>
+          ${hasLinkFilters ? b `<span class="filter-toggle-badge">${this._selectedAreaIds.length + this._selectedDeviceIds.length}</span>` : ""}
+        </button>
       </div>
+      ${this._showLinkFilters ? b `
+        <div class="filter-bar">
+          <div class="filter-group">
+            <span class="filter-label">${tr.filterAreasLabel}</span>
+            <ik-searchable-select
+              class="filter-select"
+              .items=${areaItems}
+              .value=${this._areaPickerValue}
+              .placeholder=${tr.filterAreasPlaceholder}
+              .noResultsText=${tr.noResults}
+              ?disabled=${areaItems.length === 0}
+              @value-changed=${(e) => this._onAreaPickerChanged(e.detail.value)}
+            ></ik-searchable-select>
+            <span class="filter-label">${tr.filterDevicesLabel}</span>
+            <ik-searchable-select
+              class="filter-select"
+              .items=${deviceItems}
+              .value=${this._devicePickerValue}
+              .placeholder=${tr.filterDevicesPlaceholder}
+              .noResultsText=${tr.noResults}
+              ?disabled=${deviceItems.length === 0}
+              @value-changed=${(e) => this._onDevicePickerChanged(e.detail.value)}
+            ></ik-searchable-select>
+            <button
+              class="add-filter-btn"
+              ?disabled=${!canAddFilter}
+              @click=${() => this._applyPickerFilters()}
+            ><ha-icon icon="mdi:plus"></ha-icon>${tr.addFilter}</button>
+          </div>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-group">
+            <span class="filter-label">${tr.filterModeLabel}</span>
+            <div class="filter-mode-group">
+              <button
+                class="filter-mode-chip ${this._filterMode === "or" ? "active" : ""}"
+                ?disabled=${!canCombineFilters}
+                @click=${() => this._setFilterMode("or")}
+              >${tr.filterModeAny}</button>
+              <button
+                class="filter-mode-chip ${this._filterMode === "and" ? "active" : ""}"
+                ?disabled=${!canCombineFilters}
+                @click=${() => this._setFilterMode("and")}
+              >${tr.filterModeAll}</button>
+            </div>
+          </div>
+        </div>
+      ` : ""}
+      ${hasLinkFilters ? b `
+        <div class="active-filter-tags">
+          ${this._selectedAreaIds.map((areaId) => b `
+            <span class="active-filter-tag">
+              ${tr.filterAreaTag(this._getAreaName(areaId))}
+              <button @click=${() => this._removeAreaFilter(areaId)} aria-label=${tr.removeFilter}><ha-icon icon="mdi:close"></ha-icon></button>
+            </span>
+          `)}
+          ${this._selectedDeviceIds.map((deviceId) => b `
+            <span class="active-filter-tag">
+              ${tr.filterDeviceTag(this._getDeviceName(deviceId))}
+              <button @click=${() => this._removeDeviceFilter(deviceId)} aria-label=${tr.removeFilter}><ha-icon icon="mdi:close"></ha-icon></button>
+            </span>
+          `)}
+          <button class="clear-filters-btn" @click=${() => this._clearLinkFilters()}><ha-icon icon="mdi:filter-off"></ha-icon>${tr.clearFilters}</button>
+        </div>
+      ` : ""}
       <div class="filter-bar">
         <div class="search-wrapper">
           <ha-icon class="search-icon" icon="mdi:magnify"></ha-icon>
@@ -1110,12 +1518,12 @@ let IkTaskListView = class IkTaskListView extends i {
             localStorage.setItem("intellikeep.upcomingRange", v);
         };
         if (this._filterTab === "pending") {
-            const urgentTasksAll = this.tasks.filter(t => (t.status === "due" || t.status === "overdue") && matchesPr(t) && matchesQ(t));
+            const urgentTasksAll = this.tasks.filter(t => (t.status === "due" || t.status === "overdue") && matchesPr(t) && matchesQ(t) && matchesLinked(t));
             const urgentTotalPages = Math.max(1, Math.ceil(urgentTasksAll.length / this._pageSize));
             const urgentPage = Math.min(this._urgentPage, urgentTotalPages - 1);
             const urgentStart = urgentPage * this._pageSize;
             const urgentTasks = urgentTasksAll.slice(urgentStart, urgentStart + this._pageSize);
-            const otherTasksAll = this.tasks.filter(t => t.status !== "completed" && t.status !== "due" && t.status !== "overdue" && matchesPr(t) && matchesQ(t) && inUpcomingRange(t))
+            const otherTasksAll = this.tasks.filter(t => t.status !== "completed" && t.status !== "due" && t.status !== "overdue" && matchesPr(t) && matchesQ(t) && matchesLinked(t) && inUpcomingRange(t))
                 .sort(sortUpcoming);
             const pendingTotalPages = Math.max(1, Math.ceil(otherTasksAll.length / this._pageSize));
             const pendingPage = Math.min(this._pendingPage, pendingTotalPages - 1);
@@ -1232,7 +1640,7 @@ let IkTaskListView = class IkTaskListView extends i {
         }
         // completed tab
         const completedTasks = this.tasks
-            .filter(t => t.status === "completed" && matchesPr(t) && matchesQ(t))
+            .filter(t => t.status === "completed" && matchesPr(t) && matchesQ(t) && matchesLinked(t))
             .sort((a, b) => new Date(b.last_completed_at ?? b.updated_at).getTime() - new Date(a.last_completed_at ?? a.updated_at).getTime());
         const totalPages = Math.max(1, Math.ceil(completedTasks.length / this._pageSize));
         const page = Math.min(this._page, totalPages - 1);
@@ -1331,6 +1739,165 @@ IkTaskListView.styles = i$3 `
       background: var(--card-background-color);
       color: var(--primary-text-color);
       font-size: 13px;
+    }
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+    .filter-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--secondary-text-color);
+      min-width: max-content;
+    }
+    .filter-select {
+      flex: 1 1 220px;
+      min-width: 180px;
+    }
+    .filter-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 1.5px solid var(--divider-color);
+      background: transparent;
+      color: var(--secondary-text-color);
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      margin-left: auto;
+      --mdc-icon-size: 18px;
+    }
+    .filter-toggle-btn:hover {
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+    .filter-toggle-btn.active {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+    .filter-toggle-btn.has-filters:not(.active) {
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+    .filter-toggle-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 16px;
+      height: 16px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.2);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 0 4px;
+      line-height: 1;
+    }
+    .filter-toggle-btn:not(.active) .filter-toggle-badge {
+      background: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+    .add-filter-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--primary-color);
+      background: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+      --mdc-icon-size: 16px;
+    }
+    .add-filter-btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+    .filter-mode-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .filter-mode-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 82px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--divider-color);
+      background: transparent;
+      color: var(--secondary-text-color);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .filter-mode-chip.active {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+    .filter-mode-chip:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+    .active-filter-tags {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      width: 100%;
+      margin-top: -4px;
+      padding-bottom: 12px;
+    }
+    .active-filter-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+      color: var(--primary-text-color);
+      font-size: 12px;
+      border: 1px solid color-mix(in srgb, var(--primary-color) 30%, var(--divider-color));
+    }
+    .active-filter-tag button {
+      border: none;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      --mdc-icon-size: 14px;
+    }
+    .clear-filters-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px dashed var(--divider-color);
+      background: transparent;
+      color: var(--secondary-text-color);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      --mdc-icon-size: 14px;
+    }
+    .clear-filters-btn:hover {
+      border-color: var(--primary-color);
+      color: var(--primary-color);
     }
     .search-wrapper {
       position: relative;
@@ -1568,6 +2135,17 @@ IkTaskListView.styles = i$3 `
       opacity: 0.4;
       cursor: default;
     }
+    @media (max-width: 760px) {
+      .filter-select {
+        flex-basis: 100%;
+      }
+      .add-filter-btn {
+        margin-left: auto;
+      }
+      .filter-mode-group {
+        width: 100%;
+      }
+    }
     @keyframes ik-done-exit {
       0%   { transform: translateX(0);    opacity: 1; background: transparent; }
       15%  { background: color-mix(in srgb, var(--primary-color) 18%, transparent); }
@@ -1679,6 +2257,30 @@ __decorate([
 ], IkTaskListView.prototype, "_customToDraft", void 0);
 __decorate([
     r()
+], IkTaskListView.prototype, "_filterMode", void 0);
+__decorate([
+    r()
+], IkTaskListView.prototype, "_selectedAreaIds", void 0);
+__decorate([
+    r()
+], IkTaskListView.prototype, "_selectedDeviceIds", void 0);
+__decorate([
+    r()
+], IkTaskListView.prototype, "_areas", void 0);
+__decorate([
+    r()
+], IkTaskListView.prototype, "_devices", void 0);
+__decorate([
+    r()
+], IkTaskListView.prototype, "_areaPickerValue", void 0);
+__decorate([
+    r()
+], IkTaskListView.prototype, "_devicePickerValue", void 0);
+__decorate([
+    r()
+], IkTaskListView.prototype, "_showLinkFilters", void 0);
+__decorate([
+    r()
 ], IkTaskListView.prototype, "_deleteTarget", void 0);
 __decorate([
     r()
@@ -1713,160 +2315,6 @@ __decorate([
 IkTaskListView = __decorate([
     t$1("ik-task-list-view")
 ], IkTaskListView);
-
-let IkSearchableSelect = class IkSearchableSelect extends i {
-    constructor() {
-        super(...arguments);
-        this.items = [];
-        this.value = "";
-        this.placeholder = "";
-        this.disabled = false;
-        this._search = "";
-        this._open = false;
-    }
-    get _selectedLabel() {
-        return this.items.find(i => i.value === this.value)?.label ?? "";
-    }
-    get _filtered() {
-        const q = this._search.toLowerCase();
-        return q ? this.items.filter(i => i.label.toLowerCase().includes(q)) : this.items;
-    }
-    _onFocus() {
-        if (this.disabled)
-            return;
-        this._search = "";
-        this._open = true;
-    }
-    _onInput(e) {
-        this._search = e.target.value;
-        this._open = true;
-    }
-    _select(item) {
-        this._open = false;
-        this._search = "";
-        if (item.value === this.value)
-            return;
-        this.dispatchEvent(new CustomEvent("value-changed", { detail: { value: item.value }, bubbles: true, composed: true }));
-    }
-    _clear(e) {
-        e.stopPropagation();
-        this._open = false;
-        this._search = "";
-        if (this.value === "")
-            return;
-        this.dispatchEvent(new CustomEvent("value-changed", { detail: { value: "" }, bubbles: true, composed: true }));
-    }
-    _onBlur() {
-        // Delay to allow click on option
-        setTimeout(() => { this._open = false; this._search = ""; }, 150);
-    }
-    render() {
-        const displayValue = this._open ? this._search : this._selectedLabel;
-        const filtered = this._filtered;
-        return b `
-      <div class="input-wrap">
-        <input
-          .value=${displayValue}
-          placeholder=${this._open ? (this._selectedLabel || this.placeholder) : this.placeholder}
-          ?disabled=${this.disabled}
-          @focus=${this._onFocus}
-          @input=${this._onInput}
-          @blur=${this._onBlur}
-        />
-        ${this.value ? b `<button class="clear-btn" @mousedown=${this._clear}>✕</button>` : A}
-      </div>
-      ${this._open ? b `
-        <div class="dropdown">
-          ${filtered.length === 0
-            ? b `<div class="option empty">No results</div>`
-            : filtered.map(item => b `
-                <div
-                  class="option ${item.value === this.value ? "selected" : ""}"
-                  @mousedown=${() => this._select(item)}
-                >${item.label}</div>
-              `)}
-        </div>
-      ` : A}
-    `;
-    }
-};
-IkSearchableSelect.styles = i$3 `
-    :host { display: block; position: relative; }
-    .input-wrap {
-      display: flex;
-      align-items: center;
-      border: 1px solid var(--divider-color);
-      border-radius: 6px;
-      background: var(--card-background-color);
-      overflow: hidden;
-    }
-    input {
-      flex: 1;
-      border: none;
-      background: transparent;
-      color: var(--primary-text-color);
-      font-size: 14px;
-      font-family: inherit;
-      padding: 8px 10px;
-      outline: none;
-      min-width: 0;
-    }
-    input:disabled { opacity: 0.6; cursor: not-allowed; }
-    .clear-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--secondary-text-color);
-      padding: 0 8px;
-      font-size: 16px;
-      line-height: 1;
-      flex-shrink: 0;
-    }
-    .clear-btn:hover { color: var(--primary-text-color); }
-    .dropdown {
-      position: absolute;
-      top: calc(100% + 2px);
-      left: 0;
-      right: 0;
-      background: var(--card-background-color);
-      border: 1px solid var(--divider-color);
-      border-radius: 6px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
-      z-index: 100;
-      max-height: 220px;
-      overflow-y: auto;
-    }
-    .option {
-      padding: 8px 12px;
-      font-size: 14px;
-      cursor: pointer;
-      color: var(--primary-text-color);
-    }
-    .option:hover, .option.focused { background: var(--secondary-background-color); }
-    .option.selected { color: var(--primary-color); font-weight: 500; }
-    .option.empty { color: var(--secondary-text-color); font-style: italic; cursor: default; }
-  `;
-__decorate([
-    n({ type: Array })
-], IkSearchableSelect.prototype, "items", void 0);
-__decorate([
-    n()
-], IkSearchableSelect.prototype, "value", void 0);
-__decorate([
-    n()
-], IkSearchableSelect.prototype, "placeholder", void 0);
-__decorate([
-    n({ type: Boolean })
-], IkSearchableSelect.prototype, "disabled", void 0);
-__decorate([
-    r()
-], IkSearchableSelect.prototype, "_search", void 0);
-__decorate([
-    r()
-], IkSearchableSelect.prototype, "_open", void 0);
-IkSearchableSelect = __decorate([
-    t$1("ik-searchable-select")
-], IkSearchableSelect);
 
 let IkTaskFormView = class IkTaskFormView extends i {
     constructor() {

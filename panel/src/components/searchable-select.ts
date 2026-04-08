@@ -12,6 +12,7 @@ export class IkSearchableSelect extends LitElement {
   @property() value = "";
   @property() placeholder = "";
   @property({ type: Boolean }) disabled = false;
+  @property() noResultsText = "No results";
 
   @state() private _search = "";
   @state() private _open = false;
@@ -43,10 +44,11 @@ export class IkSearchableSelect extends LitElement {
       border: none;
       cursor: pointer;
       color: var(--secondary-text-color);
-      padding: 0 8px;
-      font-size: 16px;
-      line-height: 1;
+      padding: 0 6px;
+      display: inline-flex;
+      align-items: center;
       flex-shrink: 0;
+      --mdc-icon-size: 16px;
     }
     .clear-btn:hover { color: var(--primary-text-color); }
     .dropdown {
@@ -126,12 +128,12 @@ export class IkSearchableSelect extends LitElement {
           @input=${this._onInput}
           @blur=${this._onBlur}
         />
-        ${this.value ? html`<button class="clear-btn" @mousedown=${this._clear}>✕</button>` : nothing}
+        ${this.value ? html`<button class="clear-btn" @mousedown=${this._clear}><ha-icon icon="mdi:close"></ha-icon></button>` : nothing}
       </div>
       ${this._open ? html`
         <div class="dropdown">
           ${filtered.length === 0
-            ? html`<div class="option empty">No results</div>`
+            ? html`<div class="option empty">${this.noResultsText}</div>`
             : filtered.map(item => html`
                 <div
                   class="option ${item.value === this.value ? "selected" : ""}"
