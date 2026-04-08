@@ -1,0 +1,67 @@
+{
+  "title": "IntelliKeep",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configuración de IntelliKeep",
+        "description": "Configure su sistema de mantenimiento del hogar IntelliKeep.",
+        "data": {
+          "instance_name": "Nombre de la instancia",
+          "notify_days_before_default": "Tiempo de antelación predeterminado para notificaciones (días)",
+          "notification_service": "Servicio de notificación (opcional)"
+        },
+        "data_description": {
+          "notification_service": "ej. notify.mobile_app_mi_telefono — déjelo vacío para usar solo notificaciones persistentes"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigurar IntelliKeep",
+        "description": "Actualice la configuración de la instancia de IntelliKeep.",
+        "data": {
+          "instance_name": "Nombre de la instancia",
+          "notify_days_before_default": "Tiempo de antelación predeterminado para notificaciones (días)",
+          "notification_service": "Servicio de notificación (opcional)"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Solo se permite una instancia de IntelliKeep."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "tasks_due_today": {
+        "name": "Tareas con vencimiento hoy"
+      },
+      "tasks_overdue": {
+        "name": "Tareas vencidas"
+      },
+      "next_due_task": {
+        "name": "Próxima tarea a vencer"
+      }
+    }
+  },
+  "exceptions": {
+    "not_configured": {
+      "message": "Configure IntelliKeep antes de usar sus acciones."
+    },
+    "task_not_found": {
+      "message": "No se encontró la tarea {task_id}."
+    },
+    "task_note_not_found": {
+      "message": "No se encontró la nota {note_id} para la tarea {task_id}."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opciones de IntelliKeep",
+        "data": {
+          "instance_name": "Nombre de la instancia",
+          "notify_days_before_default": "Tiempo de antelación predeterminado para notificaciones (días)",
+          "notification_service": "Servicio de notificación (opcional)"
+        }
+      }
+    }
+  }
+}

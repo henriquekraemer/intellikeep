@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.2] - 2026-04-08
+
+### Added
+
+- Task filtering by Area and/or Device in the panel task list view ([#6](https://github.com/intellilar/intellikeep/issues/6)).
+  - Toggle button (`mdi:filter`) in the filter bar to show/hide the area/device filter controls.
+  - Searchable area and device pickers; selecting an area narrows the device picker to devices in that area.
+  - Active filters shown as removable chips; individual removal and bulk clear supported.
+  - Combined filter mode: Area OR Device / Area AND Device, persisted across sessions.
+  - Filter state persisted in `localStorage` and restored on reload.
+
+### Changed
+
+- Integration quality raised to Gold / Platinum on the Home Assistant Quality Scale ([#9](https://github.com/intellilar/intellikeep/issues/9)).
+
+### Fixed
+
+- HACS displayed "Icon not available" for IntelliKeep due to missing brands entry; branding assets now registered correctly ([#5](https://github.com/intellilar/intellikeep/issues/5)).
+- `VERSION` constant in `const.py` was `"1.0.0"`, inconsistent with `manifest.json`; both now track the same release version.
+
 ## [0.0.1] - 2026-04-06
 
 ### Added

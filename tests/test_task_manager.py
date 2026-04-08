@@ -68,6 +68,22 @@ class TestCompleteTask:
         result = await task_manager.async_complete_task("nonexistent-id")
         assert result is None
 
+    async def test_complete_recurring_does_not_duplicate_open_occurrence(
+        self, task_manager, mock_storage
+    ):
+        task = make_task(name="Weekly", frequency=TaskFrequency.WEEKLY)
+        existing_open = make_task(
+            name="Weekly next",
+            frequency=TaskFrequency.WEEKLY,
+            previous_task_id=task.task_id,
+        )
+        mock_storage.upsert_task(task)
+        mock_storage.upsert_task(existing_open)
+
+        await task_manager.async_complete_task(task.task_id)
+
+        assert len(mock_storage.get_all_tasks()) == 2
+
 
 class TestDeleteTask:
     async def test_delete_existing_task(self, task_manager, mock_storage):
@@ -81,6 +97,58 @@ class TestDeleteTask:
     async def test_delete_nonexistent_task(self, task_manager):
         deleted = await task_manager.async_delete_task("ghost-id")
         assert deleted is False
+
+
+class TestUpdateAndNotes:
+    async def test_update_task_records_activity(self, task_manager, mock_storage):
+        task = make_task(name="Old", linked_entity_ids=["area:kitchen"])
+        mock_storage.upsert_task(task)
+
+        updated = await task_manager.async_update_task(
+            task.task_id,
+            updated_by="Alice",
+            name="New",
+            linked_entity_ids=["device:abc"],
+            notify_on_overdue=False,
+        )
+
+        assert updated is not None
+        assert updated.activities[-1].performed_by == "Alice"
+        assert "name:" in updated.activities[-1].details
+        assert "linked:" in updated.activities[-1].details
+
+    async def test_add_and_delete_note_roundtrip(self, task_manager, mock_storage):
+        task = make_task(name="With notes")
+        mock_storage.upsert_task(task)
+
+        note = await task_manager.async_add_task_note(
+            task.task_id,
+            content="Changed filter",
+            added_by="Bob",
+        )
+
+        assert note is not None
+        assert note.content == "Changed filter"
+
+        deleted = await task_manager.async_delete_task_note(task.task_id, note.note_id)
+        assert deleted is True
+        assert mock_storage.get_task(task.task_id).notes == []
+
+    async def test_delete_unknown_note_returns_false(self, task_manager, mock_storage):
+        task = make_task(name="Unknown note")
+        mock_storage.upsert_task(task)
+
+        assert await task_manager.async_delete_task_note(task.task_id, "missing") is False
+
+    async def test_reopen_task_reenables_task(self, task_manager, mock_storage):
+        task = make_task(name="Reopen me", enabled=False)
+        mock_storage.upsert_task(task)
+
+        reopened = await task_manager.async_reopen_task(task.task_id, performed_by="Eve")
+
+        assert reopened is not None
+        assert reopened.enabled is True
+        assert reopened.activities[-1].performed_by == "Eve"
 
 
 class TestTaskStatus:
@@ -184,3 +252,30 @@ class TestQueryMethods:
         next_task = task_manager.get_next_due_task()
         assert next_task is not None
         assert next_task.name == "Sooner"
+
+    async def test_get_overdue_tasks_only_returns_overdue(self, task_manager, mock_storage):
+        overdue = make_task(name="Late", due_date=datetime.now(timezone.utc) - timedelta(days=3))
+        due = make_task(name="Due", due_date=datetime.now(timezone.utc))
+        mock_storage.upsert_task(overdue)
+        mock_storage.upsert_task(due)
+
+        result = task_manager.get_overdue_tasks()
+
+        assert [task.name for task in result] == ["Late"]
+
+    async def test_get_approaching_tasks_skips_due_and_disabled(self, task_manager, mock_storage):
+        due_now = make_task(
+            name="Due now",
+            due_date=datetime.now(timezone.utc),
+            notify_days_before=2,
+        )
+        disabled = make_task(
+            name="Disabled",
+            due_date=datetime.now(timezone.utc) + timedelta(days=1),
+            notify_days_before=2,
+            enabled=False,
+        )
+        mock_storage.upsert_task(due_now)
+        mock_storage.upsert_task(disabled)
+
+        assert task_manager.get_tasks_approaching_due() == []
