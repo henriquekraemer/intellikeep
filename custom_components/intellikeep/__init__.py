@@ -6,11 +6,13 @@ linked to HA entities, with notifications and execution history.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import device_registry as dr
 
 from .const import (
     CONF_NOTIFICATION_SERVICE,
@@ -24,6 +26,7 @@ from .coordinator import IntelliKeepCoordinator
 from .frontend import async_register_frontend
 from .notifications import NotificationManager
 from .services import async_register_services, async_unregister_services
+from .runtime_data import IntelliKeepConfigEntry, IntelliKeepRuntimeData
 from .storage import IntelliKeepStorage
 from .task_manager import TaskManager
 from .websocket_api import async_register_websocket_commands
@@ -33,13 +36,16 @@ _LOGGER = logging.getLogger(__name__)
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+async def async_setup(hass: HomeAssistant, config: Mapping[str, Any]) -> bool:
     """Global setup (runs once, not per config entry)."""
+    del config
     hass.data.setdefault(DOMAIN, {})
+    async_register_services(hass)
+    async_register_websocket_commands(hass)
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: IntelliKeepConfigEntry) -> bool:
     """Set up IntelliKeep from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
@@ -54,14 +60,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = IntelliKeepCoordinator(hass, task_manager)
     await coordinator.async_config_entry_first_refresh()
 
-    hass.data[DOMAIN][entry.entry_id] = coordinator
-
-    # --- Services ---
-    async_register_services(hass, task_manager, coordinator)
-
-    # --- WebSocket API ---
-    async_register_websocket_commands(hass, task_manager, coordinator)
-
     # --- Notifications ---
     notification_service = (
         entry.options.get(CONF_NOTIFICATION_SERVICE)
@@ -72,7 +70,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass, task_manager, notification_service or None
     )
     notification_manager.start()
-    hass.data[DOMAIN][f"{entry.entry_id}_notifications"] = notification_manager
+
+    runtime_data = IntelliKeepRuntimeData(
+        storage=storage,
+        task_manager=task_manager,
+        coordinator=coordinator,
+        notification_manager=notification_manager,
+    )
+    entry.runtime_data = runtime_data
+    hass.data[DOMAIN][entry.entry_id] = runtime_data
 
     # --- Frontend: register static path + Lovelace card resource ---
     await async_register_frontend(hass, DOMAIN)
@@ -90,17 +96,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: IntelliKeepConfigEntry) -> bool:
     """Unload IntelliKeep config entry."""
     # Stop notification manager
-    notification_manager: NotificationManager = hass.data[DOMAIN].pop(
-        f"{entry.entry_id}_notifications", None
-    )
+    runtime_data = hass.data[DOMAIN].get(entry.entry_id)
+    notification_manager = runtime_data.notification_manager if runtime_data else None
     if notification_manager:
         notification_manager.stop()
-
-    # Unregister services
-    async_unregister_services(hass)
 
     # Unload platforms
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
@@ -110,9 +112,22 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
-async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _async_options_updated(hass: HomeAssistant, entry: IntelliKeepConfigEntry) -> None:
     """Reload the entry when options are changed."""
     await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant,
+    entry: IntelliKeepConfigEntry,
+    device_entry: dr.DeviceEntry,
+) -> bool:
+    """Allow removing the IntelliKeep virtual device from the device registry."""
+    return not any(
+        identifier
+        for identifier in device_entry.identifiers
+        if identifier[0] == DOMAIN and identifier[1] == entry.entry_id
+    )
 
 
 async def _async_register_panel(hass: HomeAssistant) -> None:

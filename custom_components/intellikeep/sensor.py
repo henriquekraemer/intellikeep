@@ -2,21 +2,24 @@
 from __future__ import annotations
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, SENSOR_NEXT_DUE, SENSOR_TASKS_DUE, SENSOR_TASKS_OVERDUE
 from .coordinator import IntelliKeepCoordinator
+from .runtime_data import IntelliKeepConfigEntry, IntelliKeepRuntimeData
+
+PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: IntelliKeepConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator: IntelliKeepCoordinator = hass.data[DOMAIN][entry.entry_id]
+    runtime_data: IntelliKeepRuntimeData = entry.runtime_data
+    coordinator: IntelliKeepCoordinator = runtime_data.coordinator
     async_add_entities(
         [
             IntelliKeepDueCountSensor(coordinator, entry),
@@ -29,12 +32,12 @@ async def async_setup_entry(
 class _IntelliKeepSensorBase(CoordinatorEntity[IntelliKeepCoordinator], SensorEntity):
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: IntelliKeepCoordinator, entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: IntelliKeepCoordinator, entry: IntelliKeepConfigEntry) -> None:
         super().__init__(coordinator)
         self._entry = entry
 
     @property
-    def device_info(self):
+    def device_info(self) -> dict[str, object]:
         return {
             "identifiers": {(DOMAIN, self._entry.entry_id)},
             "name": self._entry.title,
@@ -44,12 +47,11 @@ class _IntelliKeepSensorBase(CoordinatorEntity[IntelliKeepCoordinator], SensorEn
 
 
 class IntelliKeepDueCountSensor(_IntelliKeepSensorBase):
-    _attr_name = "Tasks Due Today"
+    _attr_translation_key = "tasks_due_today"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "tasks"
-    _attr_icon = "mdi:clipboard-check-outline"
 
-    def __init__(self, coordinator: IntelliKeepCoordinator, entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: IntelliKeepCoordinator, entry: IntelliKeepConfigEntry) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_{SENSOR_TASKS_DUE}"
 
@@ -59,12 +61,11 @@ class IntelliKeepDueCountSensor(_IntelliKeepSensorBase):
 
 
 class IntelliKeepOverdueCountSensor(_IntelliKeepSensorBase):
-    _attr_name = "Tasks Overdue"
+    _attr_translation_key = "tasks_overdue"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "tasks"
-    _attr_icon = "mdi:clipboard-alert-outline"
 
-    def __init__(self, coordinator: IntelliKeepCoordinator, entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: IntelliKeepCoordinator, entry: IntelliKeepConfigEntry) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_{SENSOR_TASKS_OVERDUE}"
 
@@ -75,7 +76,12 @@ class IntelliKeepOverdueCountSensor(_IntelliKeepSensorBase):
     @property
     def extra_state_attributes(self) -> dict | None:
         overdue = [
-            {"task_id": t.task_id, "name": t.name, "due_date": t.due_date.isoformat() if t.due_date else None, "priority": str(t.priority)}
+            {
+                "task_id": t.task_id,
+                "name": t.name,
+                "due_date": t.due_date.isoformat() if t.due_date else None,
+                "priority": str(t.priority),
+            }
             for t in (self.coordinator.data.get("all_tasks") or [])
             if not t.enabled is False
         ]
@@ -83,10 +89,9 @@ class IntelliKeepOverdueCountSensor(_IntelliKeepSensorBase):
 
 
 class IntelliKeepNextDueSensor(_IntelliKeepSensorBase):
-    _attr_name = "Next Due Task"
-    _attr_icon = "mdi:calendar-clock"
+    _attr_translation_key = "next_due_task"
 
-    def __init__(self, coordinator: IntelliKeepCoordinator, entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: IntelliKeepCoordinator, entry: IntelliKeepConfigEntry) -> None:
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_{SENSOR_NEXT_DUE}"
 

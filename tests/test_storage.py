@@ -87,3 +87,16 @@ class TestCRUD:
         task.name = "New name"
         storage.upsert_task(task)
         assert storage.get_task(task.task_id).name == "New name"
+
+    def test_next_task_number_increments(self, storage):
+        assert storage.next_task_number() == 1
+        assert storage.next_task_number() == 2
+
+    def test_clear_all_tasks_returns_removed_count(self, storage):
+        storage.upsert_task(make_task(name="A"))
+        storage.upsert_task(make_task(name="B"))
+
+        count = storage.clear_all_tasks()
+
+        assert count == 2
+        assert storage.get_all_tasks() == []
