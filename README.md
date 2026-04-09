@@ -13,6 +13,8 @@
 - Link tasks to **HA areas or specific devices**
 - **Notes** per task — add, view and delete timestamped notes with author tracking
 - **Activity log** per task — full audit trail of edits, completions, reopens and note changes
+- **Calendar view** — week and month grids with task dots, area/device/priority filters, and today/period navigation
+- **Execution history** — filterable by area/device, with configurable columns, CSV export, and print support
 - **Notifications** via persistent notifications + optional mobile push service
 - Three **sensor entities**: `tasks_due_today`, `tasks_overdue`, `next_due_task`
 - Designed for **web and mobile** — responsive panel that follows HA UI patterns
@@ -63,6 +65,14 @@ max_tasks: 5
 show_linked_entities: true
 show_description: false
 ```
+
+### Panel views
+
+| View | Description |
+|---|---|
+| **Tasks** | Unified pending and completed task list with search, priority, area, and device filters |
+| **Calendar** | Week and month grid showing tasks by due date; supports the same area/device/priority filters |
+| **History** | Full execution log across all tasks, filterable by area/device, exportable to CSV |
 
 ### Services
 
