@@ -205,7 +205,9 @@ export class IntelliKeepPanel extends LitElement {
     const isNew = path === "/new";
     const isEdit = path.startsWith("/edit/");
     const isSettings = path === "/settings";
-    const isTasks = !isNew && !isEdit && !isSettings;
+    const isHistory = path === "/history";
+    const isTasks = !isNew && !isEdit && !isSettings && !isHistory;
+    const showTabs = isTasks || isHistory;
 
 
 return html`
@@ -220,7 +222,7 @@ return html`
           : (() => { const t2 = this._getEditTask(); return t2?.task_number ? `${tr.editTask} #${String(t2.task_number).padStart(3, "0")}` : tr.editTask; })()
           : "IntelliKeep"}</span>
         <div class="appbar-actions">
-          ${isTasks ? html`
+          ${showTabs ? html`
             <ha-icon-button class="appbar-back" .label=${tr.newTask} @click=${() => {
               if (isMobile) {
                 this._navigate("/new");
@@ -243,6 +245,12 @@ return html`
 
 
 <div class="content" @navigate=${(e: CustomEvent) => this._navigate(e.detail)} @open-task-modal=${(e: CustomEvent) => { this._modalStack = [e.detail]; }}>
+        ${showTabs ? html`
+          <div class="tabs">
+            <div class="tab ${isTasks ? "active" : ""}" @click=${() => this._navigate("/tasks")}>${tr.tasks}</div>
+            <div class="tab ${isHistory ? "active" : ""}" @click=${() => this._navigate("/history")}>${tr.historyNavTab}</div>
+          </div>
+        ` : nothing}
         ${isTasks && !this._loading
           ? html`
               <ik-task-list-view
@@ -287,6 +295,13 @@ return html`
                       localStorage.setItem("intellikeep.animations", String(e.detail));
                     }}
                   ></ik-settings-view>
+                `
+              : isHistory
+              ? html`
+                  <ik-task-history-view
+                    .hass=${this.hass}
+                    .tasks=${this._tasks}
+                  ></ik-task-history-view>
                 `
               : nothing}
           </div>`}
