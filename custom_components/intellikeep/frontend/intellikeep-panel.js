@@ -240,8 +240,6 @@ const messages = {
         deleteAllBtn: "Delete all data",
         deleteAllHeading: "Delete all data?",
         deleteAllBody: "This will permanently delete all tasks, notes and execution history. This action cannot be undone.",
-        urgentSection: "Due Today & Overdue",
-        otherPendingSection: "Upcoming",
         rangeAll: "All",
         rangeWeek: "This week",
         rangeNextWeek: "Next week",
@@ -250,8 +248,8 @@ const messages = {
         rangeTo: "to",
         rangeApply: "Apply",
         rangeClear: "Clear",
-        allClear: "You're all caught up for today!",
-        allClearSub: "Nothing due right now. Here's an idea:",
+        allClear: "You're all caught up!",
+        allClearSub: "No tasks pending for this period. Here's an idea:",
         relaxSuggestions: [
             "\u2615 Brew a fresh cup of coffee and enjoy it slowly.",
             "\u{1F6B6} Take a short walk outside and get some fresh air.",
@@ -386,8 +384,6 @@ const messages = {
         deleteAllBtn: "Deletar todos os dados",
         deleteAllHeading: "Deletar todos os dados?",
         deleteAllBody: "Isso irá apagar permanentemente todas as tarefas, notas e histórico de execuções. Esta ação não pode ser desfeita.",
-        urgentSection: "Vence Hoje & Atrasadas",
-        otherPendingSection: "Próximas",
         rangeAll: "Todas",
         rangeWeek: "Esta semana",
         rangeNextWeek: "Próxima semana",
@@ -396,8 +392,8 @@ const messages = {
         rangeTo: "até",
         rangeApply: "Aplicar",
         rangeClear: "Limpar",
-        allClear: "Está tudo em dia por hoje!",
-        allClearSub: "Nada pendente agora. Que tal:",
+        allClear: "Está tudo em dia!",
+        allClearSub: "Nenhuma tarefa pendente neste período. Que tal:",
         relaxSuggestions: [
             "\u2615 Prepare um café gostoso e aprecie cada gole.",
             "\u{1F6B6} Dê uma caminhada e tome um ar fresco.",
@@ -532,8 +528,6 @@ const messages = {
         deleteAllBtn: "Eliminar todos los datos",
         deleteAllHeading: "¿Eliminar todos los datos?",
         deleteAllBody: "Se eliminarán permanentemente todas las tareas, notas e historial de ejecuciones. Esta acción no se puede deshacer.",
-        urgentSection: "Vence hoy y vencidas",
-        otherPendingSection: "Próximas",
         rangeAll: "Todas",
         rangeWeek: "Esta semana",
         rangeNextWeek: "Próxima semana",
@@ -542,8 +536,8 @@ const messages = {
         rangeTo: "hasta",
         rangeApply: "Aplicar",
         rangeClear: "Limpiar",
-        allClear: "¡Todo al día por hoy!",
-        allClearSub: "Nada pendiente ahora. Una idea:",
+        allClear: "¡Todo al día!",
+        allClearSub: "Sin tareas pendientes en este período. Una idea:",
         relaxSuggestions: [
             "\u2615 Prepara un café y disfrútalo con calma.",
             "\u{1F6B6} Da un paseo corto y toma aire fresco.",
@@ -1337,7 +1331,6 @@ let IkTaskListView = class IkTaskListView extends i {
         this._page = 0;
         this._pageSize = 25;
         this._pendingPage = 0;
-        this._urgentPage = 0;
         this._exitingDone = new Set();
         this._exitingDelete = new Set();
         this._exitingUndo = new Set();
@@ -1428,7 +1421,6 @@ let IkTaskListView = class IkTaskListView extends i {
     _resetPage() {
         this._page = 0;
         this._pendingPage = 0;
-        this._urgentPage = 0;
     }
     async _loadRegistries() {
         try {
@@ -1575,9 +1567,9 @@ let IkTaskListView = class IkTaskListView extends i {
             (task.task_number ? String(task.task_number).padStart(3, '0').includes(q) : false);
         const matchesPr = (task) => this._filterPriority === "all" || task.priority === this._filterPriority;
         const matchesLinked = (task) => this._matchesLinkedFilters(task);
-        const countPending = this.tasks.filter(t => t.status === "due" || t.status === "overdue").length;
+        const countPending = this.tasks.filter(t => t.status !== "completed").length;
         const countCompleted = this.tasks.filter(t => t.status === "completed").length;
-        const hasLinkFilters = this._selectedAreaIds.length > 0 || this._selectedDeviceIds.length > 0;
+        const hasLinkFilters = this._selectedAreaIds.length > 0 || this._selectedDeviceIds.length > 0 || this._filterPriority !== "all";
         const chip = (tab, label, count, extra = "") => b `
       <button
         class="filter-chip ${extra} ${this._filterTab === tab ? "active" : ""}"
@@ -1617,24 +1609,18 @@ let IkTaskListView = class IkTaskListView extends i {
         </div>
       </div>
     `;
+        const activeFilterCount = this._selectedAreaIds.length + this._selectedDeviceIds.length + (this._filterPriority !== "all" ? 1 : 0);
         const filterSection = b `
       <div class="filter-bar">
         ${chip("pending", tr.pending, countPending)}
         ${chip("completed", tr.completed, countCompleted, "chip-completed")}
-        <select class="priority-select" .value=${this._filterPriority} @change=${(e) => { this._filterPriority = e.target.value; this._resetPage(); }}>
-          <option value="all">${tr.allPriorities}</option>
-          <option value="critical">${tr.critical}</option>
-          <option value="high">${tr.high}</option>
-          <option value="medium">${tr.medium}</option>
-          <option value="low">${tr.low}</option>
-        </select>
         <button
           class="filter-toggle-btn ${this._showLinkFilters ? "active" : ""} ${hasLinkFilters ? "has-filters" : ""}"
           title=${tr.filterToggleTitle}
           @click=${() => { this._showLinkFilters = !this._showLinkFilters; }}
         >
           <ha-icon icon="mdi:filter"></ha-icon>
-          ${hasLinkFilters ? b `<span class="filter-toggle-badge">${this._selectedAreaIds.length + this._selectedDeviceIds.length}</span>` : ""}
+          ${hasLinkFilters ? b `<span class="filter-toggle-badge">${activeFilterCount}</span>` : ""}
         </button>
       </div>
       <ik-link-filter
@@ -1647,6 +1633,17 @@ let IkTaskListView = class IkTaskListView extends i {
         ?open=${this._showLinkFilters}
         @filter-changed=${(e) => this._onFilterChanged(e)}
       ></ik-link-filter>
+      ${this._showLinkFilters ? b `
+        <div class="extended-filters">
+          <select class="priority-select" .value=${this._filterPriority} @change=${(e) => { this._filterPriority = e.target.value; this._resetPage(); }}>
+            <option value="all">${tr.allPriorities}</option>
+            <option value="critical">${tr.critical}</option>
+            <option value="high">${tr.high}</option>
+            <option value="medium">${tr.medium}</option>
+            <option value="low">${tr.low}</option>
+          </select>
+        </div>
+      ` : ""}
       <div class="filter-bar">
         <div class="search-wrapper">
           <ha-icon class="search-icon" icon="mdi:magnify"></ha-icon>
@@ -1670,7 +1667,19 @@ let IkTaskListView = class IkTaskListView extends i {
       </ik-confirm-dialog>
     `;
         const priorityRank = { critical: 0, high: 1, medium: 2, low: 3 };
-        const sortUpcoming = (a, b) => {
+        const sortPending = (a, b) => {
+            const aUrgent = a.status === "due" || a.status === "overdue";
+            const bUrgent = b.status === "due" || b.status === "overdue";
+            if (aUrgent && !bUrgent)
+                return -1;
+            if (!aUrgent && bUrgent)
+                return 1;
+            if (aUrgent && bUrgent) {
+                const prDiff = (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99);
+                if (prDiff !== 0)
+                    return prDiff;
+                return a.task_number - b.task_number;
+            }
             const aDate = a.due_date ? new Date(a.due_date).getTime() : Infinity;
             const bDate = b.due_date ? new Date(b.due_date).getTime() : Infinity;
             if (aDate !== bDate)
@@ -1722,17 +1731,22 @@ let IkTaskListView = class IkTaskListView extends i {
             localStorage.setItem("intellikeep.upcomingRange", v);
         };
         if (this._filterTab === "pending") {
-            const urgentTasksAll = this.tasks.filter(t => (t.status === "due" || t.status === "overdue") && matchesPr(t) && matchesQ(t) && matchesLinked(t));
-            const urgentTotalPages = Math.max(1, Math.ceil(urgentTasksAll.length / this._pageSize));
-            const urgentPage = Math.min(this._urgentPage, urgentTotalPages - 1);
-            const urgentStart = urgentPage * this._pageSize;
-            const urgentTasks = urgentTasksAll.slice(urgentStart, urgentStart + this._pageSize);
-            const otherTasksAll = this.tasks.filter(t => t.status !== "completed" && t.status !== "due" && t.status !== "overdue" && matchesPr(t) && matchesQ(t) && matchesLinked(t) && inUpcomingRange(t))
-                .sort(sortUpcoming);
-            const pendingTotalPages = Math.max(1, Math.ceil(otherTasksAll.length / this._pageSize));
+            const pendingTasksAll = this.tasks
+                .filter(t => {
+                if (t.status === "completed")
+                    return false;
+                if (!matchesPr(t) || !matchesQ(t) || !matchesLinked(t))
+                    return false;
+                const isUrgent = t.status === "due" || t.status === "overdue";
+                if (!isUrgent && !inUpcomingRange(t))
+                    return false;
+                return true;
+            })
+                .sort(sortPending);
+            const pendingTotalPages = Math.max(1, Math.ceil(pendingTasksAll.length / this._pageSize));
             const pendingPage = Math.min(this._pendingPage, pendingTotalPages - 1);
             const pendingStart = pendingPage * this._pageSize;
-            const otherTasks = otherTasksAll.slice(pendingStart, pendingStart + this._pageSize);
+            const pendingTasks = pendingTasksAll.slice(pendingStart, pendingStart + this._pageSize);
             const upcomingRangeChip = (v, label) => b `
         <button class="upcoming-chip ${this._upcomingRange === v ? "active" : ""}" @click=${() => setUpcomingRange(v)}>${label}</button>
       `;
@@ -1773,60 +1787,23 @@ let IkTaskListView = class IkTaskListView extends i {
       `;
             return b `
         ${filterSection}
-        <div class="sections-scroll">
-          <div>
-            <div class="section-header urgent">
-              <ha-icon icon="mdi:clock-alert-outline" style="--mdc-icon-size:15px"></ha-icon>
-              ${tr.urgentSection}
-            </div>
-            <ha-card>
-              ${urgentTasksAll.length === 0 && !q && this._filterPriority === "all"
+        <div class="list-scroll">
+          ${upcomingFilterBar}
+          <ha-card class="full-card">
+            ${pendingTasksAll.length === 0 && !q && this._filterPriority === "all"
+                && this._selectedAreaIds.length === 0 && this._selectedDeviceIds.length === 0
                 ? b `
-                  <div class="all-clear">
-                    <div class="all-clear-emoji">🎉</div>
-                    <p class="all-clear-title">${tr.allClear}</p>
-                    <p class="all-clear-sub">${tr.allClearSub}</p>
-                    <span class="all-clear-suggestion">${this._relaxSuggestion}</span>
-                  </div>`
-                : urgentTasksAll.length === 0
+                <div class="all-clear">
+                  <div class="all-clear-emoji">🎉</div>
+                  <p class="all-clear-title">${tr.allClear}</p>
+                  <p class="all-clear-sub">${tr.allClearSub}</p>
+                  <span class="all-clear-suggestion">${this._relaxSuggestion}</span>
+                </div>`
+                : pendingTasksAll.length === 0
                     ? b `<div class="empty">${tr.noTasks}</div>`
-                    : b `<div class="list-container">${urgentTasks.map(taskItem)}</div>`}
-            </ha-card>
-            ${urgentTasksAll.length > 0 ? b `
-            <div class="pagination">
-              <span>${tr.rowsPerPage}</span>
-              <select .value=${String(this._pageSize)} @change=${(e) => { this._pageSize = Number(e.target.value); this._urgentPage = 0; }}>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              <span>${urgentStart + 1}–${Math.min(urgentStart + this._pageSize, urgentTasksAll.length)} ${tr.of} ${urgentTasksAll.length}</span>
-              <button class="page-btn" ?disabled=${urgentPage === 0} @click=${() => { this._urgentPage = urgentPage - 1; }}>&lt;</button>
-              <button class="page-btn" ?disabled=${urgentPage >= urgentTotalPages - 1} @click=${() => { this._urgentPage = urgentPage + 1; }}>&gt;</button>
-            </div>` : ""}
-          </div>
-          ${otherTasksAll.length > 0 ? b `
-          <div>
-            <div class="section-header">
-              <ha-icon icon="mdi:clock-outline" style="--mdc-icon-size:15px"></ha-icon>
-              ${tr.otherPendingSection}
-            </div>
-            ${upcomingFilterBar}
-            <ha-card>
-              <div class="list-container">${otherTasks.map(taskItem)}</div>
-            </ha-card>
-          </div>` : b `
-          <div>
-            <div class="section-header">
-              <ha-icon icon="mdi:clock-outline" style="--mdc-icon-size:15px"></ha-icon>
-              ${tr.otherPendingSection}
-            </div>
-            ${upcomingFilterBar}
-            <ha-card>
-              <div class="empty">${tr.noUpcoming}</div>
-            </ha-card>
-          </div>`}
-          ${otherTasksAll.length > 0 ? b `
+                    : b `<div class="list-container">${pendingTasks.map(taskItem)}</div>`}
+          </ha-card>
+          ${pendingTasksAll.length > 0 ? b `
           <div class="pagination">
             <span>${tr.rowsPerPage}</span>
             <select .value=${String(this._pageSize)} @change=${(e) => { this._pageSize = Number(e.target.value); this._pendingPage = 0; }}>
@@ -1834,7 +1811,7 @@ let IkTaskListView = class IkTaskListView extends i {
               <option value="50">50</option>
               <option value="100">100</option>
             </select>
-            <span>${pendingStart + 1}–${Math.min(pendingStart + this._pageSize, otherTasksAll.length)} ${tr.of} ${otherTasksAll.length}</span>
+            <span>${pendingStart + 1}–${Math.min(pendingStart + this._pageSize, pendingTasksAll.length)} ${tr.of} ${pendingTasksAll.length}</span>
             <button class="page-btn" ?disabled=${pendingPage === 0} @click=${() => { this._pendingPage = pendingPage - 1; }}>&lt;</button>
             <button class="page-btn" ?disabled=${pendingPage >= pendingTotalPages - 1} @click=${() => { this._pendingPage = pendingPage + 1; }}>&gt;</button>
           </div>` : ""}
@@ -2022,25 +1999,11 @@ IkTaskListView.styles = i$3 `
       min-height: 0;
       overflow-y: auto;
     }
-    .sections-scroll {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      padding-bottom: 8px;
-    }
-    .section-header {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--secondary-text-color);
-      padding: 0 2px 8px;
+    .extended-filters {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 8px;
+      padding: 0 0 12px;
     }
     .upcoming-filter {
       display: flex;
@@ -2381,9 +2344,6 @@ __decorate([
 __decorate([
     r()
 ], IkTaskListView.prototype, "_pendingPage", void 0);
-__decorate([
-    r()
-], IkTaskListView.prototype, "_urgentPage", void 0);
 __decorate([
     r()
 ], IkTaskListView.prototype, "_exitingDone", void 0);
