@@ -63,7 +63,6 @@ export class IkTaskListView extends LitElement {
   @state() private _page = 0;
   @state() private _pageSize: 25 | 50 | 100 = 25;
   @state() private _pendingPage = 0;
-  @state() private _urgentPage = 0;
   @state() private _exitingDone: Set<string> = new Set();
   @state() private _exitingDelete: Set<string> = new Set();
   @state() private _exitingUndo: Set<string> = new Set();
@@ -216,25 +215,11 @@ export class IkTaskListView extends LitElement {
       min-height: 0;
       overflow-y: auto;
     }
-    .sections-scroll {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      padding-bottom: 8px;
-    }
-    .section-header {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--secondary-text-color);
-      padding: 0 2px 8px;
+    .extended-filters {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 8px;
+      padding: 0 0 12px;
     }
     .upcoming-filter {
       display: flex;
@@ -569,7 +554,6 @@ export class IkTaskListView extends LitElement {
   private _resetPage() {
     this._page = 0;
     this._pendingPage = 0;
-    this._urgentPage = 0;
   }
 
   private async _loadRegistries() {
@@ -730,9 +714,9 @@ export class IkTaskListView extends LitElement {
       this._filterPriority === "all" || task.priority === this._filterPriority;
     const matchesLinked = (task: Task) => this._matchesLinkedFilters(task);
 
-    const countPending   = this.tasks.filter(t => t.status === "due" || t.status === "overdue").length;
+    const countPending   = this.tasks.filter(t => t.status !== "completed").length;
     const countCompleted = this.tasks.filter(t => t.status === "completed").length;
-    const hasLinkFilters = this._selectedAreaIds.length > 0 || this._selectedDeviceIds.length > 0;
+    const hasLinkFilters = this._selectedAreaIds.length > 0 || this._selectedDeviceIds.length > 0 || this._filterPriority !== "all";
 
     const chip = (tab: typeof this._filterTab, label: string, count: number, extra = "") => html`
       <button
@@ -777,24 +761,18 @@ export class IkTaskListView extends LitElement {
       </div>
     `;
 
+    const activeFilterCount = this._selectedAreaIds.length + this._selectedDeviceIds.length + (this._filterPriority !== "all" ? 1 : 0);
     const filterSection = html`
       <div class="filter-bar">
         ${chip("pending",   tr.pending,   countPending)}
         ${chip("completed", tr.completed, countCompleted, "chip-completed")}
-        <select class="priority-select" .value=${this._filterPriority} @change=${(e: Event) => { this._filterPriority = (e.target as HTMLSelectElement).value as TaskPriority | "all"; this._resetPage(); }}>
-          <option value="all">${tr.allPriorities}</option>
-          <option value="critical">${tr.critical}</option>
-          <option value="high">${tr.high}</option>
-          <option value="medium">${tr.medium}</option>
-          <option value="low">${tr.low}</option>
-        </select>
         <button
           class="filter-toggle-btn ${this._showLinkFilters ? "active" : ""} ${hasLinkFilters ? "has-filters" : ""}"
           title=${tr.filterToggleTitle}
           @click=${() => { this._showLinkFilters = !this._showLinkFilters; }}
         >
           <ha-icon icon="mdi:filter"></ha-icon>
-          ${hasLinkFilters ? html`<span class="filter-toggle-badge">${this._selectedAreaIds.length + this._selectedDeviceIds.length}</span>` : ""}
+          ${hasLinkFilters ? html`<span class="filter-toggle-badge">${activeFilterCount}</span>` : ""}
         </button>
       </div>
       <ik-link-filter
@@ -807,6 +785,17 @@ export class IkTaskListView extends LitElement {
         ?open=${this._showLinkFilters}
         @filter-changed=${(e: CustomEvent) => this._onFilterChanged(e)}
       ></ik-link-filter>
+      ${this._showLinkFilters ? html`
+        <div class="extended-filters">
+          <select class="priority-select" .value=${this._filterPriority} @change=${(e: Event) => { this._filterPriority = (e.target as HTMLSelectElement).value as TaskPriority | "all"; this._resetPage(); }}>
+            <option value="all">${tr.allPriorities}</option>
+            <option value="critical">${tr.critical}</option>
+            <option value="high">${tr.high}</option>
+            <option value="medium">${tr.medium}</option>
+            <option value="low">${tr.low}</option>
+          </select>
+        </div>
+      ` : ""}
       <div class="filter-bar">
         <div class="search-wrapper">
           <ha-icon class="search-icon" icon="mdi:magnify"></ha-icon>
@@ -832,7 +821,16 @@ export class IkTaskListView extends LitElement {
     `;
 
     const priorityRank: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-    const sortUpcoming = (a: Task, b: Task) => {
+    const sortPending = (a: Task, b: Task) => {
+      const aUrgent = a.status === "due" || a.status === "overdue";
+      const bUrgent = b.status === "due" || b.status === "overdue";
+      if (aUrgent && !bUrgent) return -1;
+      if (!aUrgent && bUrgent) return 1;
+      if (aUrgent && bUrgent) {
+        const prDiff = (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99);
+        if (prDiff !== 0) return prDiff;
+        return a.task_number - b.task_number;
+      }
       const aDate = a.due_date ? new Date(a.due_date).getTime() : Infinity;
       const bDate = b.due_date ? new Date(b.due_date).getTime() : Infinity;
       if (aDate !== bDate) return aDate - bDate;
@@ -872,21 +870,20 @@ export class IkTaskListView extends LitElement {
     };
 
     if (this._filterTab === "pending") {
-      const urgentTasksAll = this.tasks.filter(t =>
-        (t.status === "due" || t.status === "overdue") && matchesPr(t) && matchesQ(t) && matchesLinked(t));
-      const urgentTotalPages = Math.max(1, Math.ceil(urgentTasksAll.length / this._pageSize));
-      const urgentPage = Math.min(this._urgentPage, urgentTotalPages - 1);
-      const urgentStart = urgentPage * this._pageSize;
-      const urgentTasks = urgentTasksAll.slice(urgentStart, urgentStart + this._pageSize);
+      const pendingTasksAll = this.tasks
+        .filter(t => {
+          if (t.status === "completed") return false;
+          if (!matchesPr(t) || !matchesQ(t) || !matchesLinked(t)) return false;
+          const isUrgent = t.status === "due" || t.status === "overdue";
+          if (!isUrgent && !inUpcomingRange(t)) return false;
+          return true;
+        })
+        .sort(sortPending);
 
-      const otherTasksAll = this.tasks.filter(t =>
-        t.status !== "completed" && t.status !== "due" && t.status !== "overdue" && matchesPr(t) && matchesQ(t) && matchesLinked(t) && inUpcomingRange(t))
-        .sort(sortUpcoming);
-
-      const pendingTotalPages = Math.max(1, Math.ceil(otherTasksAll.length / this._pageSize));
+      const pendingTotalPages = Math.max(1, Math.ceil(pendingTasksAll.length / this._pageSize));
       const pendingPage = Math.min(this._pendingPage, pendingTotalPages - 1);
       const pendingStart = pendingPage * this._pageSize;
-      const otherTasks = otherTasksAll.slice(pendingStart, pendingStart + this._pageSize);
+      const pendingTasks = pendingTasksAll.slice(pendingStart, pendingStart + this._pageSize);
 
       const upcomingRangeChip = (v: typeof this._upcomingRange, label: string) => html`
         <button class="upcoming-chip ${this._upcomingRange === v ? "active" : ""}" @click=${() => setUpcomingRange(v)}>${label}</button>
@@ -930,60 +927,23 @@ export class IkTaskListView extends LitElement {
 
       return html`
         ${filterSection}
-        <div class="sections-scroll">
-          <div>
-            <div class="section-header urgent">
-              <ha-icon icon="mdi:clock-alert-outline" style="--mdc-icon-size:15px"></ha-icon>
-              ${tr.urgentSection}
-            </div>
-            <ha-card>
-              ${urgentTasksAll.length === 0 && !q && this._filterPriority === "all"
-                ? html`
-                  <div class="all-clear">
-                    <div class="all-clear-emoji">🎉</div>
-                    <p class="all-clear-title">${tr.allClear}</p>
-                    <p class="all-clear-sub">${tr.allClearSub}</p>
-                    <span class="all-clear-suggestion">${this._relaxSuggestion}</span>
-                  </div>`
-                : urgentTasksAll.length === 0
-                ? html`<div class="empty">${tr.noTasks}</div>`
-                : html`<div class="list-container">${urgentTasks.map(taskItem)}</div>`}
-            </ha-card>
-            ${urgentTasksAll.length > 0 ? html`
-            <div class="pagination">
-              <span>${tr.rowsPerPage}</span>
-              <select .value=${String(this._pageSize)} @change=${(e: Event) => { this._pageSize = Number((e.target as HTMLSelectElement).value) as 25 | 50 | 100; this._urgentPage = 0; }}>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              <span>${urgentStart + 1}–${Math.min(urgentStart + this._pageSize, urgentTasksAll.length)} ${tr.of} ${urgentTasksAll.length}</span>
-              <button class="page-btn" ?disabled=${urgentPage === 0} @click=${() => { this._urgentPage = urgentPage - 1; }}>&lt;</button>
-              <button class="page-btn" ?disabled=${urgentPage >= urgentTotalPages - 1} @click=${() => { this._urgentPage = urgentPage + 1; }}>&gt;</button>
-            </div>` : ""}
-          </div>
-          ${otherTasksAll.length > 0 ? html`
-          <div>
-            <div class="section-header">
-              <ha-icon icon="mdi:clock-outline" style="--mdc-icon-size:15px"></ha-icon>
-              ${tr.otherPendingSection}
-            </div>
-            ${upcomingFilterBar}
-            <ha-card>
-              <div class="list-container">${otherTasks.map(taskItem)}</div>
-            </ha-card>
-          </div>` : html`
-          <div>
-            <div class="section-header">
-              <ha-icon icon="mdi:clock-outline" style="--mdc-icon-size:15px"></ha-icon>
-              ${tr.otherPendingSection}
-            </div>
-            ${upcomingFilterBar}
-            <ha-card>
-              <div class="empty">${tr.noUpcoming}</div>
-            </ha-card>
-          </div>`}
-          ${otherTasksAll.length > 0 ? html`
+        <div class="list-scroll">
+          ${upcomingFilterBar}
+          <ha-card class="full-card">
+            ${pendingTasksAll.length === 0 && !q && this._filterPriority === "all"
+              && this._selectedAreaIds.length === 0 && this._selectedDeviceIds.length === 0
+              ? html`
+                <div class="all-clear">
+                  <div class="all-clear-emoji">🎉</div>
+                  <p class="all-clear-title">${tr.allClear}</p>
+                  <p class="all-clear-sub">${tr.allClearSub}</p>
+                  <span class="all-clear-suggestion">${this._relaxSuggestion}</span>
+                </div>`
+              : pendingTasksAll.length === 0
+              ? html`<div class="empty">${tr.noTasks}</div>`
+              : html`<div class="list-container">${pendingTasks.map(taskItem)}</div>`}
+          </ha-card>
+          ${pendingTasksAll.length > 0 ? html`
           <div class="pagination">
             <span>${tr.rowsPerPage}</span>
             <select .value=${String(this._pageSize)} @change=${(e: Event) => { this._pageSize = Number((e.target as HTMLSelectElement).value) as 25 | 50 | 100; this._pendingPage = 0; }}>
@@ -991,7 +951,7 @@ export class IkTaskListView extends LitElement {
               <option value="50">50</option>
               <option value="100">100</option>
             </select>
-            <span>${pendingStart + 1}–${Math.min(pendingStart + this._pageSize, otherTasksAll.length)} ${tr.of} ${otherTasksAll.length}</span>
+            <span>${pendingStart + 1}–${Math.min(pendingStart + this._pageSize, pendingTasksAll.length)} ${tr.of} ${pendingTasksAll.length}</span>
             <button class="page-btn" ?disabled=${pendingPage === 0} @click=${() => { this._pendingPage = pendingPage - 1; }}>&lt;</button>
             <button class="page-btn" ?disabled=${pendingPage >= pendingTotalPages - 1} @click=${() => { this._pendingPage = pendingPage + 1; }}>&gt;</button>
           </div>` : ""}
