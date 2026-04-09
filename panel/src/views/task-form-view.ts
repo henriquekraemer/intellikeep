@@ -12,6 +12,7 @@ export class IkTaskFormView extends LitElement {
   @property({ attribute: false }) task: Task | null = null;
   @property({ attribute: false }) tasks: Task[] = [];
   @property({ type: Boolean }) enableAnimations = true;
+  @property({ type: String }) returnPath = "/tasks";
 
   @state() private _name = "";
   @state() private _description = "";
@@ -476,7 +477,7 @@ export class IkTaskFormView extends LitElement {
       } else {
         await reopenTask(this.hass, this.task.task_id, this.hass.user?.name ?? "");
       }
-      this._navigate("/tasks");
+      this._navigate(this.returnPath);
     } finally {
       this._completing = false;
     }
@@ -488,14 +489,14 @@ export class IkTaskFormView extends LitElement {
     this._deleting = true;
     try {
       await deleteTask(this.hass, this.task.task_id);
-      this._navigate("/tasks");
+      this._navigate(this.returnPath);
     } finally {
       this._deleting = false;
     }
   }
 
   private _cancel() {
-    this._navigate("/tasks");
+    this._navigate(this.returnPath);
   }
 
   private async _save() {
@@ -524,7 +525,7 @@ export class IkTaskFormView extends LitElement {
       } else {
         await createTask(this.hass, data);
       }
-      this._navigate("/tasks");
+      this._navigate(this.returnPath);
     } catch (err) {
       this._error = String(err);
     } finally {
