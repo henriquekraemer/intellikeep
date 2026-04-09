@@ -126,7 +126,7 @@ const messages = {
         newTaskTitle: "New Task",
         settingsTitle: "Settings",
         done: "Done",
-        undo: "Undo",
+        undo: "Reopen",
         edit: "Edit",
         del: "Del",
         allStatuses: "All statuses",
@@ -200,9 +200,14 @@ const messages = {
         back: "← Back",
         executionHistory: (n) => `Execution history — ${n} record${n !== 1 ? "s" : ""}`,
         noExecutions: "No executions recorded yet.",
-        taskCompletedReadonly: "Task completed — fields are read-only. Use Undo to re-open.",
+        taskCompletedReadonly: "Task completed — fields are read-only. Use Reopen to re-open.",
         lateLabel: "Late",
         historyNavTab: "History",
+        exportCsv: "Export CSV",
+        printHistory: "Print",
+        columns: "Columns",
+        columnPickerTitle: "Visible columns",
+        columnPickerMobileLimit: (n) => `Max ${n} on mobile`,
         globalHistoryTitle: "Execution History",
         globalHistoryEmpty: "No executions recorded yet.",
         taskHeader: "Task",
@@ -235,8 +240,10 @@ const messages = {
         deleteAllBtn: "Delete all data",
         deleteAllHeading: "Delete all data?",
         deleteAllBody: "This will permanently delete all tasks, notes and execution history. This action cannot be undone.",
-        urgentSection: "Due Today & Overdue",
-        otherPendingSection: "Upcoming",
+        calendarNavTab: "Calendar",
+        calendarWeek: "Week",
+        calendarMonth: "Month",
+        calendarToday: "Today",
         rangeAll: "All",
         rangeWeek: "This week",
         rangeNextWeek: "Next week",
@@ -245,8 +252,8 @@ const messages = {
         rangeTo: "to",
         rangeApply: "Apply",
         rangeClear: "Clear",
-        allClear: "You're all caught up for today!",
-        allClearSub: "Nothing due right now. Here's an idea:",
+        allClear: "You're all caught up!",
+        allClearSub: "No tasks pending for this period. Here's an idea:",
         relaxSuggestions: [
             "\u2615 Brew a fresh cup of coffee and enjoy it slowly.",
             "\u{1F6B6} Take a short walk outside and get some fresh air.",
@@ -267,7 +274,7 @@ const messages = {
         newTaskTitle: "Nova Tarefa",
         settingsTitle: "Configurações",
         done: "Concluir",
-        undo: "Desfazer",
+        undo: "Reabrir",
         edit: "Editar",
         del: "Excluir",
         allStatuses: "Todos os status",
@@ -341,9 +348,14 @@ const messages = {
         back: "← Voltar",
         executionHistory: (n) => `Histórico de execuções — ${n} registro${n !== 1 ? "s" : ""}`,
         noExecutions: "Nenhuma execução registrada ainda.",
-        taskCompletedReadonly: "Tarefa concluída — campos em modo leitura. Use Desfazer para reabrir.",
+        taskCompletedReadonly: "Tarefa concluída — campos em modo leitura. Use Reabrir para reabrir.",
         lateLabel: "Atrasada",
         historyNavTab: "Histórico",
+        exportCsv: "Exportar CSV",
+        printHistory: "Imprimir",
+        columns: "Colunas",
+        columnPickerTitle: "Colunas visíveis",
+        columnPickerMobileLimit: (n) => `Máx ${n} no mobile`,
         globalHistoryTitle: "Histórico de Execuções",
         globalHistoryEmpty: "Nenhuma execução registrada ainda.",
         taskHeader: "Tarefa",
@@ -376,8 +388,10 @@ const messages = {
         deleteAllBtn: "Deletar todos os dados",
         deleteAllHeading: "Deletar todos os dados?",
         deleteAllBody: "Isso irá apagar permanentemente todas as tarefas, notas e histórico de execuções. Esta ação não pode ser desfeita.",
-        urgentSection: "Vence Hoje & Atrasadas",
-        otherPendingSection: "Próximas",
+        calendarNavTab: "Calendário",
+        calendarWeek: "Semana",
+        calendarMonth: "Mês",
+        calendarToday: "Hoje",
         rangeAll: "Todas",
         rangeWeek: "Esta semana",
         rangeNextWeek: "Próxima semana",
@@ -386,8 +400,8 @@ const messages = {
         rangeTo: "até",
         rangeApply: "Aplicar",
         rangeClear: "Limpar",
-        allClear: "Está tudo em dia por hoje!",
-        allClearSub: "Nada pendente agora. Que tal:",
+        allClear: "Está tudo em dia!",
+        allClearSub: "Nenhuma tarefa pendente neste período. Que tal:",
         relaxSuggestions: [
             "\u2615 Prepare um café gostoso e aprecie cada gole.",
             "\u{1F6B6} Dê uma caminhada e tome um ar fresco.",
@@ -408,7 +422,7 @@ const messages = {
         newTaskTitle: "Nueva tarea",
         settingsTitle: "Configuración",
         done: "Completar",
-        undo: "Deshacer",
+        undo: "Reabrir",
         edit: "Editar",
         del: "Eliminar",
         allStatuses: "Todos los estados",
@@ -482,9 +496,14 @@ const messages = {
         back: "← Volver",
         executionHistory: (n) => `Historial de ejecuciones — ${n} registro${n !== 1 ? "s" : ""}`,
         noExecutions: "Aún no hay ejecuciones registradas.",
-        taskCompletedReadonly: "Tarea completada — campos de solo lectura. Use Deshacer para reabrir.",
+        taskCompletedReadonly: "Tarea completada — campos de solo lectura. Use Reabrir para reabrir.",
         lateLabel: "Con retraso",
         historyNavTab: "Historial",
+        exportCsv: "Exportar CSV",
+        printHistory: "Imprimir",
+        columns: "Columnas",
+        columnPickerTitle: "Columnas visibles",
+        columnPickerMobileLimit: (n) => `Máx ${n} en móvil`,
         globalHistoryTitle: "Historial de Ejecuciones",
         globalHistoryEmpty: "Aún no hay ejecuciones registradas.",
         taskHeader: "Tarea",
@@ -517,8 +536,10 @@ const messages = {
         deleteAllBtn: "Eliminar todos los datos",
         deleteAllHeading: "¿Eliminar todos los datos?",
         deleteAllBody: "Se eliminarán permanentemente todas las tareas, notas e historial de ejecuciones. Esta acción no se puede deshacer.",
-        urgentSection: "Vence hoy y vencidas",
-        otherPendingSection: "Próximas",
+        calendarNavTab: "Calendario",
+        calendarWeek: "Semana",
+        calendarMonth: "Mes",
+        calendarToday: "Hoy",
         rangeAll: "Todas",
         rangeWeek: "Esta semana",
         rangeNextWeek: "Próxima semana",
@@ -527,8 +548,8 @@ const messages = {
         rangeTo: "hasta",
         rangeApply: "Aplicar",
         rangeClear: "Limpiar",
-        allClear: "¡Todo al día por hoy!",
-        allClearSub: "Nada pendiente ahora. Una idea:",
+        allClear: "¡Todo al día!",
+        allClearSub: "Sin tareas pendientes en este período. Una idea:",
         relaxSuggestions: [
             "\u2615 Prepara un café y disfrútalo con calma.",
             "\u{1F6B6} Da un paseo corto y toma aire fresco.",
@@ -982,10 +1003,309 @@ IkSearchableSelect = __decorate([
     t$1("ik-searchable-select")
 ], IkSearchableSelect);
 
+let IkLinkFilter = class IkLinkFilter extends i {
+    constructor() {
+        super(...arguments);
+        this.areas = [];
+        this.devices = [];
+        this.selectedAreaIds = [];
+        this.selectedDeviceIds = [];
+        this.filterMode = "or";
+        this.open = false;
+        this._areaPickerValue = "";
+        this._devicePickerValue = "";
+    }
+    _emit(selectedAreaIds, selectedDeviceIds, filterMode) {
+        this.dispatchEvent(new CustomEvent("filter-changed", {
+            detail: { selectedAreaIds, selectedDeviceIds, filterMode },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+    _applyPickerFilters() {
+        let areas = [...this.selectedAreaIds];
+        let devices = [...this.selectedDeviceIds];
+        if (this._areaPickerValue && !areas.includes(this._areaPickerValue)) {
+            areas = [...areas, this._areaPickerValue];
+        }
+        if (this._devicePickerValue && !devices.includes(this._devicePickerValue)) {
+            devices = [...devices, this._devicePickerValue];
+        }
+        this._areaPickerValue = "";
+        this._devicePickerValue = "";
+        this._emit(areas, devices, this.filterMode);
+    }
+    _removeAreaFilter(areaId) {
+        this._emit(this.selectedAreaIds.filter((v) => v !== areaId), this.selectedDeviceIds, this.filterMode);
+    }
+    _removeDeviceFilter(deviceId) {
+        this._emit(this.selectedAreaIds, this.selectedDeviceIds.filter((v) => v !== deviceId), this.filterMode);
+    }
+    _clearFilters() {
+        this._areaPickerValue = "";
+        this._devicePickerValue = "";
+        this._emit([], [], this.filterMode);
+    }
+    _setFilterMode(mode) {
+        this._emit(this.selectedAreaIds, this.selectedDeviceIds, mode);
+    }
+    _getAreaName(areaId) {
+        return this.areas.find((a) => a.area_id === areaId)?.name ?? areaId;
+    }
+    _getDeviceLabel(device) {
+        return device.name_by_user || device.name;
+    }
+    _getDeviceName(deviceId) {
+        const device = this.devices.find((d) => d.id === deviceId);
+        return device ? this._getDeviceLabel(device) : deviceId;
+    }
+    render() {
+        const tr = t(this.hass?.language);
+        const hasFilters = this.selectedAreaIds.length > 0 || this.selectedDeviceIds.length > 0;
+        const canCombineFilters = this.selectedAreaIds.length > 0 && this.selectedDeviceIds.length > 0;
+        const canAddFilter = Boolean(this._areaPickerValue || this._devicePickerValue);
+        const areaItems = this.areas
+            .filter((a) => !this.selectedAreaIds.includes(a.area_id))
+            .map((a) => ({ value: a.area_id, label: a.name }));
+        const deviceItems = this.devices
+            .filter((d) => !this.selectedDeviceIds.includes(d.id))
+            .filter((d) => !this._areaPickerValue || d.area_id === this._areaPickerValue)
+            .map((d) => ({ value: d.id, label: this._getDeviceLabel(d) }));
+        return b `
+      ${this.open ? b `
+        <div class="filter-bar">
+          <div class="filter-group">
+            <div class="picker-pair">
+              <span class="filter-label">${tr.filterAreasLabel}</span>
+              <ik-searchable-select
+                class="filter-select"
+                .items=${areaItems}
+                .value=${this._areaPickerValue}
+                .placeholder=${tr.filterAreasPlaceholder}
+                .noResultsText=${tr.noResults}
+                ?disabled=${areaItems.length === 0}
+                @value-changed=${(e) => { this._areaPickerValue = e.detail.value; this._devicePickerValue = ""; }}
+              ></ik-searchable-select>
+            </div>
+            <div class="picker-pair">
+              <span class="filter-label">${tr.filterDevicesLabel}</span>
+              <ik-searchable-select
+                class="filter-select"
+                .items=${deviceItems}
+                .value=${this._devicePickerValue}
+                .placeholder=${tr.filterDevicesPlaceholder}
+                .noResultsText=${tr.noResults}
+                ?disabled=${deviceItems.length === 0}
+                @value-changed=${(e) => { this._devicePickerValue = e.detail.value; }}
+              ></ik-searchable-select>
+            </div>
+            <button
+              class="add-filter-btn"
+              ?disabled=${!canAddFilter}
+              @click=${() => this._applyPickerFilters()}
+            ><ha-icon icon="mdi:plus"></ha-icon>${tr.addFilter}</button>
+          </div>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-group">
+            <span class="filter-label">${tr.filterModeLabel}</span>
+            <div class="filter-mode-group">
+              <button
+                class="filter-mode-chip ${this.filterMode === "or" ? "active" : ""}"
+                ?disabled=${!canCombineFilters}
+                @click=${() => this._setFilterMode("or")}
+              >${tr.filterModeAny}</button>
+              <button
+                class="filter-mode-chip ${this.filterMode === "and" ? "active" : ""}"
+                ?disabled=${!canCombineFilters}
+                @click=${() => this._setFilterMode("and")}
+              >${tr.filterModeAll}</button>
+            </div>
+          </div>
+        </div>
+      ` : A}
+      ${hasFilters ? b `
+        <div class="active-filter-tags">
+          ${this.selectedAreaIds.map((areaId) => b `
+            <span class="active-filter-tag">
+              ${tr.filterAreaTag(this._getAreaName(areaId))}
+              <button @click=${() => this._removeAreaFilter(areaId)} aria-label=${tr.removeFilter}><ha-icon icon="mdi:close"></ha-icon></button>
+            </span>
+          `)}
+          ${this.selectedDeviceIds.map((deviceId) => b `
+            <span class="active-filter-tag">
+              ${tr.filterDeviceTag(this._getDeviceName(deviceId))}
+              <button @click=${() => this._removeDeviceFilter(deviceId)} aria-label=${tr.removeFilter}><ha-icon icon="mdi:close"></ha-icon></button>
+            </span>
+          `)}
+          <button class="clear-filters-btn" @click=${() => this._clearFilters()}><ha-icon icon="mdi:filter-off"></ha-icon>${tr.clearFilters}</button>
+        </div>
+      ` : A}
+    `;
+    }
+};
+IkLinkFilter.styles = i$3 `
+    :host { display: block; }
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 0 8px;
+      flex-wrap: wrap;
+    }
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+    .picker-pair {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1 1 220px;
+      min-width: 0;
+    }
+    .filter-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--secondary-text-color);
+      white-space: nowrap;
+    }
+    .filter-select {
+      flex: 1;
+      min-width: 0;
+    }
+    .add-filter-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--primary-color);
+      background: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-left: auto;
+      --mdc-icon-size: 16px;
+    }
+    .add-filter-btn:disabled { opacity: 0.4; cursor: default; }
+    @media (hover: none) and (pointer: coarse) {
+      .picker-pair { flex: 1 1 100%; }
+    }
+    .filter-mode-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .filter-mode-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 82px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--divider-color);
+      background: transparent;
+      color: var(--secondary-text-color);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .filter-mode-chip.active {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+    .filter-mode-chip:disabled { opacity: 0.45; cursor: default; }
+    .active-filter-tags {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding-bottom: 8px;
+    }
+    .active-filter-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+      color: var(--primary-text-color);
+      font-size: 12px;
+      border: 1px solid color-mix(in srgb, var(--primary-color) 30%, var(--divider-color));
+    }
+    .active-filter-tag button {
+      border: none;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      --mdc-icon-size: 14px;
+    }
+    .clear-filters-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px dashed var(--divider-color);
+      background: transparent;
+      color: var(--secondary-text-color);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      --mdc-icon-size: 14px;
+    }
+    .clear-filters-btn:hover {
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+  `;
+__decorate([
+    n({ attribute: false })
+], IkLinkFilter.prototype, "hass", void 0);
+__decorate([
+    n({ attribute: false })
+], IkLinkFilter.prototype, "areas", void 0);
+__decorate([
+    n({ attribute: false })
+], IkLinkFilter.prototype, "devices", void 0);
+__decorate([
+    n({ attribute: false })
+], IkLinkFilter.prototype, "selectedAreaIds", void 0);
+__decorate([
+    n({ attribute: false })
+], IkLinkFilter.prototype, "selectedDeviceIds", void 0);
+__decorate([
+    n()
+], IkLinkFilter.prototype, "filterMode", void 0);
+__decorate([
+    n({ type: Boolean })
+], IkLinkFilter.prototype, "open", void 0);
+__decorate([
+    r()
+], IkLinkFilter.prototype, "_areaPickerValue", void 0);
+__decorate([
+    r()
+], IkLinkFilter.prototype, "_devicePickerValue", void 0);
+IkLinkFilter = __decorate([
+    t$1("ik-link-filter")
+], IkLinkFilter);
+
 const FILTER_MODE_STORAGE_KEY = "intellikeep.filterMode";
 const FILTER_AREAS_STORAGE_KEY = "intellikeep.filterAreas";
 const FILTER_DEVICES_STORAGE_KEY = "intellikeep.filterDevices";
-const loadStoredList = (key) => {
+const loadStoredList$2 = (key) => {
     try {
         const raw = localStorage.getItem(key);
         if (!raw) {
@@ -1012,12 +1332,10 @@ let IkTaskListView = class IkTaskListView extends i {
         this._customFromDraft = localStorage.getItem("intellikeep.upcomingCustomFrom") ?? "";
         this._customToDraft = localStorage.getItem("intellikeep.upcomingCustomTo") ?? "";
         this._filterMode = localStorage.getItem(FILTER_MODE_STORAGE_KEY) ?? "or";
-        this._selectedAreaIds = loadStoredList(FILTER_AREAS_STORAGE_KEY);
-        this._selectedDeviceIds = loadStoredList(FILTER_DEVICES_STORAGE_KEY);
+        this._selectedAreaIds = loadStoredList$2(FILTER_AREAS_STORAGE_KEY);
+        this._selectedDeviceIds = loadStoredList$2(FILTER_DEVICES_STORAGE_KEY);
         this._areas = [];
         this._devices = [];
-        this._areaPickerValue = "";
-        this._devicePickerValue = "";
         this._showLinkFilters = false;
         this._deleteTarget = null;
         this._completing = new Set();
@@ -1025,7 +1343,6 @@ let IkTaskListView = class IkTaskListView extends i {
         this._page = 0;
         this._pageSize = 25;
         this._pendingPage = 0;
-        this._urgentPage = 0;
         this._exitingDone = new Set();
         this._exitingDelete = new Set();
         this._exitingUndo = new Set();
@@ -1116,7 +1433,6 @@ let IkTaskListView = class IkTaskListView extends i {
     _resetPage() {
         this._page = 0;
         this._pendingPage = 0;
-        this._urgentPage = 0;
     }
     async _loadRegistries() {
         try {
@@ -1131,62 +1447,18 @@ let IkTaskListView = class IkTaskListView extends i {
             console.error("[IntelliKeep] Failed to load registries for task filters:", error);
         }
     }
-    _persistLinkFilters() {
-        localStorage.setItem(FILTER_MODE_STORAGE_KEY, this._filterMode);
-        localStorage.setItem(FILTER_AREAS_STORAGE_KEY, JSON.stringify(this._selectedAreaIds));
-        localStorage.setItem(FILTER_DEVICES_STORAGE_KEY, JSON.stringify(this._selectedDeviceIds));
-    }
-    _setFilterMode(mode) {
-        this._filterMode = mode;
-        this._persistLinkFilters();
+    _onFilterChanged(e) {
+        const { selectedAreaIds, selectedDeviceIds, filterMode } = e.detail;
+        this._selectedAreaIds = selectedAreaIds;
+        this._selectedDeviceIds = selectedDeviceIds;
+        this._filterMode = filterMode;
+        localStorage.setItem(FILTER_MODE_STORAGE_KEY, filterMode);
+        localStorage.setItem(FILTER_AREAS_STORAGE_KEY, JSON.stringify(selectedAreaIds));
+        localStorage.setItem(FILTER_DEVICES_STORAGE_KEY, JSON.stringify(selectedDeviceIds));
         this._resetPage();
-    }
-    _onAreaPickerChanged(areaId) {
-        this._areaPickerValue = areaId;
-        this._devicePickerValue = "";
-    }
-    _onDevicePickerChanged(deviceId) {
-        this._devicePickerValue = deviceId;
-    }
-    _applyPickerFilters() {
-        if (this._areaPickerValue && !this._selectedAreaIds.includes(this._areaPickerValue)) {
-            this._selectedAreaIds = [...this._selectedAreaIds, this._areaPickerValue];
-        }
-        if (this._devicePickerValue && !this._selectedDeviceIds.includes(this._devicePickerValue)) {
-            this._selectedDeviceIds = [...this._selectedDeviceIds, this._devicePickerValue];
-        }
-        this._areaPickerValue = "";
-        this._devicePickerValue = "";
-        this._persistLinkFilters();
-        this._resetPage();
-    }
-    _removeAreaFilter(areaId) {
-        this._selectedAreaIds = this._selectedAreaIds.filter((value) => value !== areaId);
-        this._persistLinkFilters();
-        this._resetPage();
-    }
-    _removeDeviceFilter(deviceId) {
-        this._selectedDeviceIds = this._selectedDeviceIds.filter((value) => value !== deviceId);
-        this._persistLinkFilters();
-        this._resetPage();
-    }
-    _clearLinkFilters() {
-        this._selectedAreaIds = [];
-        this._selectedDeviceIds = [];
-        this._areaPickerValue = "";
-        this._devicePickerValue = "";
-        this._persistLinkFilters();
-        this._resetPage();
-    }
-    _getAreaName(areaId) {
-        return this._areas.find((area) => area.area_id === areaId)?.name ?? areaId;
     }
     _getDeviceLabel(device) {
         return device.name_by_user || device.name;
-    }
-    _getDeviceName(deviceId) {
-        const device = this._devices.find((entry) => entry.id === deviceId);
-        return device ? this._getDeviceLabel(device) : deviceId;
     }
     _matchesLinkedFilters(task) {
         if (this._selectedAreaIds.length === 0 && this._selectedDeviceIds.length === 0) {
@@ -1307,18 +1579,9 @@ let IkTaskListView = class IkTaskListView extends i {
             (task.task_number ? String(task.task_number).padStart(3, '0').includes(q) : false);
         const matchesPr = (task) => this._filterPriority === "all" || task.priority === this._filterPriority;
         const matchesLinked = (task) => this._matchesLinkedFilters(task);
-        const countPending = this.tasks.filter(t => t.status === "due" || t.status === "overdue").length;
+        const countPending = this.tasks.filter(t => t.status !== "completed").length;
         const countCompleted = this.tasks.filter(t => t.status === "completed").length;
-        const areaItems = this._areas
-            .filter((area) => !this._selectedAreaIds.includes(area.area_id))
-            .map((area) => ({ value: area.area_id, label: area.name }));
-        const deviceItems = this._devices
-            .filter((device) => !this._selectedDeviceIds.includes(device.id))
-            .filter((device) => !this._areaPickerValue || device.area_id === this._areaPickerValue)
-            .map((device) => ({ value: device.id, label: this._getDeviceLabel(device) }));
-        const hasLinkFilters = this._selectedAreaIds.length > 0 || this._selectedDeviceIds.length > 0;
-        const canCombineFilters = this._selectedAreaIds.length > 0 && this._selectedDeviceIds.length > 0;
-        const canAddFilter = Boolean(this._areaPickerValue || this._devicePickerValue);
+        const hasLinkFilters = this._selectedAreaIds.length > 0 || this._selectedDeviceIds.length > 0 || this._filterPriority !== "all";
         const chip = (tab, label, count, extra = "") => b `
       <button
         class="filter-chip ${extra} ${this._filterTab === tab ? "active" : ""}"
@@ -1358,89 +1621,39 @@ let IkTaskListView = class IkTaskListView extends i {
         </div>
       </div>
     `;
+        const activeFilterCount = this._selectedAreaIds.length + this._selectedDeviceIds.length + (this._filterPriority !== "all" ? 1 : 0);
         const filterSection = b `
       <div class="filter-bar">
         ${chip("pending", tr.pending, countPending)}
         ${chip("completed", tr.completed, countCompleted, "chip-completed")}
-        <select class="priority-select" .value=${this._filterPriority} @change=${(e) => { this._filterPriority = e.target.value; this._resetPage(); }}>
-          <option value="all">${tr.allPriorities}</option>
-          <option value="critical">${tr.critical}</option>
-          <option value="high">${tr.high}</option>
-          <option value="medium">${tr.medium}</option>
-          <option value="low">${tr.low}</option>
-        </select>
         <button
           class="filter-toggle-btn ${this._showLinkFilters ? "active" : ""} ${hasLinkFilters ? "has-filters" : ""}"
           title=${tr.filterToggleTitle}
           @click=${() => { this._showLinkFilters = !this._showLinkFilters; }}
         >
           <ha-icon icon="mdi:filter"></ha-icon>
-          ${hasLinkFilters ? b `<span class="filter-toggle-badge">${this._selectedAreaIds.length + this._selectedDeviceIds.length}</span>` : ""}
+          ${hasLinkFilters ? b `<span class="filter-toggle-badge">${activeFilterCount}</span>` : ""}
         </button>
       </div>
+      <ik-link-filter
+        .hass=${this.hass}
+        .areas=${this._areas}
+        .devices=${this._devices}
+        .selectedAreaIds=${this._selectedAreaIds}
+        .selectedDeviceIds=${this._selectedDeviceIds}
+        .filterMode=${this._filterMode}
+        ?open=${this._showLinkFilters}
+        @filter-changed=${(e) => this._onFilterChanged(e)}
+      ></ik-link-filter>
       ${this._showLinkFilters ? b `
-        <div class="filter-bar">
-          <div class="filter-group">
-            <span class="filter-label">${tr.filterAreasLabel}</span>
-            <ik-searchable-select
-              class="filter-select"
-              .items=${areaItems}
-              .value=${this._areaPickerValue}
-              .placeholder=${tr.filterAreasPlaceholder}
-              .noResultsText=${tr.noResults}
-              ?disabled=${areaItems.length === 0}
-              @value-changed=${(e) => this._onAreaPickerChanged(e.detail.value)}
-            ></ik-searchable-select>
-            <span class="filter-label">${tr.filterDevicesLabel}</span>
-            <ik-searchable-select
-              class="filter-select"
-              .items=${deviceItems}
-              .value=${this._devicePickerValue}
-              .placeholder=${tr.filterDevicesPlaceholder}
-              .noResultsText=${tr.noResults}
-              ?disabled=${deviceItems.length === 0}
-              @value-changed=${(e) => this._onDevicePickerChanged(e.detail.value)}
-            ></ik-searchable-select>
-            <button
-              class="add-filter-btn"
-              ?disabled=${!canAddFilter}
-              @click=${() => this._applyPickerFilters()}
-            ><ha-icon icon="mdi:plus"></ha-icon>${tr.addFilter}</button>
-          </div>
-        </div>
-        <div class="filter-bar">
-          <div class="filter-group">
-            <span class="filter-label">${tr.filterModeLabel}</span>
-            <div class="filter-mode-group">
-              <button
-                class="filter-mode-chip ${this._filterMode === "or" ? "active" : ""}"
-                ?disabled=${!canCombineFilters}
-                @click=${() => this._setFilterMode("or")}
-              >${tr.filterModeAny}</button>
-              <button
-                class="filter-mode-chip ${this._filterMode === "and" ? "active" : ""}"
-                ?disabled=${!canCombineFilters}
-                @click=${() => this._setFilterMode("and")}
-              >${tr.filterModeAll}</button>
-            </div>
-          </div>
-        </div>
-      ` : ""}
-      ${hasLinkFilters ? b `
-        <div class="active-filter-tags">
-          ${this._selectedAreaIds.map((areaId) => b `
-            <span class="active-filter-tag">
-              ${tr.filterAreaTag(this._getAreaName(areaId))}
-              <button @click=${() => this._removeAreaFilter(areaId)} aria-label=${tr.removeFilter}><ha-icon icon="mdi:close"></ha-icon></button>
-            </span>
-          `)}
-          ${this._selectedDeviceIds.map((deviceId) => b `
-            <span class="active-filter-tag">
-              ${tr.filterDeviceTag(this._getDeviceName(deviceId))}
-              <button @click=${() => this._removeDeviceFilter(deviceId)} aria-label=${tr.removeFilter}><ha-icon icon="mdi:close"></ha-icon></button>
-            </span>
-          `)}
-          <button class="clear-filters-btn" @click=${() => this._clearLinkFilters()}><ha-icon icon="mdi:filter-off"></ha-icon>${tr.clearFilters}</button>
+        <div class="extended-filters">
+          <select class="priority-select" .value=${this._filterPriority} @change=${(e) => { this._filterPriority = e.target.value; this._resetPage(); }}>
+            <option value="all">${tr.allPriorities}</option>
+            <option value="critical">${tr.critical}</option>
+            <option value="high">${tr.high}</option>
+            <option value="medium">${tr.medium}</option>
+            <option value="low">${tr.low}</option>
+          </select>
         </div>
       ` : ""}
       <div class="filter-bar">
@@ -1466,7 +1679,19 @@ let IkTaskListView = class IkTaskListView extends i {
       </ik-confirm-dialog>
     `;
         const priorityRank = { critical: 0, high: 1, medium: 2, low: 3 };
-        const sortUpcoming = (a, b) => {
+        const sortPending = (a, b) => {
+            const aUrgent = a.status === "due" || a.status === "overdue";
+            const bUrgent = b.status === "due" || b.status === "overdue";
+            if (aUrgent && !bUrgent)
+                return -1;
+            if (!aUrgent && bUrgent)
+                return 1;
+            if (aUrgent && bUrgent) {
+                const prDiff = (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99);
+                if (prDiff !== 0)
+                    return prDiff;
+                return a.task_number - b.task_number;
+            }
             const aDate = a.due_date ? new Date(a.due_date).getTime() : Infinity;
             const bDate = b.due_date ? new Date(b.due_date).getTime() : Infinity;
             if (aDate !== bDate)
@@ -1518,17 +1743,22 @@ let IkTaskListView = class IkTaskListView extends i {
             localStorage.setItem("intellikeep.upcomingRange", v);
         };
         if (this._filterTab === "pending") {
-            const urgentTasksAll = this.tasks.filter(t => (t.status === "due" || t.status === "overdue") && matchesPr(t) && matchesQ(t) && matchesLinked(t));
-            const urgentTotalPages = Math.max(1, Math.ceil(urgentTasksAll.length / this._pageSize));
-            const urgentPage = Math.min(this._urgentPage, urgentTotalPages - 1);
-            const urgentStart = urgentPage * this._pageSize;
-            const urgentTasks = urgentTasksAll.slice(urgentStart, urgentStart + this._pageSize);
-            const otherTasksAll = this.tasks.filter(t => t.status !== "completed" && t.status !== "due" && t.status !== "overdue" && matchesPr(t) && matchesQ(t) && matchesLinked(t) && inUpcomingRange(t))
-                .sort(sortUpcoming);
-            const pendingTotalPages = Math.max(1, Math.ceil(otherTasksAll.length / this._pageSize));
+            const pendingTasksAll = this.tasks
+                .filter(t => {
+                if (t.status === "completed")
+                    return false;
+                if (!matchesPr(t) || !matchesQ(t) || !matchesLinked(t))
+                    return false;
+                const isUrgent = t.status === "due" || t.status === "overdue";
+                if (!isUrgent && !inUpcomingRange(t))
+                    return false;
+                return true;
+            })
+                .sort(sortPending);
+            const pendingTotalPages = Math.max(1, Math.ceil(pendingTasksAll.length / this._pageSize));
             const pendingPage = Math.min(this._pendingPage, pendingTotalPages - 1);
             const pendingStart = pendingPage * this._pageSize;
-            const otherTasks = otherTasksAll.slice(pendingStart, pendingStart + this._pageSize);
+            const pendingTasks = pendingTasksAll.slice(pendingStart, pendingStart + this._pageSize);
             const upcomingRangeChip = (v, label) => b `
         <button class="upcoming-chip ${this._upcomingRange === v ? "active" : ""}" @click=${() => setUpcomingRange(v)}>${label}</button>
       `;
@@ -1569,60 +1799,23 @@ let IkTaskListView = class IkTaskListView extends i {
       `;
             return b `
         ${filterSection}
-        <div class="sections-scroll">
-          <div>
-            <div class="section-header urgent">
-              <ha-icon icon="mdi:clock-alert-outline" style="--mdc-icon-size:15px"></ha-icon>
-              ${tr.urgentSection}
-            </div>
-            <ha-card>
-              ${urgentTasksAll.length === 0 && !q && this._filterPriority === "all"
+        <div class="list-scroll">
+          ${upcomingFilterBar}
+          <ha-card class="full-card">
+            ${pendingTasksAll.length === 0 && !q && this._filterPriority === "all"
+                && this._selectedAreaIds.length === 0 && this._selectedDeviceIds.length === 0
                 ? b `
-                  <div class="all-clear">
-                    <div class="all-clear-emoji">🎉</div>
-                    <p class="all-clear-title">${tr.allClear}</p>
-                    <p class="all-clear-sub">${tr.allClearSub}</p>
-                    <span class="all-clear-suggestion">${this._relaxSuggestion}</span>
-                  </div>`
-                : urgentTasksAll.length === 0
+                <div class="all-clear">
+                  <div class="all-clear-emoji">🎉</div>
+                  <p class="all-clear-title">${tr.allClear}</p>
+                  <p class="all-clear-sub">${tr.allClearSub}</p>
+                  <span class="all-clear-suggestion">${this._relaxSuggestion}</span>
+                </div>`
+                : pendingTasksAll.length === 0
                     ? b `<div class="empty">${tr.noTasks}</div>`
-                    : b `<div class="list-container">${urgentTasks.map(taskItem)}</div>`}
-            </ha-card>
-            ${urgentTasksAll.length > 0 ? b `
-            <div class="pagination">
-              <span>${tr.rowsPerPage}</span>
-              <select .value=${String(this._pageSize)} @change=${(e) => { this._pageSize = Number(e.target.value); this._urgentPage = 0; }}>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              <span>${urgentStart + 1}–${Math.min(urgentStart + this._pageSize, urgentTasksAll.length)} ${tr.of} ${urgentTasksAll.length}</span>
-              <button class="page-btn" ?disabled=${urgentPage === 0} @click=${() => { this._urgentPage = urgentPage - 1; }}>&lt;</button>
-              <button class="page-btn" ?disabled=${urgentPage >= urgentTotalPages - 1} @click=${() => { this._urgentPage = urgentPage + 1; }}>&gt;</button>
-            </div>` : ""}
-          </div>
-          ${otherTasksAll.length > 0 ? b `
-          <div>
-            <div class="section-header">
-              <ha-icon icon="mdi:clock-outline" style="--mdc-icon-size:15px"></ha-icon>
-              ${tr.otherPendingSection}
-            </div>
-            ${upcomingFilterBar}
-            <ha-card>
-              <div class="list-container">${otherTasks.map(taskItem)}</div>
-            </ha-card>
-          </div>` : b `
-          <div>
-            <div class="section-header">
-              <ha-icon icon="mdi:clock-outline" style="--mdc-icon-size:15px"></ha-icon>
-              ${tr.otherPendingSection}
-            </div>
-            ${upcomingFilterBar}
-            <ha-card>
-              <div class="empty">${tr.noUpcoming}</div>
-            </ha-card>
-          </div>`}
-          ${otherTasksAll.length > 0 ? b `
+                    : b `<div class="list-container">${pendingTasks.map(taskItem)}</div>`}
+          </ha-card>
+          ${pendingTasksAll.length > 0 ? b `
           <div class="pagination">
             <span>${tr.rowsPerPage}</span>
             <select .value=${String(this._pageSize)} @change=${(e) => { this._pageSize = Number(e.target.value); this._pendingPage = 0; }}>
@@ -1630,7 +1823,7 @@ let IkTaskListView = class IkTaskListView extends i {
               <option value="50">50</option>
               <option value="100">100</option>
             </select>
-            <span>${pendingStart + 1}–${Math.min(pendingStart + this._pageSize, otherTasksAll.length)} ${tr.of} ${otherTasksAll.length}</span>
+            <span>${pendingStart + 1}–${Math.min(pendingStart + this._pageSize, pendingTasksAll.length)} ${tr.of} ${pendingTasksAll.length}</span>
             <button class="page-btn" ?disabled=${pendingPage === 0} @click=${() => { this._pendingPage = pendingPage - 1; }}>&lt;</button>
             <button class="page-btn" ?disabled=${pendingPage >= pendingTotalPages - 1} @click=${() => { this._pendingPage = pendingPage + 1; }}>&gt;</button>
           </div>` : ""}
@@ -1740,23 +1933,6 @@ IkTaskListView.styles = i$3 `
       color: var(--primary-text-color);
       font-size: 13px;
     }
-    .filter-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      width: 100%;
-    }
-    .filter-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--secondary-text-color);
-      min-width: max-content;
-    }
-    .filter-select {
-      flex: 1 1 220px;
-      min-width: 180px;
-    }
     .filter-toggle-btn {
       display: inline-flex;
       align-items: center;
@@ -1802,103 +1978,6 @@ IkTaskListView.styles = i$3 `
       background: var(--primary-color);
       color: var(--text-primary-color, #fff);
     }
-    .add-filter-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 5px 14px;
-      border-radius: 6px;
-      border: 1px solid var(--primary-color);
-      background: var(--primary-color);
-      color: var(--text-primary-color, #fff);
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
-      white-space: nowrap;
-      flex-shrink: 0;
-      --mdc-icon-size: 16px;
-    }
-    .add-filter-btn:disabled {
-      opacity: 0.4;
-      cursor: default;
-    }
-    .filter-mode-group {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .filter-mode-chip {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 82px;
-      padding: 5px 10px;
-      border-radius: 999px;
-      border: 1px solid var(--divider-color);
-      background: transparent;
-      color: var(--secondary-text-color);
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-    }
-    .filter-mode-chip.active {
-      background: var(--primary-color);
-      border-color: var(--primary-color);
-      color: var(--text-primary-color, #fff);
-    }
-    .filter-mode-chip:disabled {
-      opacity: 0.45;
-      cursor: default;
-    }
-    .active-filter-tags {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      width: 100%;
-      margin-top: -4px;
-      padding-bottom: 12px;
-    }
-    .active-filter-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 10px;
-      border-radius: 999px;
-      background: color-mix(in srgb, var(--primary-color) 12%, transparent);
-      color: var(--primary-text-color);
-      font-size: 12px;
-      border: 1px solid color-mix(in srgb, var(--primary-color) 30%, var(--divider-color));
-    }
-    .active-filter-tag button {
-      border: none;
-      background: transparent;
-      color: inherit;
-      cursor: pointer;
-      padding: 0;
-      display: inline-flex;
-      align-items: center;
-      --mdc-icon-size: 14px;
-    }
-    .clear-filters-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 5px 10px;
-      border-radius: 999px;
-      border: 1px dashed var(--divider-color);
-      background: transparent;
-      color: var(--secondary-text-color);
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-      --mdc-icon-size: 14px;
-    }
-    .clear-filters-btn:hover {
-      border-color: var(--primary-color);
-      color: var(--primary-color);
-    }
     .search-wrapper {
       position: relative;
       flex: 1;
@@ -1932,25 +2011,11 @@ IkTaskListView.styles = i$3 `
       min-height: 0;
       overflow-y: auto;
     }
-    .sections-scroll {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      padding-bottom: 8px;
-    }
-    .section-header {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--secondary-text-color);
-      padding: 0 2px 8px;
+    .extended-filters {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 8px;
+      padding: 0 0 12px;
     }
     .upcoming-filter {
       display: flex;
@@ -2272,12 +2337,6 @@ __decorate([
 ], IkTaskListView.prototype, "_devices", void 0);
 __decorate([
     r()
-], IkTaskListView.prototype, "_areaPickerValue", void 0);
-__decorate([
-    r()
-], IkTaskListView.prototype, "_devicePickerValue", void 0);
-__decorate([
-    r()
 ], IkTaskListView.prototype, "_showLinkFilters", void 0);
 __decorate([
     r()
@@ -2297,9 +2356,6 @@ __decorate([
 __decorate([
     r()
 ], IkTaskListView.prototype, "_pendingPage", void 0);
-__decorate([
-    r()
-], IkTaskListView.prototype, "_urgentPage", void 0);
 __decorate([
     r()
 ], IkTaskListView.prototype, "_exitingDone", void 0);
@@ -2322,6 +2378,7 @@ let IkTaskFormView = class IkTaskFormView extends i {
         this.task = null;
         this.tasks = [];
         this.enableAnimations = true;
+        this.returnPath = "/tasks";
         this._name = "";
         this._description = "";
         this._priority = "medium";
@@ -2408,7 +2465,7 @@ let IkTaskFormView = class IkTaskFormView extends i {
             else {
                 await reopenTask(this.hass, this.task.task_id, this.hass.user?.name ?? "");
             }
-            this._navigate("/tasks");
+            this._navigate(this.returnPath);
         }
         finally {
             this._completing = false;
@@ -2421,14 +2478,14 @@ let IkTaskFormView = class IkTaskFormView extends i {
         this._deleting = true;
         try {
             await deleteTask(this.hass, this.task.task_id);
-            this._navigate("/tasks");
+            this._navigate(this.returnPath);
         }
         finally {
             this._deleting = false;
         }
     }
     _cancel() {
-        this._navigate("/tasks");
+        this._navigate(this.returnPath);
     }
     async _save() {
         const tr = t(this.hass?.language);
@@ -2456,7 +2513,7 @@ let IkTaskFormView = class IkTaskFormView extends i {
             else {
                 await createTask(this.hass, data);
             }
-            this._navigate("/tasks");
+            this._navigate(this.returnPath);
         }
         catch (err) {
             this._error = String(err);
@@ -3244,6 +3301,9 @@ __decorate([
     n({ type: Boolean })
 ], IkTaskFormView.prototype, "enableAnimations", void 0);
 __decorate([
+    n({ type: String })
+], IkTaskFormView.prototype, "returnPath", void 0);
+__decorate([
     r()
 ], IkTaskFormView.prototype, "_name", void 0);
 __decorate([
@@ -3325,31 +3385,300 @@ IkTaskFormView = __decorate([
     t$1("ik-task-form-view")
 ], IkTaskFormView);
 
+const ALL_COLUMNS = ["task", "area", "device", "by", "date", "late"];
+const MOBILE_MAX = 3;
+const HISTORY_FILTER_MODE_KEY = "intellikeep.historyFilterMode";
+const HISTORY_FILTER_AREAS_KEY = "intellikeep.historyFilterAreas";
+const HISTORY_FILTER_DEVICES_KEY = "intellikeep.historyFilterDevices";
+const HISTORY_COLUMNS_KEY = "intellikeep.historyColumns";
+const HISTORY_COLUMNS_MOBILE_KEY = "intellikeep.historyColumnsMobile";
+const loadStoredList$1 = (key) => {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw)
+            return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.filter((v) => typeof v === "string") : [];
+    }
+    catch {
+        return [];
+    }
+};
+const loadStoredColumns = (key, defaults) => {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw)
+            return new Set(defaults);
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed) || parsed.length === 0)
+            return new Set(defaults);
+        return new Set(parsed.filter((v) => ALL_COLUMNS.includes(v)));
+    }
+    catch {
+        return new Set(defaults);
+    }
+};
 let IkTaskHistoryView = class IkTaskHistoryView extends i {
     constructor() {
         super(...arguments);
         this.tasks = [];
         this._page = 0;
         this._pageSize = 25;
+        this._areas = [];
+        this._devices = [];
+        this._selectedAreaIds = loadStoredList$1(HISTORY_FILTER_AREAS_KEY);
+        this._selectedDeviceIds = loadStoredList$1(HISTORY_FILTER_DEVICES_KEY);
+        this._filterMode = localStorage.getItem(HISTORY_FILTER_MODE_KEY) ?? "or";
+        this._showLinkFilters = false;
+        this._visibleColumns = loadStoredColumns(HISTORY_COLUMNS_KEY, ALL_COLUMNS);
+        this._visibleColumnsMobile = loadStoredColumns(HISTORY_COLUMNS_MOBILE_KEY, ["task", "date"]);
+        this._showColumnPicker = false;
+        this._isMobile = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+        this._mql = window.matchMedia("(hover: none) and (pointer: coarse)");
+        this._onMqlChange = () => { this._isMobile = this._mql.matches; };
+    }
+    connectedCallback() {
+        super.connectedCallback();
+        this._mql.addEventListener("change", this._onMqlChange);
+        void this._loadRegistries();
+    }
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this._mql.removeEventListener("change", this._onMqlChange);
+    }
+    async _loadRegistries() {
+        try {
+            const [areas, devices] = await Promise.all([
+                this.hass.connection.sendMessagePromise({ type: "config/area_registry/list" }),
+                this.hass.connection.sendMessagePromise({ type: "config/device_registry/list" }),
+            ]);
+            this._areas = areas.sort((a, b) => a.name.localeCompare(b.name));
+            this._devices = devices.sort((a, b) => (a.name_by_user || a.name).localeCompare(b.name_by_user || b.name));
+        }
+        catch (error) {
+            console.error("[IntelliKeep] Failed to load registries for history filters:", error);
+        }
+    }
+    _onFilterChanged(e) {
+        const { selectedAreaIds, selectedDeviceIds, filterMode } = e.detail;
+        this._selectedAreaIds = selectedAreaIds;
+        this._selectedDeviceIds = selectedDeviceIds;
+        this._filterMode = filterMode;
+        localStorage.setItem(HISTORY_FILTER_MODE_KEY, filterMode);
+        localStorage.setItem(HISTORY_FILTER_AREAS_KEY, JSON.stringify(selectedAreaIds));
+        localStorage.setItem(HISTORY_FILTER_DEVICES_KEY, JSON.stringify(selectedDeviceIds));
+        this._page = 0;
+    }
+    _colLabels() {
+        const tr = t(this.hass?.language);
+        return {
+            task: tr.taskHeader,
+            area: tr.filterAreasLabel,
+            device: tr.filterDevicesLabel,
+            by: tr.completedBy,
+            date: tr.completedAt,
+            late: tr.lateLabel,
+        };
+    }
+    _toggleColumn(key) {
+        if (this._isMobile) {
+            const next = new Set(this._visibleColumnsMobile);
+            if (next.has(key)) {
+                if (next.size > 1)
+                    next.delete(key);
+            }
+            else if (next.size < MOBILE_MAX) {
+                next.add(key);
+            }
+            this._visibleColumnsMobile = next;
+            localStorage.setItem(HISTORY_COLUMNS_MOBILE_KEY, JSON.stringify([...next]));
+        }
+        else {
+            const next = new Set(this._visibleColumns);
+            if (next.has(key)) {
+                if (next.size > 1)
+                    next.delete(key);
+            }
+            else {
+                next.add(key);
+            }
+            this._visibleColumns = next;
+            localStorage.setItem(HISTORY_COLUMNS_KEY, JSON.stringify([...next]));
+        }
+    }
+    _matchesLinkedFilters(linkedEntityIds) {
+        if (this._selectedAreaIds.length === 0 && this._selectedDeviceIds.length === 0)
+            return true;
+        const taskAreaIds = new Set(linkedEntityIds.filter((v) => v.startsWith("area:")).map((v) => v.slice(5)));
+        const taskDeviceIds = new Set(linkedEntityIds.filter((v) => v.startsWith("device:")).map((v) => v.slice(7)));
+        const matchesArea = this._selectedAreaIds.length === 0 ? null
+            : this._selectedAreaIds.some((areaId) => {
+                if (taskAreaIds.has(areaId))
+                    return true;
+                return [...taskDeviceIds].some((deviceId) => {
+                    const device = this._devices.find((d) => d.id === deviceId);
+                    return device?.area_id === areaId;
+                });
+            });
+        const matchesDevice = this._selectedDeviceIds.length === 0 ? null
+            : this._selectedDeviceIds.some((deviceId) => taskDeviceIds.has(deviceId));
+        if (matchesArea === null)
+            return Boolean(matchesDevice);
+        if (matchesDevice === null)
+            return matchesArea;
+        return this._filterMode === "and" ? matchesArea && matchesDevice : matchesArea || matchesDevice;
     }
     _navigate(path) {
         this.dispatchEvent(new CustomEvent("navigate", { detail: path, bubbles: true, composed: true }));
     }
+    _openTask(taskId) {
+        const isDesktop = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+        if (isDesktop) {
+            this.dispatchEvent(new CustomEvent("open-task-modal", { detail: taskId, bubbles: true, composed: true }));
+        }
+        else {
+            this._navigate(`/edit/${taskId}`);
+        }
+    }
     _formatDate(iso) {
         return new Date(iso).toLocaleString();
+    }
+    _getLinkedAreas(linkedEntityIds) {
+        return linkedEntityIds
+            .filter((v) => v.startsWith("area:"))
+            .map((v) => this._areas.find((a) => a.area_id === v.slice(5))?.name ?? v.slice(5))
+            .join(", ") || "—";
+    }
+    _getLinkedDevices(linkedEntityIds) {
+        return linkedEntityIds
+            .filter((v) => v.startsWith("device:"))
+            .map((v) => {
+            const d = this._devices.find((device) => device.id === v.slice(7));
+            return d ? (d.name_by_user || d.name) : v.slice(7);
+        })
+            .join(", ") || "—";
+    }
+    _escapeHtml(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
     _flatExecutions() {
         const flat = [];
         for (const task of this.tasks) {
+            if (!this._matchesLinkedFilters(task.linked_entity_ids ?? []))
+                continue;
             for (const ex of task.executions ?? []) {
-                flat.push({ ...ex, _taskId: task.task_id, _taskName: task.name });
+                flat.push({ ...ex, _taskId: task.task_id, _taskNumber: task.task_number, _taskName: task.name, _linkedEntityIds: task.linked_entity_ids ?? [] });
             }
         }
         flat.sort((a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime());
         return flat;
     }
+    _exportCsv() {
+        const tr = t(this.hass?.language);
+        const cols = this._visibleColumns;
+        const all = this._flatExecutions();
+        const colLabel = this._colLabels();
+        const colValue = {
+            task: (ex) => ex._taskName,
+            area: (ex) => this._getLinkedAreas(ex._linkedEntityIds).replace("—", ""),
+            device: (ex) => this._getLinkedDevices(ex._linkedEntityIds).replace("—", ""),
+            by: (ex) => ex.completed_by || "",
+            date: (ex) => new Date(ex.completed_at).toLocaleString(),
+            late: (ex) => ex.was_late ? tr.lateLabel : "",
+        };
+        const visibleKeys = ALL_COLUMNS.filter((k) => cols.has(k));
+        const headers = ["#", ...visibleKeys.map((k) => colLabel[k])];
+        const rows = all.map((ex) => [
+            `#${String(ex._taskNumber).padStart(3, "0")}`,
+            ...visibleKeys.map((k) => colValue[k](ex)),
+        ]);
+        const csv = [headers, ...rows]
+            .map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+            .join("\n");
+        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "intellikeep-history.csv";
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+    _printHistory() {
+        const tr = t(this.hass?.language);
+        const cols = this._visibleColumns;
+        const all = this._flatExecutions();
+        const e = (s) => this._escapeHtml(s);
+        const colLabel = this._colLabels();
+        const visibleKeys = ALL_COLUMNS.filter((k) => cols.has(k));
+        const rows = all.map((ex) => {
+            const cells = visibleKeys.map((k) => {
+                if (k === "task")
+                    return `<td>${e(ex._taskName)}</td>`;
+                if (k === "area")
+                    return `<td>${e(this._getLinkedAreas(ex._linkedEntityIds))}</td>`;
+                if (k === "device")
+                    return `<td>${e(this._getLinkedDevices(ex._linkedEntityIds))}</td>`;
+                if (k === "by")
+                    return `<td>${e(ex.completed_by || "—")}</td>`;
+                if (k === "date")
+                    return `<td>${e(this._formatDate(ex.completed_at))}</td>`;
+                if (k === "late")
+                    return `<td>${ex.was_late ? `<span style="background:#ff9800;color:#fff;font-size:10px;font-weight:600;padding:1px 6px;border-radius:4px;">${e(tr.lateLabel)}</span>` : "—"}</td>`;
+                return "<td></td>";
+            }).join("");
+            return `<tr><td>#${e(String(ex._taskNumber).padStart(3, "0"))}</td>${cells}</tr>`;
+        }).join("");
+        const headerCells = visibleKeys.map((k) => `<th>${e(colLabel[k])}</th>`).join("");
+        const logoSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 336 416" height="40"><path fill="#000" d="M292.085,275.543C294.886,277,295.348,279.164,295.347,281.645C295.325,315.301,295.372,348.957,295.294,382.613C295.28,388.929,292.366,391.331,285.198,391.337C238.711,391.373,192.224,391.381,145.737,391.383C117.744,391.384,89.752,391.372,61.76,391.338C52.998,391.327,50.684,389.06,50.679,380.502C50.66,348.345,50.66,316.187,50.672,284.029C50.675,276.321,52.218,274.831,60.105,274.712C74.264,274.499,74.276,274.499,74.281,288.852C74.29,313.345,74.38,337.839,74.197,362.33C74.163,366.986,75.349,368.728,80.342,368.692C110.826,368.476,141.319,368.967,171.796,368.439C193.28,368.067,214.74,368.713,236.211,368.615C245.861,368.572,255.494,367.96,265.164,368.535C271.299,368.9,271.738,368.131,271.741,362.094C271.754,336.435,271.738,310.775,271.748,285.116C271.752,276.257,273.215,274.788,282.272,274.737C285.416,274.719,288.61,274.25,292.085,275.543z"/><path fill="#000" d="M320.53,252.723C324.286,259.571,323.451,265.254,318.429,268.988C313.15,272.914,307.521,272.273,301.916,266.689C278.307,243.165,254.779,219.561,231.214,195.992C213.423,178.198,195.629,160.407,177.823,142.628C173.271,138.083,172.813,138.093,168.221,142.681C128.256,182.607,88.297,222.539,48.336,262.468C46.921,263.881,45.523,265.313,44.07,266.686C38.204,272.228,31.425,272.392,26.385,267.138C21.725,262.279,22.113,256.061,27.791,250.309C38.21,239.756,48.781,229.354,59.281,218.879C93.962,184.281,128.635,149.675,163.32,115.08C170.895,107.526,175.581,107.627,183.172,115.229C228.863,160.979,274.576,206.706,320.53,252.723z"/><path fill="#000" d="M156.557,299.525C160.166,295.201,163.61,293.158,169.639,294.584C188.024,298.934,202.203,278.403,195.773,264.969C191.913,266.43,189.825,269.979,187.009,272.568C182.092,277.087,177.339,277.472,173.526,273.318C169.779,269.236,170.283,263.932,174.822,259.711C177.585,257.141,180.352,254.576,183.233,251.902C170.99,244.815,153.777,253.19,151.394,266.927C150.864,269.979,149.961,273.067,151.083,276.274C151.425,277.252,151.101,278.62,150.704,279.666C149.946,281.662,137.044,293.377,133.971,294.688C133.681,285.538,126.866,285.16,120.151,282.742C114.014,280.532,118.691,272.931,117.727,267.826C117.243,265.263,118.846,263.837,121.486,263.62C122.641,263.526,123.774,263.175,124.925,262.992C133.809,261.58,136.709,254.209,131.268,246.85C126.987,241.059,127.051,240.303,132.346,235.224C133.307,234.302,134.406,233.517,135.31,232.546C138.794,228.804,142.381,228.471,146.093,232.144C149.484,235.501,152.877,235.731,157.272,233.559C160.724,231.853,162.316,229.797,162.78,226.125C163.134,223.321,162.531,219.364,166.19,218.519C171.178,217.368,176.475,216.846,181.348,219.095C183.268,219.981,183.115,222.479,183.339,224.484C183.681,227.533,183.168,231.265,186.962,232.483C191.091,233.807,195.296,237.25,199.659,232.296C201.401,230.318,204.219,227.906,207.119,229.88C211.043,232.551,215.395,235.136,217.096,239.996C217.941,242.408,215.652,243.833,214.56,245.642C212.962,248.291,209.523,250.215,211.586,254.354C213.777,258.746,215.417,263.246,221.712,262.839C226.698,262.516,229.147,265.016,228.365,270.214C228.218,271.191,228.351,272.21,228.352,273.21C228.365,282.781,228.365,282.781,219.095,284.28C214.023,285.101,210.057,293.711,213.037,297.829C219.4,306.62,219.14,305.42,211.119,313.586C207.521,317.248,204.313,317.986,199.993,314.391C195.228,310.426,190.997,310.642,185.99,314.197C183.352,316.069,183.55,319.213,183.431,321.895C183.217,326.712,181.234,329.019,176.291,328.379C175.635,328.294,174.959,328.378,174.292,328.364C164.372,328.15,164,330.187,162.549,318.557C161.772,312.323,155.906,312.984,151.746,311.527C150.326,311.029,148.113,312.422,147.466,310.154C146.913,308.213,148.863,307.326,149.972,306.171C152.05,304.009,154.19,301.907,156.557,299.525z"/><path fill="#000" d="M187.924,40.781C205.599,43.236,221.527,49.142,236.326,58.295C239.911,60.513,241.081,62.498,238.145,66.093C235.942,68.791,233.966,71.722,232.238,74.748C230.315,78.116,228.374,78.323,225.038,76.4C214.334,70.231,203.171,65.211,190.839,62.966C167.933,58.798,146.534,63.005,126.185,73.783C124.42,74.718,122.629,75.632,120.973,76.739C118.387,78.469,116.544,78.228,114.861,75.388C112.828,71.955,110.482,68.702,108.193,65.427C106.166,62.526,106.48,60.446,109.688,58.503C132.412,44.741,156.758,37.761,183.492,40.471C184.816,40.605,186.149,40.647,187.924,40.781z"/><path fill="#000" d="M249.011,121.883C257.669,121.869,265.833,121.736,273.991,121.886C281.088,122.017,282.31,123.418,282.315,130.551C282.327,150.037,282.339,169.524,282.293,189.011C282.288,190.743,282.888,192.665,281.228,194.426C277.668,193.409,276.164,189.866,273.427,187.893C263.098,180.447,258.608,170.705,260.525,157.832C261.166,153.531,262.538,147.803,259.723,144.809C256.842,141.747,251.207,144.022,246.801,143.972C230.856,143.788,233.06,145.359,232.957,130.084C232.904,122.165,233.218,121.898,241.018,121.839C243.516,121.82,246.015,121.869,249.011,121.883z"/><path fill="#000" d="M82.143,171.044C84.154,175.714,83.172,178.934,79.275,181.722C74.754,184.956,71.094,189.342,66.515,192.12C64.384,191.171,64.222,189.57,63.768,188.198C55.428,162.95,55.684,137.621,62.993,112.198C63.977,108.774,65.532,107.412,69.078,108.985C72.873,110.668,76.729,112.241,80.644,113.619C84.002,114.8,84.733,116.54,83.668,120.052C78.615,136.733,77.489,153.612,82.143,171.044z"/><path fill="#000" d="M64.331,91.478C59.424,81.825,60.131,73.819,66.226,67.22C72.174,60.78,81.1,59.016,89.529,62.614C96.86,65.744,101.61,73.692,100.771,81.428C99.82,90.211,93.526,97.565,85.744,99.288C77.061,101.21,70.053,98.692,64.331,91.478z"/><path fill="#000" d="M278.435,66.513C285.689,74.329,286.806,82.963,281.826,90.845C277.285,98.032,267.981,101.683,260.2,99.33C251.19,96.606,245.216,88.625,245.767,79.543C246.201,72.378,249.594,66.785,256.202,63.726C263.926,60.15,271.373,60.818,278.435,66.513z"/><path fill="#000" d="M101.244,112.328C102.895,105.379,107.409,101.405,113.707,101.001C119.431,100.635,125.066,104.316,126.983,109.673C128.768,114.664,126.993,120.768,122.626,123.969C118.201,127.212,113.259,127.318,108.428,125.259C103.044,122.964,101.095,118.352,101.244,112.328z"/></svg>`;
+        const doc = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>${e(tr.globalHistoryTitle)}</title>
+<style>
+  @page { margin: 0; }
+  body { font-family: sans-serif; font-size: 12px; padding: 1.5cm; box-sizing: border-box; }
+  .print-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #000; }
+  .print-brand { display: flex; align-items: center; gap: 10px; }
+  .print-brand svg { height: 36px; width: auto; }
+  .print-brand-name { font-size: 18px; font-weight: 700; letter-spacing: 0.02em; }
+  .print-report-title { font-size: 13px; color: #555; text-align: right; }
+  .print-date { font-size: 11px; color: #888; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 6px 8px; border: 1px solid #ccc; text-align: left; }
+  th { background: #f5f5f5; font-weight: 600; }
+</style></head><body>
+<div class="print-header">
+  <div class="print-brand">
+    ${logoSvg}
+    <span class="print-brand-name">IntelliKeep</span>
+  </div>
+  <div class="print-report-title">
+    <div>${e(tr.globalHistoryTitle)}</div>
+    <div class="print-date">${new Date().toLocaleDateString()}</div>
+  </div>
+</div>
+<table><thead><tr>
+  <th>#</th>${headerCells}
+</tr></thead><tbody>${rows}</tbody></table>
+</body></html>`;
+        const blob = new Blob([doc], { type: "text/html;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const win = window.open(url, "_blank");
+        win?.addEventListener("load", () => {
+            win.print();
+            URL.revokeObjectURL(url);
+        });
+    }
     render() {
         const tr = t(this.hass?.language);
+        const hasFilters = this._selectedAreaIds.length > 0 || this._selectedDeviceIds.length > 0;
+        const cols = this._isMobile ? this._visibleColumnsMobile : this._visibleColumns;
+        const colDefs = [
+            { key: "task", label: tr.taskHeader },
+            { key: "area", label: tr.filterAreasLabel },
+            { key: "device", label: tr.filterDevicesLabel },
+            { key: "by", label: tr.completedBy },
+            { key: "date", label: tr.completedAt },
+            { key: "late", label: tr.lateLabel },
+        ];
         const all = this._flatExecutions();
         const total = all.length;
         const totalPages = Math.max(1, Math.ceil(total / this._pageSize));
@@ -3357,9 +3686,68 @@ let IkTaskHistoryView = class IkTaskHistoryView extends i {
         const start = page * this._pageSize;
         const pageItems = all.slice(start, start + this._pageSize);
         return b `
-      <div class="header">
+      <div class="toolbar">
         <h2>${tr.globalHistoryTitle}</h2>
+        <button class="btn-secondary btn-export" @click=${() => this._exportCsv()}>
+          <ha-icon icon="mdi:download"></ha-icon>${tr.exportCsv}
+        </button>
+        <button class="btn-secondary btn-print" @click=${() => this._printHistory()}>
+          <ha-icon icon="mdi:printer"></ha-icon>${tr.printHistory}
+        </button>
+        <button
+          class="btn-secondary ${this._showColumnPicker ? "active" : ""}"
+          @click=${() => { this._showColumnPicker = !this._showColumnPicker; }}
+        >
+          <ha-icon icon="mdi:table-column"></ha-icon>${tr.columns}
+        </button>
+        <button
+          class="filter-toggle-btn ${this._showLinkFilters ? "active" : ""} ${hasFilters ? "has-filters" : ""}"
+          title=${tr.filterToggleTitle}
+          @click=${() => { this._showLinkFilters = !this._showLinkFilters; }}
+        >
+          <ha-icon icon="mdi:filter"></ha-icon>
+          ${hasFilters ? b `<span class="filter-toggle-badge">${this._selectedAreaIds.length + this._selectedDeviceIds.length}</span>` : A}
+        </button>
       </div>
+
+      ${this._showColumnPicker ? b `
+        <div class="column-picker">
+          <div class="column-picker-header">
+            <span class="column-picker-title">${tr.columnPickerTitle}</span>
+            ${this._isMobile ? b `<span class="column-picker-limit">${tr.columnPickerMobileLimit(MOBILE_MAX)}</span>` : A}
+          </div>
+          <div class="column-picker-options">
+            ${colDefs.map(({ key, label }) => {
+            const checked = cols.has(key);
+            const atLimit = this._isMobile && cols.size >= MOBILE_MAX && !checked;
+            const isLast = checked && cols.size === 1;
+            const disabled = atLimit || isLast;
+            return b `
+                <label class="col-option ${disabled ? "at-limit" : ""}">
+                  <input
+                    type="checkbox"
+                    .checked=${checked}
+                    ?disabled=${disabled}
+                    @change=${() => this._toggleColumn(key)}
+                  >
+                  ${label}
+                </label>
+              `;
+        })}
+          </div>
+        </div>
+      ` : A}
+
+      <ik-link-filter
+        .hass=${this.hass}
+        .areas=${this._areas}
+        .devices=${this._devices}
+        .selectedAreaIds=${this._selectedAreaIds}
+        .selectedDeviceIds=${this._selectedDeviceIds}
+        .filterMode=${this._filterMode}
+        ?open=${this._showLinkFilters}
+        @filter-changed=${(e) => this._onFilterChanged(e)}
+      ></ik-link-filter>
 
       <ha-card>
         ${total === 0
@@ -3368,29 +3756,34 @@ let IkTaskHistoryView = class IkTaskHistoryView extends i {
             <table>
               <thead>
                 <tr>
-                  <th>${tr.completedAt}</th>
-                  <th>${tr.taskHeader}</th>
-                  <th>${tr.completedBy}</th>
-                  <th>${tr.notes}</th>
-                  <th></th>
+                  <th class="task-num">#</th>
+                  ${cols.has("task") ? b `<th>${tr.taskHeader}</th>` : A}
+                  ${cols.has("area") ? b `<th>${tr.filterAreasLabel}</th>` : A}
+                  ${cols.has("device") ? b `<th>${tr.filterDevicesLabel}</th>` : A}
+                  ${cols.has("by") ? b `<th>${tr.completedBy}</th>` : A}
+                  ${cols.has("date") ? b `<th>${tr.completedAt}</th>` : A}
+                  ${cols.has("late") ? b `<th>${tr.lateLabel}</th>` : A}
+                  ${!this._isMobile ? b `<th></th>` : A}
                 </tr>
               </thead>
               <tbody>
                 ${pageItems.map((ex) => b `
-                  <tr>
-                    <td>
-                      ${this._formatDate(ex.completed_at)}
-                      ${ex.was_late ? b `<span class="late-badge">${tr.lateLabel}</span>` : A}
-                    </td>
-                    <td class="task-name">${ex._taskName}</td>
-                    <td>${ex.completed_by || "—"}</td>
-                    <td>${ex.notes || "—"}</td>
-                    <td>
-                      <button class="btn-view" @click=${() => this._navigate(`/edit/${ex._taskId}`)}>
-                        <ha-icon icon="mdi:open-in-app"></ha-icon>
-                        ${tr.viewTask}
-                      </button>
-                    </td>
+                  <tr @click=${() => this._openTask(ex._taskId)}>
+                    <td class="task-num">#${String(ex._taskNumber).padStart(3, "0")}</td>
+                    ${cols.has("task") ? b `<td class="task-name">${ex._taskName}</td>` : A}
+                    ${cols.has("area") ? b `<td>${this._getLinkedAreas(ex._linkedEntityIds)}</td>` : A}
+                    ${cols.has("device") ? b `<td>${this._getLinkedDevices(ex._linkedEntityIds)}</td>` : A}
+                    ${cols.has("by") ? b `<td>${ex.completed_by || "—"}</td>` : A}
+                    ${cols.has("date") ? b `<td>${this._formatDate(ex.completed_at)}</td>` : A}
+                    ${cols.has("late") ? b `<td>${ex.was_late ? b `<span class="late-badge">${tr.lateLabel}</span>` : "—"}</td>` : A}
+                    ${!this._isMobile ? b `
+                      <td>
+                        <button class="btn-view" @click=${(e) => { e.stopPropagation(); this._openTask(ex._taskId); }}>
+                          <ha-icon icon="mdi:open-in-app"></ha-icon>
+                          ${tr.viewTask}
+                        </button>
+                      </td>
+                    ` : A}
                   </tr>
                 `)}
               </tbody>
@@ -3418,21 +3811,147 @@ let IkTaskHistoryView = class IkTaskHistoryView extends i {
 };
 IkTaskHistoryView.styles = i$3 `
     :host { display: block; }
-    .header {
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    h2 { margin: 0; font-size: 20px; font-weight: 500; flex: 1; min-width: 0; }
+
+    .filter-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 1.5px solid var(--divider-color);
+      background: transparent;
+      color: var(--secondary-text-color);
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      --mdc-icon-size: 18px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .filter-toggle-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+    .filter-toggle-btn.active {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+    .filter-toggle-btn.has-filters:not(.active) { border-color: var(--primary-color); color: var(--primary-color); }
+    .filter-toggle-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 16px;
+      height: 16px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.2);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 0 4px;
+      line-height: 1;
+    }
+    .filter-toggle-btn:not(.active) .filter-toggle-badge {
+      background: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--divider-color);
+      background: transparent;
+      color: var(--secondary-text-color);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+      --mdc-icon-size: 15px;
+    }
+    .btn-secondary:hover { border-color: var(--primary-color); color: var(--primary-color); }
+    .btn-secondary.active {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+
+    /* Column picker panel */
+    .column-picker {
+      background: var(--card-background-color);
+      border: 1px solid var(--divider-color);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+    }
+    .column-picker-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
+    }
+    .column-picker-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--secondary-text-color);
+    }
+    .column-picker-limit {
+      font-size: 11px;
+      color: var(--primary-color);
+      font-weight: 500;
+    }
+    .column-picker-options {
+      display: flex;
       flex-wrap: wrap;
       gap: 8px;
     }
-    h2 { margin: 0; font-size: 20px; font-weight: 500; }
+    .col-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--divider-color);
+      cursor: pointer;
+      font-size: 13px;
+      user-select: none;
+      background: transparent;
+      color: var(--primary-text-color);
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .col-option:has(input:checked) {
+      background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+      border-color: color-mix(in srgb, var(--primary-color) 40%, var(--divider-color));
+    }
+    .col-option.at-limit {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .col-option input[type="checkbox"] {
+      accent-color: var(--primary-color);
+      width: 14px;
+      height: 14px;
+      cursor: inherit;
+    }
+
     .empty {
       text-align: center;
       padding: 60px 20px;
       color: var(--secondary-text-color);
       font-size: 14px;
     }
+
+    /* Table */
+    ha-card { overflow: hidden; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th {
       text-align: left;
@@ -3443,12 +3962,11 @@ IkTaskHistoryView.styles = i$3 `
       border-bottom: 1px solid var(--divider-color);
       white-space: nowrap;
     }
-    td {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--divider-color);
-      vertical-align: middle;
-    }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--divider-color); vertical-align: middle; }
     tbody tr:last-child td { border-bottom: none; }
+    tbody tr { cursor: pointer; }
+    tbody tr:hover { background: var(--secondary-background-color); }
+    .task-num { color: var(--secondary-text-color); font-size: 12px; white-space: nowrap; }
     .task-name { font-weight: 500; color: var(--primary-text-color); }
     .late-badge {
       display: inline-block;
@@ -3458,7 +3976,6 @@ IkTaskHistoryView.styles = i$3 `
       font-weight: 600;
       padding: 1px 6px;
       border-radius: 4px;
-      margin-left: 6px;
       vertical-align: middle;
     }
     .btn-view {
@@ -3477,6 +3994,8 @@ IkTaskHistoryView.styles = i$3 `
       --mdc-icon-size: 14px;
     }
     .btn-view:hover { background: var(--secondary-background-color); }
+
+    /* Pagination */
     .pagination {
       display: flex;
       align-items: center;
@@ -3504,7 +4023,11 @@ IkTaskHistoryView.styles = i$3 `
       font-size: 13px;
     }
     .page-btn:disabled { opacity: 0.4; cursor: default; }
-    ha-card { overflow: hidden; }
+
+    /* Mobile */
+    @media (hover: none) and (pointer: coarse) {
+      .btn-export, .btn-print { display: none; }
+    }
   `;
 __decorate([
     n({ attribute: false })
@@ -3518,6 +4041,36 @@ __decorate([
 __decorate([
     r()
 ], IkTaskHistoryView.prototype, "_pageSize", void 0);
+__decorate([
+    r()
+], IkTaskHistoryView.prototype, "_areas", void 0);
+__decorate([
+    r()
+], IkTaskHistoryView.prototype, "_devices", void 0);
+__decorate([
+    r()
+], IkTaskHistoryView.prototype, "_selectedAreaIds", void 0);
+__decorate([
+    r()
+], IkTaskHistoryView.prototype, "_selectedDeviceIds", void 0);
+__decorate([
+    r()
+], IkTaskHistoryView.prototype, "_filterMode", void 0);
+__decorate([
+    r()
+], IkTaskHistoryView.prototype, "_showLinkFilters", void 0);
+__decorate([
+    r()
+], IkTaskHistoryView.prototype, "_visibleColumns", void 0);
+__decorate([
+    r()
+], IkTaskHistoryView.prototype, "_visibleColumnsMobile", void 0);
+__decorate([
+    r()
+], IkTaskHistoryView.prototype, "_showColumnPicker", void 0);
+__decorate([
+    r()
+], IkTaskHistoryView.prototype, "_isMobile", void 0);
 IkTaskHistoryView = __decorate([
     t$1("ik-task-history-view")
 ], IkTaskHistoryView);
@@ -3708,6 +4261,672 @@ IkSettingsView = __decorate([
     t$1("ik-settings-view")
 ], IkSettingsView);
 
+// Shared with task-list-view so area/device filters persist across views
+const FILTER_AREAS_KEY = "intellikeep.filterAreas";
+const FILTER_DEVICES_KEY = "intellikeep.filterDevices";
+const FILTER_MODE_KEY = "intellikeep.filterMode";
+const PRIORITY_COLOR = {
+    low: "var(--success-color, #4caf50)",
+    medium: "var(--warning-color, #ff9800)",
+    high: "var(--error-color, #f44336)",
+    critical: "#9c27b0",
+};
+function isoDate(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function sameDay(a, b) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+function addDays(d, n) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+}
+function startOfWeek(d) {
+    const day = d.getDay(); // 0 = Sun, ISO week starts Monday
+    return addDays(d, day === 0 ? -6 : 1 - day);
+}
+function loadStoredList(key) {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw)
+            return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.filter((v) => typeof v === "string") : [];
+    }
+    catch {
+        return [];
+    }
+}
+let IkCalendarView = class IkCalendarView extends i {
+    constructor() {
+        super(...arguments);
+        this.tasks = [];
+        this._mode = (() => {
+            const s = localStorage.getItem("intellikeep.calendar.mode");
+            return s === "week" ? "week" : "month";
+        })();
+        this._refDate = (() => {
+            const s = localStorage.getItem("intellikeep.calendar.refDate");
+            if (s) {
+                const [y, m, d] = s.split("-").map(Number);
+                if (y && m && d)
+                    return new Date(y, m - 1, d);
+            }
+            const d = new Date();
+            return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        })();
+        // ── Filters ──────────────────────────────────────────────────────────────
+        this._showFilters = false;
+        this._filterPriority = (() => {
+            const s = localStorage.getItem("intellikeep.calendar.filterPriority");
+            return (s === "critical" || s === "high" || s === "medium" || s === "low") ? s : "all";
+        })();
+        this._filterMode = localStorage.getItem(FILTER_MODE_KEY) ?? "or";
+        this._selectedAreaIds = loadStoredList(FILTER_AREAS_KEY);
+        this._selectedDeviceIds = loadStoredList(FILTER_DEVICES_KEY);
+        this._areas = [];
+        this._devices = [];
+    }
+    connectedCallback() {
+        super.connectedCallback();
+        void this._loadRegistries();
+    }
+    updated(changed) {
+        if (changed.has("_refDate")) {
+            localStorage.setItem("intellikeep.calendar.refDate", isoDate(this._refDate));
+        }
+        if (changed.has("_mode")) {
+            localStorage.setItem("intellikeep.calendar.mode", this._mode);
+        }
+        if (changed.has("_filterPriority")) {
+            localStorage.setItem("intellikeep.calendar.filterPriority", this._filterPriority);
+        }
+    }
+    async _loadRegistries() {
+        try {
+            const [areas, devices] = await Promise.all([
+                this.hass.connection.sendMessagePromise({ type: "config/area_registry/list" }),
+                this.hass.connection.sendMessagePromise({ type: "config/device_registry/list" }),
+            ]);
+            this._areas = areas.sort((a, b) => a.name.localeCompare(b.name));
+            this._devices = devices.sort((a, b) => (a.name_by_user || a.name).localeCompare(b.name_by_user || b.name));
+        }
+        catch {
+            // registries unavailable — area/device filters just won't work
+        }
+    }
+    _onFilterChanged(e) {
+        const { selectedAreaIds, selectedDeviceIds, filterMode } = e.detail;
+        this._selectedAreaIds = selectedAreaIds;
+        this._selectedDeviceIds = selectedDeviceIds;
+        this._filterMode = filterMode;
+        localStorage.setItem(FILTER_MODE_KEY, filterMode);
+        localStorage.setItem(FILTER_AREAS_KEY, JSON.stringify(selectedAreaIds));
+        localStorage.setItem(FILTER_DEVICES_KEY, JSON.stringify(selectedDeviceIds));
+    }
+    _matchesLinkedFilters(task) {
+        if (this._selectedAreaIds.length === 0 && this._selectedDeviceIds.length === 0)
+            return true;
+        const taskAreaIds = new Set(task.linked_entity_ids.filter(v => v.startsWith("area:")).map(v => v.slice(5)));
+        const taskDeviceIds = new Set(task.linked_entity_ids.filter(v => v.startsWith("device:")).map(v => v.slice(7)));
+        const matchesArea = this._selectedAreaIds.length === 0 ? null
+            : this._selectedAreaIds.some(areaId => {
+                if (taskAreaIds.has(areaId))
+                    return true;
+                return [...taskDeviceIds].some(deviceId => {
+                    const dev = this._devices.find(d => d.id === deviceId);
+                    return dev?.area_id === areaId;
+                });
+            });
+        const matchesDevice = this._selectedDeviceIds.length === 0 ? null
+            : this._selectedDeviceIds.some(deviceId => taskDeviceIds.has(deviceId));
+        if (matchesArea === null)
+            return Boolean(matchesDevice);
+        if (matchesDevice === null)
+            return matchesArea;
+        return this._filterMode === "and" ? matchesArea && matchesDevice : matchesArea || matchesDevice;
+    }
+    _filteredTaskMap() {
+        const map = new Map();
+        for (const task of this.tasks) {
+            if (!task.due_date)
+                continue;
+            if (this._filterPriority !== "all" && task.priority !== this._filterPriority)
+                continue;
+            if (!this._matchesLinkedFilters(task))
+                continue;
+            const key = task.due_date.slice(0, 10);
+            if (!map.has(key))
+                map.set(key, []);
+            map.get(key).push(task);
+        }
+        return map;
+    }
+    get _today() {
+        const d = new Date();
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+    _openTask(taskId) {
+        const isDesktop = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+        if (isDesktop) {
+            this.dispatchEvent(new CustomEvent("open-task-modal", { detail: taskId, bubbles: true, composed: true }));
+        }
+        else {
+            this.dispatchEvent(new CustomEvent("navigate", { detail: `/edit/${taskId}`, bubbles: true, composed: true }));
+        }
+    }
+    _navigate(delta) {
+        const d = new Date(this._refDate);
+        if (this._mode === "week")
+            d.setDate(d.getDate() + delta * 7);
+        else
+            d.setMonth(d.getMonth() + delta);
+        this._refDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+    _periodLabel() {
+        const lang = this.hass?.language ?? "en";
+        if (this._mode === "month") {
+            return this._refDate.toLocaleDateString(lang, { month: "long", year: "numeric" });
+        }
+        const ws = startOfWeek(this._refDate);
+        const we = addDays(ws, 6);
+        const wsStr = ws.toLocaleDateString(lang, { day: "numeric", month: "short" });
+        const weStr = we.toLocaleDateString(lang, { day: "numeric", month: "short", year: "numeric" });
+        return `${wsStr} – ${weStr}`;
+    }
+    _taskColor(task) {
+        if (task.status === "completed")
+            return "var(--secondary-text-color)";
+        return PRIORITY_COLOR[task.priority] ?? "var(--secondary-text-color)";
+    }
+    _renderMonthView(taskMap) {
+        const lang = this.hass?.language ?? "en";
+        const today = this._today;
+        const firstDay = new Date(this._refDate.getFullYear(), this._refDate.getMonth(), 1);
+        const lastDay = new Date(this._refDate.getFullYear(), this._refDate.getMonth() + 1, 0);
+        const gridStart = startOfWeek(firstDay);
+        const gridEnd = addDays(startOfWeek(lastDay), 6);
+        const days = [];
+        let cur = gridStart;
+        while (cur <= gridEnd) {
+            days.push(cur);
+            cur = addDays(cur, 1);
+        }
+        const weekdays = Array.from({ length: 7 }, (_, i) => addDays(gridStart, i).toLocaleDateString(lang, { weekday: "short" }));
+        const weekRows = days.length / 7;
+        const gridStyle = `grid-template-rows: auto repeat(${weekRows}, 1fr); min-height: calc(33px + ${weekRows} * 70px)`;
+        return b `
+      <div class="month-grid" style="${gridStyle}">
+        ${weekdays.map(w => b `<div class="weekday-header">${w}</div>`)}
+        ${days.map(d => {
+            const key = isoDate(d);
+            const dayTasks = (taskMap.get(key) ?? []).sort((a, b) => {
+                const aU = a.status === "due" || a.status === "overdue";
+                const bU = b.status === "due" || b.status === "overdue";
+                if (aU && !bU)
+                    return -1;
+                if (!aU && bU)
+                    return 1;
+                return 0;
+            });
+            const isToday = sameDay(d, today);
+            const isOtherMonth = d.getMonth() !== this._refDate.getMonth();
+            const shown = dayTasks.slice(0, 3);
+            const overflow = dayTasks.length - 3;
+            return b `
+            <div class="month-cell ${isToday ? "today" : ""} ${isOtherMonth ? "other-month" : ""}">
+              <div class="day-num">${d.getDate()}</div>
+              ${shown.map(task => b `
+                <div
+                  class="month-task-pill ${task.status === "completed" ? "completed" : ""}"
+                  style="background:${this._taskColor(task)}"
+                  title="${task.name}"
+                  @click=${() => this._openTask(task.task_id)}
+                >${task.name}</div>
+              `)}
+              ${overflow > 0 ? b `<div class="more-tasks">+${overflow}</div>` : ""}
+            </div>
+          `;
+        })}
+      </div>
+    `;
+    }
+    _renderWeekView(taskMap) {
+        const lang = this.hass?.language ?? "en";
+        const today = this._today;
+        const ws = startOfWeek(this._refDate);
+        const days = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
+        return b `
+      <div class="week-grid">
+        ${days.map(d => {
+            const isToday = sameDay(d, today);
+            return b `
+            <div class="week-day-header ${isToday ? "today" : ""}">
+              <div class="wdh-name">${d.toLocaleDateString(lang, { weekday: "short" })}</div>
+              <div class="wdh-num">${d.getDate()}</div>
+            </div>
+          `;
+        })}
+        ${days.map(d => {
+            const key = isoDate(d);
+            const dayTasks = taskMap.get(key) ?? [];
+            const isToday = sameDay(d, today);
+            return b `
+            <div class="week-col ${isToday ? "today" : ""}">
+              ${dayTasks.map(task => b `
+                <div
+                  class="week-task-pill ${task.status === "completed" ? "completed" : ""}"
+                  style="background:${this._taskColor(task)}"
+                  title="${task.name}"
+                  @click=${() => this._openTask(task.task_id)}
+                >${task.name}</div>
+              `)}
+            </div>
+          `;
+        })}
+      </div>
+    `;
+    }
+    render() {
+        const tr = t(this.hass?.language);
+        const taskMap = this._filteredTaskMap();
+        const activeFilterCount = this._selectedAreaIds.length +
+            this._selectedDeviceIds.length +
+            (this._filterPriority !== "all" ? 1 : 0);
+        const hasFilters = activeFilterCount > 0;
+        return b `
+      <div class="cal-toolbar">
+        <div class="mode-group">
+          <button class="mode-btn ${this._mode === "week" ? "active" : ""}" @click=${() => { this._mode = "week"; }}>${tr.calendarWeek}</button>
+          <button class="mode-btn ${this._mode === "month" ? "active" : ""}" @click=${() => { this._mode = "month"; }}>${tr.calendarMonth}</button>
+        </div>
+        <div class="nav-group">
+          <button class="nav-btn" title="Previous" @click=${() => this._navigate(-1)}>‹</button>
+          <button class="today-btn" @click=${() => { this._refDate = this._today; }}>${tr.calendarToday}</button>
+          <button class="nav-btn" title="Next" @click=${() => this._navigate(1)}>›</button>
+        </div>
+        <span class="period-label">${this._periodLabel()}</span>
+        <button
+          class="filter-btn ${this._showFilters ? "active" : ""} ${hasFilters ? "has-filters" : ""}"
+          title=${tr.filterToggleTitle}
+          @click=${() => { this._showFilters = !this._showFilters; }}
+        >
+          <ha-icon icon="mdi:filter" style="--mdc-icon-size:18px"></ha-icon>
+          ${hasFilters ? b `<span class="filter-badge">${activeFilterCount}</span>` : ""}
+        </button>
+      </div>
+
+      ${this._showFilters ? b `
+        <div class="filter-panel">
+          <ik-link-filter
+            .hass=${this.hass}
+            .areas=${this._areas}
+            .devices=${this._devices}
+            .selectedAreaIds=${this._selectedAreaIds}
+            .selectedDeviceIds=${this._selectedDeviceIds}
+            .filterMode=${this._filterMode}
+            ?open=${true}
+            @filter-changed=${(e) => this._onFilterChanged(e)}
+          ></ik-link-filter>
+          <div class="filter-row">
+            <select
+              class="priority-select"
+              .value=${this._filterPriority}
+              @change=${(e) => { this._filterPriority = e.target.value; }}
+            >
+              <option value="all">${tr.allPriorities}</option>
+              <option value="critical">${tr.critical}</option>
+              <option value="high">${tr.high}</option>
+              <option value="medium">${tr.medium}</option>
+              <option value="low">${tr.low}</option>
+            </select>
+          </div>
+        </div>
+      ` : ""}
+
+      <div class="cal-body">
+        ${this._mode === "month"
+            ? this._renderMonthView(taskMap)
+            : this._renderWeekView(taskMap)}
+      </div>
+    `;
+    }
+};
+// ─────────────────────────────────────────────────────────────────────────
+IkCalendarView.styles = i$3 `
+    :host {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* ── Toolbar ── */
+    .cal-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px 8px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .mode-group {
+      display: flex;
+      background: var(--secondary-background-color);
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .mode-btn {
+      background: none;
+      border: none;
+      padding: 5px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--secondary-text-color);
+      font-weight: 500;
+      transition: background 0.15s, color 0.15s;
+    }
+    .mode-btn.active {
+      background: var(--card-background-color);
+      color: var(--primary-color);
+      box-shadow: 0 1px 3px rgba(0,0,0,.15);
+    }
+
+    .nav-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .nav-btn {
+      background: none;
+      border: 1px solid var(--divider-color);
+      border-radius: 6px;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      color: var(--primary-text-color);
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    .nav-btn:hover { background: var(--secondary-background-color); }
+
+    .today-btn {
+      background: none;
+      border: 1px solid var(--divider-color);
+      border-radius: 6px;
+      padding: 5px 12px;
+      height: 32px;
+      cursor: pointer;
+      color: var(--primary-text-color);
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .today-btn:hover { background: var(--secondary-background-color); }
+
+    .period-label {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--primary-text-color);
+      margin-left: 4px;
+      text-transform: capitalize;
+      flex: 1;
+    }
+
+    .filter-btn {
+      background: none;
+      border: 1px solid var(--divider-color);
+      border-radius: 6px;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      color: var(--secondary-text-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .filter-btn:hover { background: var(--secondary-background-color); }
+    .filter-btn.active { color: var(--primary-color); border-color: var(--primary-color); }
+    .filter-btn.has-filters { color: var(--primary-color); border-color: var(--primary-color); }
+
+    .filter-badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: var(--primary-color);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 700;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    /* ── Filter panel ── */
+    .filter-panel {
+      padding: 0 20px 10px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .priority-select {
+      height: 30px;
+      border: 1px solid var(--divider-color);
+      border-radius: 6px;
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      font-size: 12px;
+      padding: 0 8px;
+      cursor: pointer;
+    }
+
+    /* ── Scrollable body ── */
+    .cal-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 4px 20px 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Month grid ── */
+    .month-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 1px;
+      background: var(--divider-color);
+      border: 1px solid var(--divider-color);
+      border-radius: 8px;
+      overflow: hidden;
+      flex: 1;
+    }
+
+    .weekday-header {
+      background: var(--secondary-background-color);
+      text-align: center;
+      padding: 8px 4px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--secondary-text-color);
+    }
+
+    .month-cell {
+      background: var(--card-background-color);
+      min-height: 70px;
+      padding: 5px 4px;
+      overflow: hidden;
+    }
+    .month-cell.other-month { background: var(--primary-background-color); }
+
+    .day-num {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--secondary-text-color);
+      margin-bottom: 4px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .month-cell.today .day-num {
+      background: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+
+    .month-task-pill {
+      font-size: 10px;
+      padding: 1px 4px;
+      border-radius: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+      color: #fff;
+      font-weight: 500;
+      line-height: 1.6;
+      margin-bottom: 2px;
+      display: block;
+    }
+    .month-task-pill:hover { opacity: 0.82; }
+    .month-task-pill.completed { opacity: 0.45; text-decoration: line-through; }
+
+    .more-tasks {
+      font-size: 10px;
+      color: var(--secondary-text-color);
+      padding: 0 2px;
+      font-weight: 500;
+    }
+
+    /* ── Week grid ── */
+    .week-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      grid-template-rows: auto 1fr;
+      gap: 1px;
+      background: var(--divider-color);
+      border: 1px solid var(--divider-color);
+      border-radius: 8px;
+      overflow: hidden;
+      flex: 1;
+      min-height: calc(56px + 200px);
+    }
+
+    .week-day-header {
+      background: var(--secondary-background-color);
+      text-align: center;
+      padding: 6px 4px;
+    }
+    .wdh-name {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--secondary-text-color);
+    }
+    .wdh-num {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--primary-text-color);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 2px auto 0;
+    }
+    .week-day-header.today .wdh-num {
+      background: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+
+    .week-col {
+      background: var(--card-background-color);
+      padding: 6px 4px;
+      overflow-y: auto;
+    }
+    .week-col.today { background: var(--secondary-background-color); }
+
+    .week-task-pill {
+      font-size: 11px;
+      padding: 3px 6px;
+      border-radius: 4px;
+      margin-bottom: 3px;
+      cursor: pointer;
+      color: #fff;
+      font-weight: 500;
+      line-height: 1.4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: block;
+    }
+    .week-task-pill:hover { opacity: 0.82; }
+    .week-task-pill.completed { opacity: 0.45; text-decoration: line-through; }
+  `;
+__decorate([
+    n({ attribute: false })
+], IkCalendarView.prototype, "hass", void 0);
+__decorate([
+    n({ attribute: false })
+], IkCalendarView.prototype, "tasks", void 0);
+__decorate([
+    r()
+], IkCalendarView.prototype, "_mode", void 0);
+__decorate([
+    r()
+], IkCalendarView.prototype, "_refDate", void 0);
+__decorate([
+    r()
+], IkCalendarView.prototype, "_showFilters", void 0);
+__decorate([
+    r()
+], IkCalendarView.prototype, "_filterPriority", void 0);
+__decorate([
+    r()
+], IkCalendarView.prototype, "_filterMode", void 0);
+__decorate([
+    r()
+], IkCalendarView.prototype, "_selectedAreaIds", void 0);
+__decorate([
+    r()
+], IkCalendarView.prototype, "_selectedDeviceIds", void 0);
+__decorate([
+    r()
+], IkCalendarView.prototype, "_areas", void 0);
+__decorate([
+    r()
+], IkCalendarView.prototype, "_devices", void 0);
+IkCalendarView = __decorate([
+    t$1("ik-calendar-view")
+], IkCalendarView);
+
 // HA passes hass + panel + route to panel elements automatically.
 let IntelliKeepPanel = class IntelliKeepPanel extends i {
     constructor() {
@@ -3715,6 +4934,7 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
         this.narrow = false;
         this._tasks = [];
         this._currentPath = "/tasks";
+        this._returnPath = "/tasks";
         this._loading = true;
         this._enableAnimations = true;
         this._modalStack = [];
@@ -3747,6 +4967,9 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
         this._currentPath = hash;
     }
     _navigate(path) {
+        if (path.startsWith("/edit/") || path === "/new") {
+            this._returnPath = this._currentPath;
+        }
         this._currentPath = path;
         history.replaceState(null, "", location.pathname + "#" + path);
     }
@@ -3763,11 +4986,14 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
         const isNew = path === "/new";
         const isEdit = path.startsWith("/edit/");
         const isSettings = path === "/settings";
-        const isTasks = !isNew && !isEdit && !isSettings;
+        const isHistory = path === "/history";
+        const isCalendar = path === "/calendar";
+        const isTasks = !isNew && !isEdit && !isSettings && !isHistory && !isCalendar;
+        const showTabs = isTasks || isHistory || isCalendar;
         return b `
       <div class="appbar">
         ${isMobile && (isNew || isEdit || isSettings) ? b `
-          <ha-icon-button class="appbar-back" .label=${tr.back} @click=${() => this._navigate("/tasks")} path="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z">
+          <ha-icon-button class="appbar-back" .label=${tr.back} @click=${() => this._navigate(this._returnPath)} path="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z">
           </ha-icon-button>
         ` : b `<ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>`}
         <span class="appbar-title">${isMobile && (isNew || isEdit || isSettings)
@@ -3776,7 +5002,7 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
                     : (() => { const t2 = this._getEditTask(); return t2?.task_number ? `${tr.editTask} #${String(t2.task_number).padStart(3, "0")}` : tr.editTask; })()
             : "IntelliKeep"}</span>
         <div class="appbar-actions">
-          ${isTasks ? b `
+          ${showTabs ? b `
             <ha-icon-button class="appbar-back" .label=${tr.newTask} @click=${() => {
             if (isMobile) {
                 this._navigate("/new");
@@ -3801,6 +5027,13 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
 
 
 <div class="content" @navigate=${(e) => this._navigate(e.detail)} @open-task-modal=${(e) => { this._modalStack = [e.detail]; }}>
+        ${showTabs ? b `
+          <div class="tabs">
+            <div class="tab ${isTasks ? "active" : ""}" @click=${() => this._navigate("/tasks")}>${tr.tasks}</div>
+            <div class="tab ${isCalendar ? "active" : ""}" @click=${() => this._navigate("/calendar")}>${tr.calendarNavTab}</div>
+            <div class="tab ${isHistory ? "active" : ""}" @click=${() => this._navigate("/history")}>${tr.historyNavTab}</div>
+          </div>
+        ` : A}
         ${isTasks && !this._loading
             ? b `
               <ik-task-list-view
@@ -3810,43 +5043,59 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
                 @navigate=${(e) => this._navigate(e.detail)}
               ></ik-task-list-view>
             `
-            : b `<div class="content-scroll">
+            : isCalendar && !this._loading
+                ? b `
+              <ik-calendar-view
+                .hass=${this.hass}
+                .tasks=${this._tasks}
+              ></ik-calendar-view>
+            `
+                : b `<div class="content-scroll">
             ${this._loading
-                ? b `<p>${tr.loading}</p>`
-                : isNew
-                    ? b `
+                    ? b `<p>${tr.loading}</p>`
+                    : isNew
+                        ? b `
                   ${!isMobile ? b `<div class="page-title">${tr.newTaskTitle}</div>` : A}
                   <ik-task-form-view
                     .hass=${this.hass}
                     .tasks=${this._tasks}
                     .enableAnimations=${this._enableAnimations}
+                    .returnPath=${this._returnPath}
                     @navigate=${(e) => this._navigate(e.detail)}
                   ></ik-task-form-view>
                 `
-                    : isEdit
-                        ? b `
+                        : isEdit
+                            ? b `
                   ${!isMobile ? b `<div class="page-title">${(() => { const t2 = this._getEditTask(); return t2?.task_number ? `${tr.editTask} #${String(t2.task_number).padStart(3, '0')}` : tr.editTask; })()}</div>` : A}
                   <ik-task-form-view
                     .hass=${this.hass}
                     .task=${this._getEditTask()}
                     .tasks=${this._tasks}
                     .enableAnimations=${this._enableAnimations}
+                    .returnPath=${this._returnPath}
                     @navigate=${(e) => this._navigate(e.detail)}
                   ></ik-task-form-view>
                 `
-                        : isSettings
-                            ? b `
+                            : isSettings
+                                ? b `
                   ${!isMobile ? b `<div class="page-title">${tr.settingsTitle}</div>` : A}
                   <ik-settings-view
                     .hass=${this.hass}
                     .enableAnimations=${this._enableAnimations}
                     @animations-changed=${(e) => {
-                                this._enableAnimations = e.detail;
-                                localStorage.setItem("intellikeep.animations", String(e.detail));
-                            }}
+                                    this._enableAnimations = e.detail;
+                                    localStorage.setItem("intellikeep.animations", String(e.detail));
+                                }}
                   ></ik-settings-view>
                 `
-                            : A}
+                                : isHistory
+                                    ? b `
+                  <ik-task-history-view
+                    .hass=${this.hass}
+                    .tasks=${this._tasks}
+                  ></ik-task-history-view>
+                `
+                                    : A}
           </div>`}
       </div>
 
@@ -4047,6 +5296,9 @@ __decorate([
 __decorate([
     r()
 ], IntelliKeepPanel.prototype, "_currentPath", void 0);
+__decorate([
+    r()
+], IntelliKeepPanel.prototype, "_returnPath", void 0);
 __decorate([
     r()
 ], IntelliKeepPanel.prototype, "_loading", void 0);
