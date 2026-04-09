@@ -129,13 +129,9 @@ const messages = {
         undo: "Reopen",
         edit: "Edit",
         del: "Del",
-        allStatuses: "All statuses",
         overdue: "Overdue",
-        dueToday: "Due today",
         pending: "Pending",
-        allPending: "All",
         completed: "Done",
-        allUrgencies: "All",
         allPriorities: "All priorities",
         filterAreasLabel: "Areas",
         filterAreasPlaceholder: "Add area filter…",
@@ -277,13 +273,9 @@ const messages = {
         undo: "Reabrir",
         edit: "Editar",
         del: "Excluir",
-        allStatuses: "Todos os status",
         overdue: "Atrasada",
-        dueToday: "Vence hoje",
         pending: "Pendente",
-        allPending: "Todas",
         completed: "Concluída",
-        allUrgencies: "Todas",
         allPriorities: "Todas as prioridades",
         filterAreasLabel: "Áreas",
         filterAreasPlaceholder: "Adicionar filtro de área…",
@@ -425,13 +417,9 @@ const messages = {
         undo: "Reabrir",
         edit: "Editar",
         del: "Eliminar",
-        allStatuses: "Todos los estados",
         overdue: "Vencida",
-        dueToday: "Vence hoy",
         pending: "Pendiente",
-        allPending: "Todas",
         completed: "Completada",
-        allUrgencies: "Todas",
         allPriorities: "Todas las prioridades",
         filterAreasLabel: "Áreas",
         filterAreasPlaceholder: "Agregar filtro de área…",
@@ -1903,10 +1891,6 @@ IkTaskListView.styles = i$3 `
       border-color: var(--primary-color);
       color: var(--text-primary-color, #fff);
     }
-    .filter-chip.active.chip-overdue {
-      background: var(--error-color, #f44336);
-      border-color: var(--error-color, #f44336);
-    }
     .filter-chip.active.chip-completed {
       background: var(--success-color, #4caf50);
       border-color: var(--success-color, #4caf50);
@@ -2199,17 +2183,6 @@ IkTaskListView.styles = i$3 `
     .page-btn:disabled {
       opacity: 0.4;
       cursor: default;
-    }
-    @media (max-width: 760px) {
-      .filter-select {
-        flex-basis: 100%;
-      }
-      .add-filter-btn {
-        margin-left: auto;
-      }
-      .filter-mode-group {
-        width: 100%;
-      }
     }
     @keyframes ik-done-exit {
       0%   { transform: translateX(0);    opacity: 1; background: transparent; }
@@ -4567,19 +4540,17 @@ let IkCalendarView = class IkCalendarView extends i {
             ?open=${true}
             @filter-changed=${(e) => this._onFilterChanged(e)}
           ></ik-link-filter>
-          <div class="filter-row">
-            <select
-              class="priority-select"
-              .value=${this._filterPriority}
-              @change=${(e) => { this._filterPriority = e.target.value; }}
-            >
-              <option value="all">${tr.allPriorities}</option>
-              <option value="critical">${tr.critical}</option>
-              <option value="high">${tr.high}</option>
-              <option value="medium">${tr.medium}</option>
-              <option value="low">${tr.low}</option>
-            </select>
-          </div>
+          <select
+            class="priority-select"
+            .value=${this._filterPriority}
+            @change=${(e) => { this._filterPriority = e.target.value; }}
+          >
+            <option value="all">${tr.allPriorities}</option>
+            <option value="critical">${tr.critical}</option>
+            <option value="high">${tr.high}</option>
+            <option value="medium">${tr.medium}</option>
+            <option value="low">${tr.low}</option>
+          </select>
         </div>
       ` : ""}
 
@@ -4694,8 +4665,7 @@ IkCalendarView.styles = i$3 `
       flex-shrink: 0;
     }
     .filter-btn:hover { background: var(--secondary-background-color); }
-    .filter-btn.active { color: var(--primary-color); border-color: var(--primary-color); }
-    .filter-btn.has-filters { color: var(--primary-color); border-color: var(--primary-color); }
+    .filter-btn.active, .filter-btn.has-filters { color: var(--primary-color); border-color: var(--primary-color); }
 
     .filter-badge {
       position: absolute;
@@ -4721,13 +4691,6 @@ IkCalendarView.styles = i$3 `
       display: flex;
       flex-direction: column;
       gap: 8px;
-    }
-
-    .filter-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
     }
 
     .priority-select {

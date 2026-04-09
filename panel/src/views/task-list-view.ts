@@ -107,10 +107,6 @@ export class IkTaskListView extends LitElement {
       border-color: var(--primary-color);
       color: var(--text-primary-color, #fff);
     }
-    .filter-chip.active.chip-overdue {
-      background: var(--error-color, #f44336);
-      border-color: var(--error-color, #f44336);
-    }
     .filter-chip.active.chip-completed {
       background: var(--success-color, #4caf50);
       border-color: var(--success-color, #4caf50);
@@ -403,17 +399,6 @@ export class IkTaskListView extends LitElement {
     .page-btn:disabled {
       opacity: 0.4;
       cursor: default;
-    }
-    @media (max-width: 760px) {
-      .filter-select {
-        flex-basis: 100%;
-      }
-      .add-filter-btn {
-        margin-left: auto;
-      }
-      .filter-mode-group {
-        width: 100%;
-      }
     }
     @keyframes ik-done-exit {
       0%   { transform: translateX(0);    opacity: 1; background: transparent; }
