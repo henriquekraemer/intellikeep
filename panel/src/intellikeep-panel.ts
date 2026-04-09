@@ -7,6 +7,7 @@ import "./views/task-list-view";
 import "./views/task-form-view";
 import "./views/task-history-view";
 import "./views/settings-view";
+import "./views/calendar-view";
 
 // HA passes hass + panel + route to panel elements automatically.
 @customElement("intellikeep-panel")
@@ -18,6 +19,7 @@ export class IntelliKeepPanel extends LitElement {
 
   @state() private _tasks: Task[] = [];
   @state() private _currentPath = "/tasks";
+  @state() private _returnPath = "/tasks";
   @state() private _loading = true;
   @state() private _enableAnimations = true;
   @state() private _modalStack: string[] = [];
@@ -187,6 +189,9 @@ export class IntelliKeepPanel extends LitElement {
   }
 
   private _navigate(path: string) {
+    if (path.startsWith("/edit/") || path === "/new") {
+      this._returnPath = this._currentPath;
+    }
     this._currentPath = path;
     history.replaceState(null, "", location.pathname + "#" + path);
   }
@@ -205,13 +210,16 @@ export class IntelliKeepPanel extends LitElement {
     const isNew = path === "/new";
     const isEdit = path.startsWith("/edit/");
     const isSettings = path === "/settings";
-    const isTasks = !isNew && !isEdit && !isSettings;
+    const isHistory = path === "/history";
+    const isCalendar = path === "/calendar";
+    const isTasks = !isNew && !isEdit && !isSettings && !isHistory && !isCalendar;
+    const showTabs = isTasks || isHistory || isCalendar;
 
 
 return html`
       <div class="appbar">
         ${isMobile && (isNew || isEdit || isSettings) ? html`
-          <ha-icon-button class="appbar-back" .label=${tr.back} @click=${() => this._navigate("/tasks")} path="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z">
+          <ha-icon-button class="appbar-back" .label=${tr.back} @click=${() => this._navigate(this._returnPath)} path="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z">
           </ha-icon-button>
         ` : html`<ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>`}
         <span class="appbar-title">${isMobile && (isNew || isEdit || isSettings)
@@ -220,7 +228,7 @@ return html`
           : (() => { const t2 = this._getEditTask(); return t2?.task_number ? `${tr.editTask} #${String(t2.task_number).padStart(3, "0")}` : tr.editTask; })()
           : "IntelliKeep"}</span>
         <div class="appbar-actions">
-          ${isTasks ? html`
+          ${showTabs ? html`
             <ha-icon-button class="appbar-back" .label=${tr.newTask} @click=${() => {
               if (isMobile) {
                 this._navigate("/new");
@@ -243,6 +251,13 @@ return html`
 
 
 <div class="content" @navigate=${(e: CustomEvent) => this._navigate(e.detail)} @open-task-modal=${(e: CustomEvent) => { this._modalStack = [e.detail]; }}>
+        ${showTabs ? html`
+          <div class="tabs">
+            <div class="tab ${isTasks ? "active" : ""}" @click=${() => this._navigate("/tasks")}>${tr.tasks}</div>
+            <div class="tab ${isCalendar ? "active" : ""}" @click=${() => this._navigate("/calendar")}>${tr.calendarNavTab}</div>
+            <div class="tab ${isHistory ? "active" : ""}" @click=${() => this._navigate("/history")}>${tr.historyNavTab}</div>
+          </div>
+        ` : nothing}
         ${isTasks && !this._loading
           ? html`
               <ik-task-list-view
@@ -251,6 +266,13 @@ return html`
                 .enableAnimations=${this._enableAnimations}
                 @navigate=${(e: CustomEvent) => this._navigate(e.detail)}
               ></ik-task-list-view>
+            `
+          : isCalendar && !this._loading
+          ? html`
+              <ik-calendar-view
+                .hass=${this.hass}
+                .tasks=${this._tasks}
+              ></ik-calendar-view>
             `
           : html`<div class="content-scroll">
             ${this._loading
@@ -262,6 +284,7 @@ return html`
                     .hass=${this.hass}
                     .tasks=${this._tasks}
                     .enableAnimations=${this._enableAnimations}
+                    .returnPath=${this._returnPath}
                     @navigate=${(e: CustomEvent) => this._navigate(e.detail)}
                   ></ik-task-form-view>
                 `
@@ -273,6 +296,7 @@ return html`
                     .task=${this._getEditTask()}
                     .tasks=${this._tasks}
                     .enableAnimations=${this._enableAnimations}
+                    .returnPath=${this._returnPath}
                     @navigate=${(e: CustomEvent) => this._navigate(e.detail)}
                   ></ik-task-form-view>
                 `
@@ -287,6 +311,13 @@ return html`
                       localStorage.setItem("intellikeep.animations", String(e.detail));
                     }}
                   ></ik-settings-view>
+                `
+              : isHistory
+              ? html`
+                  <ik-task-history-view
+                    .hass=${this.hass}
+                    .tasks=${this._tasks}
+                  ></ik-task-history-view>
                 `
               : nothing}
           </div>`}

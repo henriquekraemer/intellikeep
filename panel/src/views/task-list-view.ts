@@ -5,7 +5,7 @@ import { completeTask, reopenTask, deleteTask } from "../api";
 import { t } from "../translations";
 import "../components/task-card";
 import "../components/confirm-dialog";
-import "../components/searchable-select";
+import "../components/link-filter";
 
 type AreaRegistryEntry = { area_id: string; name: string };
 type DeviceRegistryEntry = { id: string; area_id: string | null; name_by_user: string | null; name: string };
@@ -47,8 +47,6 @@ export class IkTaskListView extends LitElement {
   @state() private _selectedDeviceIds: string[] = loadStoredList(FILTER_DEVICES_STORAGE_KEY);
   @state() private _areas: AreaRegistryEntry[] = [];
   @state() private _devices: DeviceRegistryEntry[] = [];
-  @state() private _areaPickerValue = "";
-  @state() private _devicePickerValue = "";
   @state() private _showLinkFilters = false;
 
   connectedCallback() {
@@ -65,7 +63,6 @@ export class IkTaskListView extends LitElement {
   @state() private _page = 0;
   @state() private _pageSize: 25 | 50 | 100 = 25;
   @state() private _pendingPage = 0;
-  @state() private _urgentPage = 0;
   @state() private _exitingDone: Set<string> = new Set();
   @state() private _exitingDelete: Set<string> = new Set();
   @state() private _exitingUndo: Set<string> = new Set();
@@ -140,23 +137,6 @@ export class IkTaskListView extends LitElement {
       color: var(--primary-text-color);
       font-size: 13px;
     }
-    .filter-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      width: 100%;
-    }
-    .filter-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--secondary-text-color);
-      min-width: max-content;
-    }
-    .filter-select {
-      flex: 1 1 220px;
-      min-width: 180px;
-    }
     .filter-toggle-btn {
       display: inline-flex;
       align-items: center;
@@ -202,103 +182,6 @@ export class IkTaskListView extends LitElement {
       background: var(--primary-color);
       color: var(--text-primary-color, #fff);
     }
-    .add-filter-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 5px 14px;
-      border-radius: 6px;
-      border: 1px solid var(--primary-color);
-      background: var(--primary-color);
-      color: var(--text-primary-color, #fff);
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
-      white-space: nowrap;
-      flex-shrink: 0;
-      --mdc-icon-size: 16px;
-    }
-    .add-filter-btn:disabled {
-      opacity: 0.4;
-      cursor: default;
-    }
-    .filter-mode-group {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .filter-mode-chip {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 82px;
-      padding: 5px 10px;
-      border-radius: 999px;
-      border: 1px solid var(--divider-color);
-      background: transparent;
-      color: var(--secondary-text-color);
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-    }
-    .filter-mode-chip.active {
-      background: var(--primary-color);
-      border-color: var(--primary-color);
-      color: var(--text-primary-color, #fff);
-    }
-    .filter-mode-chip:disabled {
-      opacity: 0.45;
-      cursor: default;
-    }
-    .active-filter-tags {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      width: 100%;
-      margin-top: -4px;
-      padding-bottom: 12px;
-    }
-    .active-filter-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 10px;
-      border-radius: 999px;
-      background: color-mix(in srgb, var(--primary-color) 12%, transparent);
-      color: var(--primary-text-color);
-      font-size: 12px;
-      border: 1px solid color-mix(in srgb, var(--primary-color) 30%, var(--divider-color));
-    }
-    .active-filter-tag button {
-      border: none;
-      background: transparent;
-      color: inherit;
-      cursor: pointer;
-      padding: 0;
-      display: inline-flex;
-      align-items: center;
-      --mdc-icon-size: 14px;
-    }
-    .clear-filters-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 5px 10px;
-      border-radius: 999px;
-      border: 1px dashed var(--divider-color);
-      background: transparent;
-      color: var(--secondary-text-color);
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-      --mdc-icon-size: 14px;
-    }
-    .clear-filters-btn:hover {
-      border-color: var(--primary-color);
-      color: var(--primary-color);
-    }
     .search-wrapper {
       position: relative;
       flex: 1;
@@ -332,25 +215,11 @@ export class IkTaskListView extends LitElement {
       min-height: 0;
       overflow-y: auto;
     }
-    .sections-scroll {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      padding-bottom: 8px;
-    }
-    .section-header {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--secondary-text-color);
-      padding: 0 2px 8px;
+    .extended-filters {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 8px;
+      padding: 0 0 12px;
     }
     .upcoming-filter {
       display: flex;
@@ -685,7 +554,6 @@ export class IkTaskListView extends LitElement {
   private _resetPage() {
     this._page = 0;
     this._pendingPage = 0;
-    this._urgentPage = 0;
   }
 
   private async _loadRegistries() {
@@ -701,72 +569,19 @@ export class IkTaskListView extends LitElement {
     }
   }
 
-  private _persistLinkFilters() {
-    localStorage.setItem(FILTER_MODE_STORAGE_KEY, this._filterMode);
-    localStorage.setItem(FILTER_AREAS_STORAGE_KEY, JSON.stringify(this._selectedAreaIds));
-    localStorage.setItem(FILTER_DEVICES_STORAGE_KEY, JSON.stringify(this._selectedDeviceIds));
-  }
-
-  private _setFilterMode(mode: "or" | "and") {
-    this._filterMode = mode;
-    this._persistLinkFilters();
+  private _onFilterChanged(e: CustomEvent) {
+    const { selectedAreaIds, selectedDeviceIds, filterMode } = e.detail;
+    this._selectedAreaIds = selectedAreaIds;
+    this._selectedDeviceIds = selectedDeviceIds;
+    this._filterMode = filterMode;
+    localStorage.setItem(FILTER_MODE_STORAGE_KEY, filterMode);
+    localStorage.setItem(FILTER_AREAS_STORAGE_KEY, JSON.stringify(selectedAreaIds));
+    localStorage.setItem(FILTER_DEVICES_STORAGE_KEY, JSON.stringify(selectedDeviceIds));
     this._resetPage();
-  }
-
-  private _onAreaPickerChanged(areaId: string) {
-    this._areaPickerValue = areaId;
-    this._devicePickerValue = "";
-  }
-
-  private _onDevicePickerChanged(deviceId: string) {
-    this._devicePickerValue = deviceId;
-  }
-
-  private _applyPickerFilters() {
-    if (this._areaPickerValue && !this._selectedAreaIds.includes(this._areaPickerValue)) {
-      this._selectedAreaIds = [...this._selectedAreaIds, this._areaPickerValue];
-    }
-    if (this._devicePickerValue && !this._selectedDeviceIds.includes(this._devicePickerValue)) {
-      this._selectedDeviceIds = [...this._selectedDeviceIds, this._devicePickerValue];
-    }
-    this._areaPickerValue = "";
-    this._devicePickerValue = "";
-    this._persistLinkFilters();
-    this._resetPage();
-  }
-
-  private _removeAreaFilter(areaId: string) {
-    this._selectedAreaIds = this._selectedAreaIds.filter((value) => value !== areaId);
-    this._persistLinkFilters();
-    this._resetPage();
-  }
-
-  private _removeDeviceFilter(deviceId: string) {
-    this._selectedDeviceIds = this._selectedDeviceIds.filter((value) => value !== deviceId);
-    this._persistLinkFilters();
-    this._resetPage();
-  }
-
-  private _clearLinkFilters() {
-    this._selectedAreaIds = [];
-    this._selectedDeviceIds = [];
-    this._areaPickerValue = "";
-    this._devicePickerValue = "";
-    this._persistLinkFilters();
-    this._resetPage();
-  }
-
-  private _getAreaName(areaId: string): string {
-    return this._areas.find((area) => area.area_id === areaId)?.name ?? areaId;
   }
 
   private _getDeviceLabel(device: DeviceRegistryEntry): string {
     return device.name_by_user || device.name;
-  }
-
-  private _getDeviceName(deviceId: string): string {
-    const device = this._devices.find((entry) => entry.id === deviceId);
-    return device ? this._getDeviceLabel(device) : deviceId;
   }
 
   private _matchesLinkedFilters(task: Task): boolean {
@@ -899,18 +714,9 @@ export class IkTaskListView extends LitElement {
       this._filterPriority === "all" || task.priority === this._filterPriority;
     const matchesLinked = (task: Task) => this._matchesLinkedFilters(task);
 
-    const countPending   = this.tasks.filter(t => t.status === "due" || t.status === "overdue").length;
+    const countPending   = this.tasks.filter(t => t.status !== "completed").length;
     const countCompleted = this.tasks.filter(t => t.status === "completed").length;
-    const areaItems = this._areas
-      .filter((area) => !this._selectedAreaIds.includes(area.area_id))
-      .map((area) => ({ value: area.area_id, label: area.name }));
-    const deviceItems = this._devices
-      .filter((device) => !this._selectedDeviceIds.includes(device.id))
-      .filter((device) => !this._areaPickerValue || device.area_id === this._areaPickerValue)
-      .map((device) => ({ value: device.id, label: this._getDeviceLabel(device) }));
-    const hasLinkFilters = this._selectedAreaIds.length > 0 || this._selectedDeviceIds.length > 0;
-    const canCombineFilters = this._selectedAreaIds.length > 0 && this._selectedDeviceIds.length > 0;
-    const canAddFilter = Boolean(this._areaPickerValue || this._devicePickerValue);
+    const hasLinkFilters = this._selectedAreaIds.length > 0 || this._selectedDeviceIds.length > 0 || this._filterPriority !== "all";
 
     const chip = (tab: typeof this._filterTab, label: string, count: number, extra = "") => html`
       <button
@@ -955,89 +761,39 @@ export class IkTaskListView extends LitElement {
       </div>
     `;
 
+    const activeFilterCount = this._selectedAreaIds.length + this._selectedDeviceIds.length + (this._filterPriority !== "all" ? 1 : 0);
     const filterSection = html`
       <div class="filter-bar">
         ${chip("pending",   tr.pending,   countPending)}
         ${chip("completed", tr.completed, countCompleted, "chip-completed")}
-        <select class="priority-select" .value=${this._filterPriority} @change=${(e: Event) => { this._filterPriority = (e.target as HTMLSelectElement).value as TaskPriority | "all"; this._resetPage(); }}>
-          <option value="all">${tr.allPriorities}</option>
-          <option value="critical">${tr.critical}</option>
-          <option value="high">${tr.high}</option>
-          <option value="medium">${tr.medium}</option>
-          <option value="low">${tr.low}</option>
-        </select>
         <button
           class="filter-toggle-btn ${this._showLinkFilters ? "active" : ""} ${hasLinkFilters ? "has-filters" : ""}"
           title=${tr.filterToggleTitle}
           @click=${() => { this._showLinkFilters = !this._showLinkFilters; }}
         >
           <ha-icon icon="mdi:filter"></ha-icon>
-          ${hasLinkFilters ? html`<span class="filter-toggle-badge">${this._selectedAreaIds.length + this._selectedDeviceIds.length}</span>` : ""}
+          ${hasLinkFilters ? html`<span class="filter-toggle-badge">${activeFilterCount}</span>` : ""}
         </button>
       </div>
+      <ik-link-filter
+        .hass=${this.hass}
+        .areas=${this._areas}
+        .devices=${this._devices}
+        .selectedAreaIds=${this._selectedAreaIds}
+        .selectedDeviceIds=${this._selectedDeviceIds}
+        .filterMode=${this._filterMode}
+        ?open=${this._showLinkFilters}
+        @filter-changed=${(e: CustomEvent) => this._onFilterChanged(e)}
+      ></ik-link-filter>
       ${this._showLinkFilters ? html`
-        <div class="filter-bar">
-          <div class="filter-group">
-            <span class="filter-label">${tr.filterAreasLabel}</span>
-            <ik-searchable-select
-              class="filter-select"
-              .items=${areaItems}
-              .value=${this._areaPickerValue}
-              .placeholder=${tr.filterAreasPlaceholder}
-              .noResultsText=${tr.noResults}
-              ?disabled=${areaItems.length === 0}
-              @value-changed=${(e: CustomEvent) => this._onAreaPickerChanged(e.detail.value)}
-            ></ik-searchable-select>
-            <span class="filter-label">${tr.filterDevicesLabel}</span>
-            <ik-searchable-select
-              class="filter-select"
-              .items=${deviceItems}
-              .value=${this._devicePickerValue}
-              .placeholder=${tr.filterDevicesPlaceholder}
-              .noResultsText=${tr.noResults}
-              ?disabled=${deviceItems.length === 0}
-              @value-changed=${(e: CustomEvent) => this._onDevicePickerChanged(e.detail.value)}
-            ></ik-searchable-select>
-            <button
-              class="add-filter-btn"
-              ?disabled=${!canAddFilter}
-              @click=${() => this._applyPickerFilters()}
-            ><ha-icon icon="mdi:plus"></ha-icon>${tr.addFilter}</button>
-          </div>
-        </div>
-        <div class="filter-bar">
-          <div class="filter-group">
-            <span class="filter-label">${tr.filterModeLabel}</span>
-            <div class="filter-mode-group">
-              <button
-                class="filter-mode-chip ${this._filterMode === "or" ? "active" : ""}"
-                ?disabled=${!canCombineFilters}
-                @click=${() => this._setFilterMode("or")}
-              >${tr.filterModeAny}</button>
-              <button
-                class="filter-mode-chip ${this._filterMode === "and" ? "active" : ""}"
-                ?disabled=${!canCombineFilters}
-                @click=${() => this._setFilterMode("and")}
-              >${tr.filterModeAll}</button>
-            </div>
-          </div>
-        </div>
-      ` : ""}
-      ${hasLinkFilters ? html`
-        <div class="active-filter-tags">
-          ${this._selectedAreaIds.map((areaId) => html`
-            <span class="active-filter-tag">
-              ${tr.filterAreaTag(this._getAreaName(areaId))}
-              <button @click=${() => this._removeAreaFilter(areaId)} aria-label=${tr.removeFilter}><ha-icon icon="mdi:close"></ha-icon></button>
-            </span>
-          `)}
-          ${this._selectedDeviceIds.map((deviceId) => html`
-            <span class="active-filter-tag">
-              ${tr.filterDeviceTag(this._getDeviceName(deviceId))}
-              <button @click=${() => this._removeDeviceFilter(deviceId)} aria-label=${tr.removeFilter}><ha-icon icon="mdi:close"></ha-icon></button>
-            </span>
-          `)}
-          <button class="clear-filters-btn" @click=${() => this._clearLinkFilters()}><ha-icon icon="mdi:filter-off"></ha-icon>${tr.clearFilters}</button>
+        <div class="extended-filters">
+          <select class="priority-select" .value=${this._filterPriority} @change=${(e: Event) => { this._filterPriority = (e.target as HTMLSelectElement).value as TaskPriority | "all"; this._resetPage(); }}>
+            <option value="all">${tr.allPriorities}</option>
+            <option value="critical">${tr.critical}</option>
+            <option value="high">${tr.high}</option>
+            <option value="medium">${tr.medium}</option>
+            <option value="low">${tr.low}</option>
+          </select>
         </div>
       ` : ""}
       <div class="filter-bar">
@@ -1065,7 +821,16 @@ export class IkTaskListView extends LitElement {
     `;
 
     const priorityRank: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-    const sortUpcoming = (a: Task, b: Task) => {
+    const sortPending = (a: Task, b: Task) => {
+      const aUrgent = a.status === "due" || a.status === "overdue";
+      const bUrgent = b.status === "due" || b.status === "overdue";
+      if (aUrgent && !bUrgent) return -1;
+      if (!aUrgent && bUrgent) return 1;
+      if (aUrgent && bUrgent) {
+        const prDiff = (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99);
+        if (prDiff !== 0) return prDiff;
+        return a.task_number - b.task_number;
+      }
       const aDate = a.due_date ? new Date(a.due_date).getTime() : Infinity;
       const bDate = b.due_date ? new Date(b.due_date).getTime() : Infinity;
       if (aDate !== bDate) return aDate - bDate;
@@ -1105,21 +870,20 @@ export class IkTaskListView extends LitElement {
     };
 
     if (this._filterTab === "pending") {
-      const urgentTasksAll = this.tasks.filter(t =>
-        (t.status === "due" || t.status === "overdue") && matchesPr(t) && matchesQ(t) && matchesLinked(t));
-      const urgentTotalPages = Math.max(1, Math.ceil(urgentTasksAll.length / this._pageSize));
-      const urgentPage = Math.min(this._urgentPage, urgentTotalPages - 1);
-      const urgentStart = urgentPage * this._pageSize;
-      const urgentTasks = urgentTasksAll.slice(urgentStart, urgentStart + this._pageSize);
+      const pendingTasksAll = this.tasks
+        .filter(t => {
+          if (t.status === "completed") return false;
+          if (!matchesPr(t) || !matchesQ(t) || !matchesLinked(t)) return false;
+          const isUrgent = t.status === "due" || t.status === "overdue";
+          if (!isUrgent && !inUpcomingRange(t)) return false;
+          return true;
+        })
+        .sort(sortPending);
 
-      const otherTasksAll = this.tasks.filter(t =>
-        t.status !== "completed" && t.status !== "due" && t.status !== "overdue" && matchesPr(t) && matchesQ(t) && matchesLinked(t) && inUpcomingRange(t))
-        .sort(sortUpcoming);
-
-      const pendingTotalPages = Math.max(1, Math.ceil(otherTasksAll.length / this._pageSize));
+      const pendingTotalPages = Math.max(1, Math.ceil(pendingTasksAll.length / this._pageSize));
       const pendingPage = Math.min(this._pendingPage, pendingTotalPages - 1);
       const pendingStart = pendingPage * this._pageSize;
-      const otherTasks = otherTasksAll.slice(pendingStart, pendingStart + this._pageSize);
+      const pendingTasks = pendingTasksAll.slice(pendingStart, pendingStart + this._pageSize);
 
       const upcomingRangeChip = (v: typeof this._upcomingRange, label: string) => html`
         <button class="upcoming-chip ${this._upcomingRange === v ? "active" : ""}" @click=${() => setUpcomingRange(v)}>${label}</button>
@@ -1163,60 +927,23 @@ export class IkTaskListView extends LitElement {
 
       return html`
         ${filterSection}
-        <div class="sections-scroll">
-          <div>
-            <div class="section-header urgent">
-              <ha-icon icon="mdi:clock-alert-outline" style="--mdc-icon-size:15px"></ha-icon>
-              ${tr.urgentSection}
-            </div>
-            <ha-card>
-              ${urgentTasksAll.length === 0 && !q && this._filterPriority === "all"
-                ? html`
-                  <div class="all-clear">
-                    <div class="all-clear-emoji">🎉</div>
-                    <p class="all-clear-title">${tr.allClear}</p>
-                    <p class="all-clear-sub">${tr.allClearSub}</p>
-                    <span class="all-clear-suggestion">${this._relaxSuggestion}</span>
-                  </div>`
-                : urgentTasksAll.length === 0
-                ? html`<div class="empty">${tr.noTasks}</div>`
-                : html`<div class="list-container">${urgentTasks.map(taskItem)}</div>`}
-            </ha-card>
-            ${urgentTasksAll.length > 0 ? html`
-            <div class="pagination">
-              <span>${tr.rowsPerPage}</span>
-              <select .value=${String(this._pageSize)} @change=${(e: Event) => { this._pageSize = Number((e.target as HTMLSelectElement).value) as 25 | 50 | 100; this._urgentPage = 0; }}>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              <span>${urgentStart + 1}–${Math.min(urgentStart + this._pageSize, urgentTasksAll.length)} ${tr.of} ${urgentTasksAll.length}</span>
-              <button class="page-btn" ?disabled=${urgentPage === 0} @click=${() => { this._urgentPage = urgentPage - 1; }}>&lt;</button>
-              <button class="page-btn" ?disabled=${urgentPage >= urgentTotalPages - 1} @click=${() => { this._urgentPage = urgentPage + 1; }}>&gt;</button>
-            </div>` : ""}
-          </div>
-          ${otherTasksAll.length > 0 ? html`
-          <div>
-            <div class="section-header">
-              <ha-icon icon="mdi:clock-outline" style="--mdc-icon-size:15px"></ha-icon>
-              ${tr.otherPendingSection}
-            </div>
-            ${upcomingFilterBar}
-            <ha-card>
-              <div class="list-container">${otherTasks.map(taskItem)}</div>
-            </ha-card>
-          </div>` : html`
-          <div>
-            <div class="section-header">
-              <ha-icon icon="mdi:clock-outline" style="--mdc-icon-size:15px"></ha-icon>
-              ${tr.otherPendingSection}
-            </div>
-            ${upcomingFilterBar}
-            <ha-card>
-              <div class="empty">${tr.noUpcoming}</div>
-            </ha-card>
-          </div>`}
-          ${otherTasksAll.length > 0 ? html`
+        <div class="list-scroll">
+          ${upcomingFilterBar}
+          <ha-card class="full-card">
+            ${pendingTasksAll.length === 0 && !q && this._filterPriority === "all"
+              && this._selectedAreaIds.length === 0 && this._selectedDeviceIds.length === 0
+              ? html`
+                <div class="all-clear">
+                  <div class="all-clear-emoji">🎉</div>
+                  <p class="all-clear-title">${tr.allClear}</p>
+                  <p class="all-clear-sub">${tr.allClearSub}</p>
+                  <span class="all-clear-suggestion">${this._relaxSuggestion}</span>
+                </div>`
+              : pendingTasksAll.length === 0
+              ? html`<div class="empty">${tr.noTasks}</div>`
+              : html`<div class="list-container">${pendingTasks.map(taskItem)}</div>`}
+          </ha-card>
+          ${pendingTasksAll.length > 0 ? html`
           <div class="pagination">
             <span>${tr.rowsPerPage}</span>
             <select .value=${String(this._pageSize)} @change=${(e: Event) => { this._pageSize = Number((e.target as HTMLSelectElement).value) as 25 | 50 | 100; this._pendingPage = 0; }}>
@@ -1224,7 +951,7 @@ export class IkTaskListView extends LitElement {
               <option value="50">50</option>
               <option value="100">100</option>
             </select>
-            <span>${pendingStart + 1}–${Math.min(pendingStart + this._pageSize, otherTasksAll.length)} ${tr.of} ${otherTasksAll.length}</span>
+            <span>${pendingStart + 1}–${Math.min(pendingStart + this._pageSize, pendingTasksAll.length)} ${tr.of} ${pendingTasksAll.length}</span>
             <button class="page-btn" ?disabled=${pendingPage === 0} @click=${() => { this._pendingPage = pendingPage - 1; }}>&lt;</button>
             <button class="page-btn" ?disabled=${pendingPage >= pendingTotalPages - 1} @click=${() => { this._pendingPage = pendingPage + 1; }}>&gt;</button>
           </div>` : ""}

@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0] - 2026-04-09
+
+### Added
+
+- **Calendar view** with Week and Month modes ([#7](https://github.com/intellilar/intellikeep/issues/7)).
+  - New Calendar tab in the main navigation, alongside Tasks and History.
+  - Month and Week grids fill available screen height, with scroll when tasks overflow.
+  - Navigate between periods with forward/back arrows and jump to today with a single tap.
+  - Task dots on each day; overdue tasks displayed in red.
+  - Calendar supports the same area, device, and priority filters as the task list.
+  - On mobile, tapping a task navigates directly to its edit form; on desktop a modal opens.
+  - Calendar mode, current period, and active filters are persisted in `localStorage` and restored on return.
+- **History view filtering** by Area and/or Device ([#15](https://github.com/intellilar/intellikeep/issues/15)).
+  - Reusable `ik-link-filter` component extracted and shared between task list and history views.
+  - History view supports configurable visible columns with distinct desktop and mobile presets.
+  - CSV export and print actions added to the history view.
+
+### Changed
+
+- Task list pending tab now shows a unified list instead of separate "Due Today & Overdue" and "Upcoming" sections. Urgent tasks float to the top, sorted by priority.
+- Priority filter moved into the expanded filter panel, consistent with area and device filters. Active priority filter is reflected in the filter badge count.
+- "Undo" action renamed to "Reopen" across all supported languages (EN, PT, ES).
+- Back navigation from a task opened via the calendar correctly returns to the calendar instead of the task list.
+
 ## [0.0.2] - 2026-04-08
 
 ### Added
