@@ -116,6 +116,9 @@ async function deleteAllData(hass) {
     await hass.callService(DOMAIN, "delete_all_data", {});
 }
 
+/** Returns true when the device has a precise pointer and hover support (desktop/laptop). */
+const isDesktop = () => window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
 const messages = {
     en: {
         newTask: "New task",
@@ -1407,8 +1410,10 @@ let IkTaskListView = class IkTaskListView extends i {
                 bgDel.style.opacity = "0";
             }
         }
-        if (s?.decided)
+        if (s?.decided) {
             this._swipeMoved.add(id);
+            setTimeout(() => this._swipeMoved.delete(id), 500);
+        }
         if (!s || s.canceled || !s.decided)
             return;
         if (offset >= 80) {
@@ -1486,8 +1491,7 @@ let IkTaskListView = class IkTaskListView extends i {
         this.dispatchEvent(new CustomEvent("navigate", { detail: path, bubbles: true, composed: true }));
     }
     async _edit(taskId) {
-        const isDesktop = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-        if (isDesktop) {
+        if (isDesktop()) {
             this.dispatchEvent(new CustomEvent("open-task-modal", { detail: taskId, bubbles: true, composed: true }));
             return;
         }
@@ -2136,6 +2140,9 @@ IkTaskListView.styles = i$3 `
     }
     @media (hover: hover) {
       .task-wrapper:hover .task-actions { opacity: 1; }
+    }
+    @media (hover: none) {
+      .task-actions { display: none; }
     }
     :host([no-animations]) *, :host([no-animations]) *::before, :host([no-animations]) *::after {
       transition: none !important;
@@ -3505,8 +3512,7 @@ let IkTaskHistoryView = class IkTaskHistoryView extends i {
         this.dispatchEvent(new CustomEvent("navigate", { detail: path, bubbles: true, composed: true }));
     }
     _openTask(taskId) {
-        const isDesktop = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-        if (isDesktop) {
+        if (isDesktop()) {
             this.dispatchEvent(new CustomEvent("open-task-modal", { detail: taskId, bubbles: true, composed: true }));
         }
         else {
@@ -4379,8 +4385,7 @@ let IkCalendarView = class IkCalendarView extends i {
         return new Date(d.getFullYear(), d.getMonth(), d.getDate());
     }
     _openTask(taskId) {
-        const isDesktop = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-        if (isDesktop) {
+        if (isDesktop()) {
             this.dispatchEvent(new CustomEvent("open-task-modal", { detail: taskId, bubbles: true, composed: true }));
         }
         else {
@@ -4945,7 +4950,7 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
     render() {
         const path = this._currentPath;
         const tr = t(this.hass?.language);
-        const isMobile = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+        const isMobile = !isDesktop();
         const isNew = path === "/new";
         const isEdit = path.startsWith("/edit/");
         const isSettings = path === "/settings";
@@ -5003,7 +5008,6 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
                 .hass=${this.hass}
                 .tasks=${this._tasks}
                 .enableAnimations=${this._enableAnimations}
-                @navigate=${(e) => this._navigate(e.detail)}
               ></ik-task-list-view>
             `
             : isCalendar && !this._loading

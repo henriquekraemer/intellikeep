@@ -2,6 +2,7 @@ import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant, Task, TaskExecution } from "../types";
 import { t } from "../translations";
+import { isDesktop } from "../utils";
 import "../components/link-filter";
 
 type AreaRegistryEntry = { area_id: string; name: string };
@@ -163,8 +164,7 @@ export class IkTaskHistoryView extends LitElement {
   }
 
   private _openTask(taskId: string) {
-    const isDesktop = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-    if (isDesktop) {
+    if (isDesktop()) {
       this.dispatchEvent(new CustomEvent("open-task-modal", { detail: taskId, bubbles: true, composed: true }));
     } else {
       this._navigate(`/edit/${taskId}`);
