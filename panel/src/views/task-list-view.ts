@@ -2,6 +2,7 @@ import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant, Task, TaskPriority } from "../types";
 import { completeTask, reopenTask, deleteTask } from "../api";
+import { isDesktop } from "../utils";
 import { t } from "../translations";
 import "../components/task-card";
 import "../components/confirm-dialog";
@@ -48,15 +49,6 @@ export class IkTaskListView extends LitElement {
   @state() private _areas: AreaRegistryEntry[] = [];
   @state() private _devices: DeviceRegistryEntry[] = [];
   @state() private _showLinkFilters = false;
-
-  connectedCallback() {
-    super.connectedCallback();
-    const saved = localStorage.getItem("intellikeep.filterTab");
-    if (saved === "pending" || saved === "completed") {
-      this._filterTab = saved;
-    }
-    void this._loadRegistries();
-  }
   @state() private _deleteTarget: string | null = null;
   @state() private _completing: Set<string> = new Set();
   @state() private _reopening: Set<string> = new Set();
@@ -67,6 +59,15 @@ export class IkTaskListView extends LitElement {
   @state() private _exitingDelete: Set<string> = new Set();
   @state() private _exitingUndo: Set<string> = new Set();
   @state() private _exitingEdit: Set<string> = new Set();
+
+  connectedCallback() {
+    super.connectedCallback();
+    const saved = localStorage.getItem("intellikeep.filterTab");
+    if (saved === "pending" || saved === "completed") {
+      this._filterTab = saved;
+    }
+    void this._loadRegistries();
+  }
 
   static styles = css`
     :host {
@@ -106,10 +107,6 @@ export class IkTaskListView extends LitElement {
       background: var(--primary-color);
       border-color: var(--primary-color);
       color: var(--text-primary-color, #fff);
-    }
-    .filter-chip.active.chip-overdue {
-      background: var(--error-color, #f44336);
-      border-color: var(--error-color, #f44336);
     }
     .filter-chip.active.chip-completed {
       background: var(--success-color, #4caf50);
@@ -357,6 +354,9 @@ export class IkTaskListView extends LitElement {
     @media (hover: hover) {
       .task-wrapper:hover .task-actions { opacity: 1; }
     }
+    @media (hover: none) {
+      .task-actions { display: none; }
+    }
     :host([no-animations]) *, :host([no-animations]) *::before, :host([no-animations]) *::after {
       transition: none !important;
       animation: none !important;
@@ -403,17 +403,6 @@ export class IkTaskListView extends LitElement {
     .page-btn:disabled {
       opacity: 0.4;
       cursor: default;
-    }
-    @media (max-width: 760px) {
-      .filter-select {
-        flex-basis: 100%;
-      }
-      .add-filter-btn {
-        margin-left: auto;
-      }
-      .filter-mode-group {
-        width: 100%;
-      }
     }
     @keyframes ik-done-exit {
       0%   { transform: translateX(0);    opacity: 1; background: transparent; }
@@ -545,7 +534,10 @@ export class IkTaskListView extends LitElement {
       if (bgDone) { bgDone.style.transition = "opacity 0.25s"; bgDone.style.opacity = "0"; }
       if (bgDel)  { bgDel.style.transition  = "opacity 0.25s"; bgDel.style.opacity  = "0"; }
     }
-    if (s?.decided) this._swipeMoved.add(id);
+    if (s?.decided) {
+      this._swipeMoved.add(id);
+      setTimeout(() => this._swipeMoved.delete(id), 500);
+    }
     if (!s || s.canceled || !s.decided) return;
     if (offset >= 80)  { task.status !== "completed" ? this._complete(id) : this._reopen(id); }
     else if (offset <= -80) { this._deleteTarget = id; }
@@ -633,8 +625,7 @@ export class IkTaskListView extends LitElement {
   }
 
   private async _edit(taskId: string) {
-    const isDesktop = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-    if (isDesktop) {
+    if (isDesktop()) {
       this.dispatchEvent(new CustomEvent("open-task-modal", { detail: taskId, bubbles: true, composed: true }));
       return;
     }

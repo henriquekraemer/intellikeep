@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1] - 2026-04-09
+
+### Fixed
+
+- Back navigation from a task edit form to the task list tab now works correctly on mobile. Tapping the back arrow in the app bar returns to the task list instead of staying on the form. This was broken when the calendar view was introduced.
+- Action buttons (delete, complete, reopen) no longer occupy space on mobile devices. The buttons were invisible but still reserved layout space, causing task names to be truncated with `…`. Swipe gestures remain the interaction method on touch devices.
+
 ## [1.0.0] - 2026-04-09
 
 ### Added
