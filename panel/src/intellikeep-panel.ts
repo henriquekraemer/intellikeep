@@ -2,6 +2,7 @@ import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant, Route, Task } from "./types";
 import { subscribeTasks } from "./api";
+import { isDesktop } from "./utils";
 import { t } from "./translations";
 import "./views/task-list-view";
 import "./views/task-form-view";
@@ -205,7 +206,7 @@ export class IntelliKeepPanel extends LitElement {
   protected render() {
     const path = this._currentPath;
     const tr = t(this.hass?.language);
-    const isMobile = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+    const isMobile = !isDesktop();
 
     const isNew = path === "/new";
     const isEdit = path.startsWith("/edit/");
@@ -264,7 +265,6 @@ return html`
                 .hass=${this.hass}
                 .tasks=${this._tasks}
                 .enableAnimations=${this._enableAnimations}
-                @navigate=${(e: CustomEvent) => this._navigate(e.detail)}
               ></ik-task-list-view>
             `
           : isCalendar && !this._loading
