@@ -116,6 +116,9 @@ async function deleteAllData(hass) {
     await hass.callService(DOMAIN, "delete_all_data", {});
 }
 
+/** Returns true when the device has a precise pointer and hover support (desktop/laptop). */
+const isDesktop = () => window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
 const messages = {
     en: {
         newTask: "New task",
@@ -129,13 +132,9 @@ const messages = {
         undo: "Reopen",
         edit: "Edit",
         del: "Del",
-        allStatuses: "All statuses",
         overdue: "Overdue",
-        dueToday: "Due today",
         pending: "Pending",
-        allPending: "All",
         completed: "Done",
-        allUrgencies: "All",
         allPriorities: "All priorities",
         filterAreasLabel: "Areas",
         filterAreasPlaceholder: "Add area filter…",
@@ -277,13 +276,9 @@ const messages = {
         undo: "Reabrir",
         edit: "Editar",
         del: "Excluir",
-        allStatuses: "Todos os status",
         overdue: "Atrasada",
-        dueToday: "Vence hoje",
         pending: "Pendente",
-        allPending: "Todas",
         completed: "Concluída",
-        allUrgencies: "Todas",
         allPriorities: "Todas as prioridades",
         filterAreasLabel: "Áreas",
         filterAreasPlaceholder: "Adicionar filtro de área…",
@@ -425,13 +420,9 @@ const messages = {
         undo: "Reabrir",
         edit: "Editar",
         del: "Eliminar",
-        allStatuses: "Todos los estados",
         overdue: "Vencida",
-        dueToday: "Vence hoy",
         pending: "Pendiente",
-        allPending: "Todas",
         completed: "Completada",
-        allUrgencies: "Todas",
         allPriorities: "Todas las prioridades",
         filterAreasLabel: "Áreas",
         filterAreasPlaceholder: "Agregar filtro de área…",
@@ -1419,8 +1410,10 @@ let IkTaskListView = class IkTaskListView extends i {
                 bgDel.style.opacity = "0";
             }
         }
-        if (s?.decided)
+        if (s?.decided) {
             this._swipeMoved.add(id);
+            setTimeout(() => this._swipeMoved.delete(id), 500);
+        }
         if (!s || s.canceled || !s.decided)
             return;
         if (offset >= 80) {
@@ -1498,8 +1491,7 @@ let IkTaskListView = class IkTaskListView extends i {
         this.dispatchEvent(new CustomEvent("navigate", { detail: path, bubbles: true, composed: true }));
     }
     async _edit(taskId) {
-        const isDesktop = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-        if (isDesktop) {
+        if (isDesktop()) {
             this.dispatchEvent(new CustomEvent("open-task-modal", { detail: taskId, bubbles: true, composed: true }));
             return;
         }
@@ -1903,10 +1895,6 @@ IkTaskListView.styles = i$3 `
       border-color: var(--primary-color);
       color: var(--text-primary-color, #fff);
     }
-    .filter-chip.active.chip-overdue {
-      background: var(--error-color, #f44336);
-      border-color: var(--error-color, #f44336);
-    }
     .filter-chip.active.chip-completed {
       background: var(--success-color, #4caf50);
       border-color: var(--success-color, #4caf50);
@@ -2153,6 +2141,9 @@ IkTaskListView.styles = i$3 `
     @media (hover: hover) {
       .task-wrapper:hover .task-actions { opacity: 1; }
     }
+    @media (hover: none) {
+      .task-actions { display: none; }
+    }
     :host([no-animations]) *, :host([no-animations]) *::before, :host([no-animations]) *::after {
       transition: none !important;
       animation: none !important;
@@ -2199,17 +2190,6 @@ IkTaskListView.styles = i$3 `
     .page-btn:disabled {
       opacity: 0.4;
       cursor: default;
-    }
-    @media (max-width: 760px) {
-      .filter-select {
-        flex-basis: 100%;
-      }
-      .add-filter-btn {
-        margin-left: auto;
-      }
-      .filter-mode-group {
-        width: 100%;
-      }
     }
     @keyframes ik-done-exit {
       0%   { transform: translateX(0);    opacity: 1; background: transparent; }
@@ -3532,8 +3512,7 @@ let IkTaskHistoryView = class IkTaskHistoryView extends i {
         this.dispatchEvent(new CustomEvent("navigate", { detail: path, bubbles: true, composed: true }));
     }
     _openTask(taskId) {
-        const isDesktop = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-        if (isDesktop) {
+        if (isDesktop()) {
             this.dispatchEvent(new CustomEvent("open-task-modal", { detail: taskId, bubbles: true, composed: true }));
         }
         else {
@@ -4406,8 +4385,7 @@ let IkCalendarView = class IkCalendarView extends i {
         return new Date(d.getFullYear(), d.getMonth(), d.getDate());
     }
     _openTask(taskId) {
-        const isDesktop = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-        if (isDesktop) {
+        if (isDesktop()) {
             this.dispatchEvent(new CustomEvent("open-task-modal", { detail: taskId, bubbles: true, composed: true }));
         }
         else {
@@ -4567,19 +4545,17 @@ let IkCalendarView = class IkCalendarView extends i {
             ?open=${true}
             @filter-changed=${(e) => this._onFilterChanged(e)}
           ></ik-link-filter>
-          <div class="filter-row">
-            <select
-              class="priority-select"
-              .value=${this._filterPriority}
-              @change=${(e) => { this._filterPriority = e.target.value; }}
-            >
-              <option value="all">${tr.allPriorities}</option>
-              <option value="critical">${tr.critical}</option>
-              <option value="high">${tr.high}</option>
-              <option value="medium">${tr.medium}</option>
-              <option value="low">${tr.low}</option>
-            </select>
-          </div>
+          <select
+            class="priority-select"
+            .value=${this._filterPriority}
+            @change=${(e) => { this._filterPriority = e.target.value; }}
+          >
+            <option value="all">${tr.allPriorities}</option>
+            <option value="critical">${tr.critical}</option>
+            <option value="high">${tr.high}</option>
+            <option value="medium">${tr.medium}</option>
+            <option value="low">${tr.low}</option>
+          </select>
         </div>
       ` : ""}
 
@@ -4694,8 +4670,7 @@ IkCalendarView.styles = i$3 `
       flex-shrink: 0;
     }
     .filter-btn:hover { background: var(--secondary-background-color); }
-    .filter-btn.active { color: var(--primary-color); border-color: var(--primary-color); }
-    .filter-btn.has-filters { color: var(--primary-color); border-color: var(--primary-color); }
+    .filter-btn.active, .filter-btn.has-filters { color: var(--primary-color); border-color: var(--primary-color); }
 
     .filter-badge {
       position: absolute;
@@ -4721,13 +4696,6 @@ IkCalendarView.styles = i$3 `
       display: flex;
       flex-direction: column;
       gap: 8px;
-    }
-
-    .filter-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
     }
 
     .priority-select {
@@ -4982,7 +4950,7 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
     render() {
         const path = this._currentPath;
         const tr = t(this.hass?.language);
-        const isMobile = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+        const isMobile = !isDesktop();
         const isNew = path === "/new";
         const isEdit = path.startsWith("/edit/");
         const isSettings = path === "/settings";
@@ -5040,7 +5008,6 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i {
                 .hass=${this.hass}
                 .tasks=${this._tasks}
                 .enableAnimations=${this._enableAnimations}
-                @navigate=${(e) => this._navigate(e.detail)}
               ></ik-task-list-view>
             `
             : isCalendar && !this._loading
