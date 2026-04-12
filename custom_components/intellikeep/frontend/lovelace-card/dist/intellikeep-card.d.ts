@@ -22,6 +22,8 @@ export declare class IntelliKeepCard extends LitElement {
     private _fetchTasks;
     private get _filteredTasks();
     private _completeTask;
+    private _resolveLinkedLabel;
+    private _renderEntityChips;
     protected render(): import("lit-html").TemplateResult<1>;
     private _renderTask;
 }
