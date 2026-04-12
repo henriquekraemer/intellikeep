@@ -173,6 +173,7 @@ const messages = {
         intervalDays: "Interval (days)",
         dueDate: "Due date",
         linkedEntities: "Linked entities",
+        linkedEntitiesCount: (n) => `${n} entit${n !== 1 ? "ies" : "y"}`,
         addEntity: "+ Add entity",
         allAreas: "All areas",
         selectEntity: "Select entity…",
@@ -317,6 +318,7 @@ const messages = {
         intervalDays: "Intervalo (dias)",
         dueDate: "Data prevista",
         linkedEntities: "Entidades vinculadas",
+        linkedEntitiesCount: (n) => `${n} entidade${n !== 1 ? "s" : ""}`,
         addEntity: "+ Adicionar entidade",
         allAreas: "Todas as áreas",
         selectEntity: "Selecionar entidade…",
@@ -461,6 +463,7 @@ const messages = {
         intervalDays: "Intervalo (días)",
         dueDate: "Fecha de vencimiento",
         linkedEntities: "Entidades vinculadas",
+        linkedEntitiesCount: (n) => `${n} entidad${n !== 1 ? "es" : ""}`,
         addEntity: "+ Agregar entidad",
         allAreas: "Todas las áreas",
         selectEntity: "Seleccionar entidad…",
@@ -580,7 +583,36 @@ function statusColor(s) {
 let IkTaskCard = class IkTaskCard extends i {
     constructor() {
         super(...arguments);
+        this.areas = [];
+        this.devices = [];
         this.completing = false;
+    }
+    _linkedLabel() {
+        const { linked_entity_ids } = this.task;
+        if (linked_entity_ids.length === 0)
+            return null;
+        if (linked_entity_ids.length > 1) {
+            return t(this.hass?.language).linkedEntitiesCount(linked_entity_ids.length);
+        }
+        const entry = linked_entity_ids[0];
+        if (entry.startsWith("area:")) {
+            const areaId = entry.slice(5);
+            const area = this.areas.find(a => a.area_id === areaId);
+            return area ? area.name : null;
+        }
+        if (entry.startsWith("device:")) {
+            const deviceId = entry.slice(7);
+            const device = this.devices.find(d => d.id === deviceId);
+            if (!device)
+                return null;
+            const deviceName = device.name_by_user || device.name;
+            if (device.area_id) {
+                const area = this.areas.find(a => a.area_id === device.area_id);
+                return area ? `${area.name} · ${deviceName}` : deviceName;
+            }
+            return deviceName;
+        }
+        return null;
     }
     _relativeDue(iso) {
         const tr = t(this.hass?.language);
@@ -599,6 +631,7 @@ let IkTaskCard = class IkTaskCard extends i {
     }
     render() {
         const { task } = this;
+        const linkedLabel = this._linkedLabel();
         return b `
       <div class="row">
         <div class="priority-bar" style="background:${priorityColor(task.priority)}">
@@ -616,8 +649,8 @@ let IkTaskCard = class IkTaskCard extends i {
             ${task.description ? b `<div class="desc">${task.description}</div>` : ""}
             <div class="meta">
               <span style="color:${statusColor(task.status)}">${this._relativeDue(task.due_date)}</span>
-              ${task.linked_entity_ids.length
-            ? b `<span>· ${task.linked_entity_ids.length} entit${task.linked_entity_ids.length > 1 ? "ies" : "y"}</span>`
+              ${linkedLabel
+            ? b `<span>· ${linkedLabel}</span>`
             : ""}
             </div>
           </div>
@@ -708,17 +741,6 @@ IkTaskCard.styles = i$3 `
       font-size: 12px;
       align-items: center;
     }
-    .badge {
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: #fff;
-    }
-    .task-num {
-      display: none;
-    }
     .actions {
       align-self: stretch;
       display: flex;
@@ -733,6 +755,12 @@ __decorate([
 __decorate([
     n({ attribute: false })
 ], IkTaskCard.prototype, "hass", void 0);
+__decorate([
+    n({ attribute: false })
+], IkTaskCard.prototype, "areas", void 0);
+__decorate([
+    n({ attribute: false })
+], IkTaskCard.prototype, "devices", void 0);
 __decorate([
     n({ type: Boolean })
 ], IkTaskCard.prototype, "completing", void 0);
@@ -1602,7 +1630,7 @@ let IkTaskListView = class IkTaskListView extends i {
           @pointercancel=${(e) => this._onPointerUp(task.task_id, task, e)}
           @click=${() => { if (!this._swipeMoved.delete(task.task_id))
             this._edit(task.task_id); }}>
-          <ik-task-card .task=${task} .hass=${this.hass}>
+          <ik-task-card .task=${task} .hass=${this.hass} .areas=${this._areas} .devices=${this._devices}>
             <div class="task-actions" slot="actions">
               <button class="icon-btn danger" title=${tr.del} @click=${(e) => { e.stopPropagation(); this._deleteTarget = task.task_id; }}><ha-icon icon="mdi:delete"></ha-icon></button>
               ${task.status !== "completed"

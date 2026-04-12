@@ -43,8 +43,20 @@ export interface HassEntityState {
     last_changed: string;
     last_updated: string;
 }
+export interface HassDeviceRegistryEntry {
+    id: string;
+    area_id: string | null;
+    name: string;
+    name_by_user: string | null;
+}
+export interface HassAreaRegistryEntry {
+    area_id: string;
+    name: string;
+}
 export interface HomeAssistant {
     states: Record<string, HassEntityState>;
+    devices: Record<string, HassDeviceRegistryEntry>;
+    areas: Record<string, HassAreaRegistryEntry>;
     callService(domain: string, service: string, serviceData?: Record<string, unknown>): Promise<void>;
     callWS<T>(msg: Record<string, unknown>): Promise<T>;
     formatEntityState(stateObj: HassEntityState): string;
