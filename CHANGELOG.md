@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.2] - Unreleased
+
+### Changed
+
+- Task list now displays the area and device name instead of a raw entity count for tasks with a single linked entity. When only an area is linked, the area name is shown; when a device is linked, the label shows "Area · Device" (or just the device name if it has no area assigned). Multiple linked entities still show a count, now translated into EN, PT, and ES.
+- Lovelace card entity chips now resolve `area:` and `device:` references to human-readable names instead of displaying the raw internal IDs.
+
+### Changed
+
+- Removed `HassEntityRegistryEntry` type and the `entities` property from the Lovelace card's `HomeAssistant` interface — they were added in a previous attempt with incorrect logic and were never used correctly.
+- Added `name` and `name_by_user` fields to `HassDeviceRegistryEntry` in the Lovelace card types, required for resolving device display names.
+- Added `linkedEntitiesCount` translation key (EN, PT, ES) for the entity count label shown in the task card meta row.
+
 ## [1.0.1] - 2026-04-09
 
 ### Fixed
