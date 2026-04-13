@@ -2,6 +2,12 @@
 
 <img width="933" height="256" alt="intellikeep_banner" src="https://github.com/user-attachments/assets/3d579c40-5bbd-4730-872f-45f464456593" />
 
+[![Documentation](https://img.shields.io/badge/docs-intellikeep.intellilar.com-blue)](https://intellikeep.intellilar.com)
+[![HACS](https://img.shields.io/badge/HACS-Custom-orange)](https://hacs.xyz)
+[![Tests](https://github.com/intellilar/intellikeep/actions/workflows/tests.yml/badge.svg)](https://github.com/intellilar/intellikeep/actions/workflows/tests.yml)
+[![Validate](https://github.com/intellilar/intellikeep/actions/workflows/validate.yml/badge.svg)](https://github.com/intellilar/intellikeep/actions/workflows/validate.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 **IntelliKeep** is a home maintenance task management system built as a free, open-source custom integration for Home Assistant. It centralizes all your household tasks—from simple filter replacements to periodic check-ups—offering automatic alerts and a complete task history.
 
 ---
