@@ -3,6 +3,9 @@ import { customElement, property } from "lit/decorators.js";
 import { HomeAssistant, Task } from "../types";
 import { t } from "../translations";
 
+type AreaEntry = { area_id: string; name: string };
+type DeviceEntry = { id: string; area_id: string | null; name_by_user: string | null; name: string };
+
 function priorityColor(p: string): string {
   const m: Record<string, string> = {
     low: "var(--success-color, #4caf50)",
@@ -28,6 +31,8 @@ function statusColor(s: string): string {
 export class IkTaskCard extends LitElement {
   @property({ attribute: false }) task!: Task;
   @property({ attribute: false }) hass!: HomeAssistant;
+  @property({ attribute: false }) areas: AreaEntry[] = [];
+  @property({ attribute: false }) devices: DeviceEntry[] = [];
   @property({ type: Boolean }) completing = false;
 
   static styles = css`
@@ -109,17 +114,6 @@ export class IkTaskCard extends LitElement {
       font-size: 12px;
       align-items: center;
     }
-    .badge {
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: #fff;
-    }
-    .task-num {
-      display: none;
-    }
     .actions {
       align-self: stretch;
       display: flex;
@@ -128,6 +122,32 @@ export class IkTaskCard extends LitElement {
     }
 
   `;
+
+  private _linkedLabel(): string | null {
+    const { linked_entity_ids } = this.task;
+    if (linked_entity_ids.length === 0) return null;
+    if (linked_entity_ids.length > 1) {
+      return t(this.hass?.language).linkedEntitiesCount(linked_entity_ids.length);
+    }
+    const entry = linked_entity_ids[0];
+    if (entry.startsWith("area:")) {
+      const areaId = entry.slice(5);
+      const area = this.areas.find(a => a.area_id === areaId);
+      return area ? area.name : null;
+    }
+    if (entry.startsWith("device:")) {
+      const deviceId = entry.slice(7);
+      const device = this.devices.find(d => d.id === deviceId);
+      if (!device) return null;
+      const deviceName = device.name_by_user || device.name;
+      if (device.area_id) {
+        const area = this.areas.find(a => a.area_id === device.area_id);
+        return area ? `${area.name} · ${deviceName}` : deviceName;
+      }
+      return deviceName;
+    }
+    return null;
+  }
 
   private _relativeDue(iso: string | null): string {
     const tr = t(this.hass?.language);
@@ -142,6 +162,7 @@ export class IkTaskCard extends LitElement {
 
   render() {
     const { task } = this;
+    const linkedLabel = this._linkedLabel();
     return html`
       <div class="row">
         <div class="priority-bar" style="background:${priorityColor(task.priority)}">
@@ -159,8 +180,8 @@ export class IkTaskCard extends LitElement {
             ${task.description ? html`<div class="desc">${task.description}</div>` : ""}
             <div class="meta">
               <span style="color:${statusColor(task.status)}">${this._relativeDue(task.due_date)}</span>
-              ${task.linked_entity_ids.length
-                ? html`<span>· ${task.linked_entity_ids.length} entit${task.linked_entity_ids.length > 1 ? "ies" : "y"}</span>`
+              ${linkedLabel
+                ? html`<span>· ${linkedLabel}</span>`
                 : ""}
             </div>
           </div>
