@@ -131,6 +131,39 @@ export class IntelliKeepCard extends LitElement {
     }
   }
 
+  private _resolveLinkedLabel(entry: string): string {
+    if (entry.startsWith("area:")) {
+      const areaId = entry.slice(5);
+      return this.hass.areas?.[areaId]?.name ?? areaId;
+    }
+    if (entry.startsWith("device:")) {
+      const deviceId = entry.slice(7);
+      const device = this.hass.devices?.[deviceId];
+      if (!device) return deviceId;
+      const deviceName = device.name_by_user || device.name;
+      const area = device.area_id ? this.hass.areas?.[device.area_id] : undefined;
+      return area ? `${area.name} · ${deviceName}` : deviceName;
+    }
+    return entry;
+  }
+
+  private _renderEntityChips(task: Task) {
+    if (!this.config.show_linked_entities || task.linked_entity_ids.length === 0) {
+      return nothing;
+    }
+
+    return html`
+      <div class="entity-chips">
+        ${task.linked_entity_ids.map((entry) => html`
+          <span class="entity-chip">
+            <ha-icon icon="mdi:devices" style="--mdc-icon-size:12px"></ha-icon>
+            ${this._resolveLinkedLabel(entry)}
+          </span>
+        `)}
+      </div>
+    `;
+  }
+
   protected render() {
     const title = this.config?.title ?? "IntelliKeep";
     const tasks = this._filteredTasks;
@@ -202,21 +235,7 @@ export class IntelliKeepCard extends LitElement {
             <span>${frequencyLabel(task.frequency, task.custom_days_interval)}</span>
           </div>
 
-          ${this.config.show_linked_entities && task.linked_entity_ids.length > 0
-            ? html`
-                <div class="entity-chips">
-                  ${task.linked_entity_ids.map((eid) => {
-                    const state = this.hass.states[eid];
-                    return html`
-                      <span class="entity-chip">
-                        <ha-icon icon="mdi:devices" style="--mdc-icon-size:12px"></ha-icon>
-                        ${state ? this.hass.formatEntityState(state) : eid}
-                      </span>
-                    `;
-                  })}
-                </div>
-              `
-            : nothing}
+          ${this._renderEntityChips(task)}
         </div>
 
         ${task.status !== "completed"

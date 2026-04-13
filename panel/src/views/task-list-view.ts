@@ -740,7 +740,7 @@ export class IkTaskListView extends LitElement {
           @pointerup=${(e: PointerEvent) => this._onPointerUp(task.task_id, task, e)}
           @pointercancel=${(e: PointerEvent) => this._onPointerUp(task.task_id, task, e)}
           @click=${() => { if (!this._swipeMoved.delete(task.task_id)) this._edit(task.task_id); }}>
-          <ik-task-card .task=${task} .hass=${this.hass}>
+          <ik-task-card .task=${task} .hass=${this.hass} .areas=${this._areas} .devices=${this._devices}>
             <div class="task-actions" slot="actions">
               <button class="icon-btn danger" title=${tr.del} @click=${(e: Event) => { e.stopPropagation(); this._deleteTarget = task.task_id; }}><ha-icon icon="mdi:delete"></ha-icon></button>
               ${task.status !== "completed"
