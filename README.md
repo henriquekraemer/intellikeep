@@ -8,23 +8,23 @@
 [![Validate](https://github.com/intellilar/intellikeep/actions/workflows/validate.yml/badge.svg)](https://github.com/intellilar/intellikeep/actions/workflows/validate.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-**IntelliKeep** is a home maintenance task management system built as a free, open-source custom integration for Home Assistant. It centralizes all your household tasks—from simple filter replacements to periodic check-ups—offering automatic alerts and a complete task history.
+IntelliKeep is a free, open-source Home Assistant integration for keeping track of home maintenance tasks. Use it to keep every household chore in one place, from a monthly HVAC filter swap to an annual boiler service, with reminders and a full history of what was done and when.
 
 ---
 
 ## Features
 
-- One-time and **recurring tasks** (daily, weekly, monthly, yearly, or custom interval)
-- **Priority levels**: low, medium, high, critical — with color-coded priority bar
-- Link tasks to **HA areas or specific devices**
-- **Notes** per task — add, view and delete timestamped notes with author tracking
-- **Activity log** per task — full audit trail of edits, completions, reopens and note changes
-- **Calendar view** — week and month grids with task dots, area/device/priority filters, and today/period navigation
-- **Execution history** — filterable by area/device, with configurable columns, CSV export, and print support
-- **Notifications** via persistent notifications + optional mobile push service
-- Three **sensor entities**: `tasks_due_today`, `tasks_overdue`, `next_due_task`
-- Designed for **web and mobile** — responsive panel that follows HA UI patterns
-- **Lovelace card** for compact dashboard display of due/overdue tasks
+- One-time and recurring tasks (daily, weekly, monthly, yearly, or a custom interval)
+- Four priority levels (low, medium, high, critical) shown with a color-coded bar
+- Link a task to a Home Assistant area or a specific device
+- Timestamped notes per task, with author tracking, that you can add, view and delete
+- An activity log per task covering edits, completions, reopens and note changes
+- Calendar view with week and month grids, task dots, filters by area, device and priority, and quick navigation
+- Execution history you can filter by area or device, with configurable columns, CSV export and print support
+- Notifications through Home Assistant's persistent notifications, plus an optional mobile push service
+- Three sensor entities: `tasks_due_today`, `tasks_overdue` and `next_due_task`
+- Responsive panel that works on desktop and mobile and follows the Home Assistant UI
+- A Lovelace card for showing due and overdue tasks on a dashboard
 
 ---
 
@@ -32,15 +32,15 @@
 
 ### Via HACS (recommended)
 
-1. Open HACS → Integrations → Custom repositories
-2. Add `https://github.com/intellilar/intellikeep` with category **Integration**
+1. Open HACS, go to Integrations, then Custom repositories
+2. Add `https://github.com/intellilar/intellikeep` with the category **Integration**
 3. Install **IntelliKeep**
 4. Restart Home Assistant
-5. Go to **Settings → Devices & Services → Add Integration** → search **IntelliKeep**
+5. Go to **Settings → Devices & Services → Add Integration** and search for **IntelliKeep**
 
 ### Manual
 
-Copy `custom_components/intellikeep/` into your HA `config/custom_components/` directory and restart.
+Copy `custom_components/intellikeep/` into your Home Assistant `config/custom_components/` directory and restart.
 
 ---
 
@@ -50,17 +50,17 @@ During setup you can configure:
 
 | Option | Default | Description |
 |---|---|---|
-| Instance Name | `IntelliKeep` | Label shown in HA |
-| Notify Days Before | `1` | Days before due date to send a reminder |
-| Notification Service | *(empty)* | Optional `notify.*` service, e.g. `notify.mobile_app_my_phone` |
+| Instance Name | `IntelliKeep` | Label shown in Home Assistant |
+| Notify Days Before | `1` | How many days before the due date a reminder is sent |
+| Notification Service | *(empty)* | Optional `notify.*` service, for example `notify.mobile_app_my_phone` |
 
-These same values can be changed later in Home Assistant via the integration options or the reconfiguration flow.
+You can change any of these later from the integration options or the reconfiguration flow.
 
 ---
 
 ## Usage
 
-The IntelliKeep panel appears automatically in the Home Assistant sidebar after installation. It supports multiple languages following your HA profile setting.
+The IntelliKeep panel shows up in the Home Assistant sidebar once the integration is installed. It follows the language set in your Home Assistant profile.
 
 ### Lovelace Card
 
@@ -76,20 +76,20 @@ show_description: false
 
 | View | Description |
 |---|---|
-| **Tasks** | Unified pending and completed task list with search, priority, area, and device filters |
-| **Calendar** | Week and month grid showing tasks by due date; supports the same area/device/priority filters |
-| **History** | Full execution log across all tasks, filterable by area/device, exportable to CSV |
+| **Tasks** | Pending and completed tasks in one list, with search and filters by priority, area and device |
+| **Calendar** | Week and month grids showing tasks by due date, with the same area, device and priority filters |
+| **History** | Execution log across every task, filterable by area or device and exportable to CSV |
 
 ### Services
 
 | Action | Description |
 |---|---|
 | `intellikeep.create_task` | Create a new task |
-| `intellikeep.complete_task` | Mark a task as done (records execution) |
-| `intellikeep.reopen_task` | Reopen a completed task, marking it as pending again |
+| `intellikeep.complete_task` | Mark a task as done and record the execution |
+| `intellikeep.reopen_task` | Reopen a completed task and set it back to pending |
 | `intellikeep.update_task` | Update task fields |
 | `intellikeep.delete_task` | Permanently delete a task |
-| `intellikeep.load_sample_data` | Populate with sample home maintenance tasks |
+| `intellikeep.load_sample_data` | Fill the integration with sample maintenance tasks |
 
 ### Example: create a monthly recurring task
 
@@ -135,48 +135,48 @@ automation:
 
 ## Supported Scope
 
-IntelliKeep is a local Home Assistant task-management integration. It stores task data inside Home Assistant and provides a panel, a Lovelace card, sensors, diagnostics, and service actions for task management.
+IntelliKeep is a local task-management integration. It keeps task data inside Home Assistant and provides a panel, a Lovelace card, sensors, diagnostics and service actions.
 
 Common use cases:
 
-- Track recurring household maintenance such as HVAC filters, gutters, smoke detectors and boiler service
-- Create one-off repair or inspection tasks and keep a completion history
+- Track recurring maintenance like HVAC filters, gutters, smoke detectors and boiler service
+- Create one-off repair or inspection tasks and keep a record of when they were completed
 - Build automations on top of IntelliKeep notification events
-- Show due and overdue tasks in dashboards using the Lovelace card
+- Show due and overdue tasks on a dashboard with the Lovelace card
 
-Not supported:
+Out of scope:
 
 - Automatic device discovery
 - Vendor firmware updates
 - External account authentication or reauthentication flows
-- Synchronization with external task-management platforms
+- Syncing with external task-management platforms
 
 ---
 
 ## Data Updates
 
-Task state is stored locally in Home Assistant storage and refreshed in three ways:
+Task state is stored locally in Home Assistant and refreshed in a few ways:
 
-- Immediate refresh after every service action that changes tasks
-- WebSocket push updates to the panel and card when coordinator data refreshes
-- Scheduled coordinator refresh every 5 minutes for sensor state consistency
-- Scheduled notification checks every hour for approaching or overdue tasks
+- An immediate refresh after any service action that changes a task
+- WebSocket push updates to the panel and card whenever coordinator data refreshes
+- A coordinator refresh every 5 minutes to keep sensor state in sync
+- A notification check every hour for tasks that are approaching or overdue
 
 ## Troubleshooting
 
-If the panel or card does not show current data:
+If the panel or card is not showing current data:
 
 1. Open Settings → Devices & Services and confirm the IntelliKeep entry is loaded.
-2. Download diagnostics from the config entry and verify the task counters match expectations.
-3. If you recently rebuilt the frontend, restart Home Assistant to reload the static assets.
+2. Download diagnostics from the config entry and check that the task counters look right.
+3. If you just rebuilt the frontend, restart Home Assistant to reload the static assets.
 
-If mobile notifications are not delivered:
+If mobile notifications are not arriving:
 
-1. Verify the configured `notify.*` service exists in Developer Tools → Actions.
+1. Confirm the configured `notify.*` service exists under Developer Tools → Actions.
 2. Leave the notification service empty to fall back to persistent notifications only.
-3. Check Home Assistant logs for translated IntelliKeep service validation errors.
+3. Check the Home Assistant logs for IntelliKeep service validation errors.
 
-If tasks appear overdue unexpectedly:
+If tasks look overdue when they shouldn't:
 
 1. Check the Home Assistant system time and timezone.
 2. Confirm the stored `due_date` value in diagnostics.
@@ -184,10 +184,10 @@ If tasks appear overdue unexpectedly:
 
 ## Known Limitations
 
-- The integration is intentionally single-instance.
-- Task data is stored locally and is not shared between Home Assistant installations.
-- Sensors summarize task state; the full task list is exposed through the UI and diagnostics rather than individual task entities.
-- Notification deduplication is in-memory for the current Home Assistant runtime and resets after restart.
+- The integration is single-instance by design.
+- Task data lives locally and is not shared between Home Assistant installations.
+- Sensors summarize task state; the full task list is available through the UI and diagnostics rather than as individual entities.
+- Notification deduplication is kept in memory and resets when Home Assistant restarts.
 
 ## Removal
 
@@ -197,13 +197,13 @@ To remove IntelliKeep cleanly:
 2. Open IntelliKeep.
 3. Choose Delete.
 4. Remove any dashboard cards or automations that still reference IntelliKeep services or events.
-5. If installed manually, delete `custom_components/intellikeep/` from your Home Assistant config directory.
+5. If you installed it manually, delete `custom_components/intellikeep/` from your Home Assistant config directory.
 
 ---
 
 ## Building the Frontend
 
-The frontend bundles (Lovelace card and sidebar panel) are built via a Docker-based script — no local Node.js required.
+The frontend bundles (the Lovelace card and the sidebar panel) are built with a Docker-based script, so you don't need Node.js installed locally.
 
 ### Requirements
 
@@ -222,7 +222,7 @@ The frontend bundles (Lovelace card and sidebar panel) are built via a Docker-ba
 ./build-frontend.sh panel
 ```
 
-The script uses `node:20-alpine` to run `npm install` and `rollup` inside a container. Built files are written to:
+The script runs `npm install` and `rollup` inside a `node:20-alpine` container. Built files are written to:
 
 ```
 custom_components/intellikeep/frontend/intellikeep-card.js
