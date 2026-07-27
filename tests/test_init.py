@@ -41,18 +41,14 @@ async def test_async_setup_entry_stores_runtime_data(mock_hass, mock_config_entr
 
     assert result is True
     assert isinstance(mock_config_entry.runtime_data, IntelliKeepRuntimeData)
-    assert mock_hass.data["intellikeep"][mock_config_entry.entry_id] is mock_config_entry.runtime_data
     notification_manager.start.assert_called_once()
     mock_hass.config_entries.async_forward_entry_setups.assert_awaited_once()
 
 
-async def test_async_unload_entry_stops_manager_and_clears_runtime_data(
+async def test_async_unload_entry_stops_notification_manager(
     mock_hass, mock_config_entry, runtime_data
 ):
-    mock_hass.data["intellikeep"] = {mock_config_entry.entry_id: runtime_data}
-
     result = await async_unload_entry(mock_hass, mock_config_entry)
 
     assert result is True
     runtime_data.notification_manager.stop.assert_called_once()
-    assert mock_hass.data["intellikeep"] == {}

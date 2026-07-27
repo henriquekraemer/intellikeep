@@ -35,8 +35,9 @@ class TestConfigFlow:
 
         assert result["type"] == "create_entry"
         assert result["title"] == "My Home"
-        assert result["data"][CONF_INSTANCE_NAME] == "My Home"
-        assert result["data"][CONF_NOTIFY_DAYS_BEFORE_DEFAULT] == 2
+        assert result["data"] == {}
+        assert result["options"][CONF_INSTANCE_NAME] == "My Home"
+        assert result["options"][CONF_NOTIFY_DAYS_BEFORE_DEFAULT] == 2
         flow.async_set_unique_id.assert_awaited_once_with(DOMAIN)
         flow._abort_if_unique_id_configured.assert_called_once()
 
@@ -67,7 +68,7 @@ class TestConfigFlow:
             }
         )
 
-        assert result["data"][CONF_INSTANCE_NAME] == DEFAULT_INSTANCE_NAME
+        assert result["options"][CONF_INSTANCE_NAME] == DEFAULT_INSTANCE_NAME
 
     async def test_reconfigure_updates_entry(self):
         flow = IntelliKeepConfigFlow()
@@ -93,6 +94,9 @@ class TestConfigFlow:
 
         assert result["reason"] == "reconfigured"
         flow.async_update_reload_and_abort.assert_called_once()
+        kwargs = flow.async_update_reload_and_abort.call_args.kwargs
+        assert kwargs["options"][CONF_NOTIFY_DAYS_BEFORE_DEFAULT] == 3
+        assert "data" not in kwargs
 
     async def test_reconfigure_shows_form(self):
         flow = IntelliKeepConfigFlow()
@@ -123,7 +127,10 @@ class TestOptionsFlow:
         }
         entry.options = {}
 
-        flow = IntelliKeepOptionsFlow(entry)
+        flow = IntelliKeepOptionsFlow()
+        flow.hass = MagicMock()
+        flow.handler = "entry-1"
+        flow.hass.config_entries.async_get_known_entry = MagicMock(return_value=entry)
         result = await flow.async_step_init(
             {
                 CONF_INSTANCE_NAME: "Updated Home",

@@ -61,7 +61,8 @@ class IntelliKeepConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._abort_if_unique_id_configured()
             return self.async_create_entry(
                 title=user_input[CONF_INSTANCE_NAME],
-                data=user_input,
+                data={},
+                options=user_input,
             )
 
         return self.async_show_form(
@@ -82,11 +83,11 @@ class IntelliKeepConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_update_reload_and_abort(
                 entry,
                 title=user_input[CONF_INSTANCE_NAME],
-                data=user_input,
+                options=user_input,
             )
 
-        current = dict(entry.data)
-        current.update(entry.options)
+        # Merge data for installs created before settings moved to options
+        current = {**entry.data, **entry.options}
         return self.async_show_form(
             step_id="reconfigure",
             data_schema=_build_config_schema(current),
@@ -97,14 +98,11 @@ class IntelliKeepConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def async_get_options_flow(
         config_entry: ConfigEntry,
     ) -> IntelliKeepOptionsFlow:
-        return IntelliKeepOptionsFlow(config_entry)
+        return IntelliKeepOptionsFlow()
 
 
 class IntelliKeepOptionsFlow(config_entries.OptionsFlow):
     """Handle IntelliKeep options (reconfiguration)."""
-
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self._config_entry = config_entry
 
     async def async_step_init(
         self, user_input: dict | None = None
@@ -112,7 +110,8 @@ class IntelliKeepOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        current = self._config_entry.options or self._config_entry.data
+        # Merge data for installs created before settings moved to options
+        current = {**self.config_entry.data, **self.config_entry.options}
 
         return self.async_show_form(
             step_id="init",
