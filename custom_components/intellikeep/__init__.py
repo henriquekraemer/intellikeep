@@ -16,6 +16,8 @@ from homeassistant.helpers import device_registry as dr
 
 from .const import (
     CONF_NOTIFICATION_SERVICE,
+    CONF_NOTIFY_DAYS_BEFORE_DEFAULT,
+    DEFAULT_NOTIFY_DAYS_BEFORE,
     DOMAIN,
     PANEL_ICON,
     PANEL_TITLE,
@@ -25,7 +27,7 @@ from .const import (
 from .coordinator import IntelliKeepCoordinator
 from .frontend import async_register_frontend
 from .notifications import NotificationManager
-from .services import async_register_services, async_unregister_services
+from .services import async_register_services
 from .runtime_data import IntelliKeepConfigEntry, IntelliKeepRuntimeData
 from .storage import IntelliKeepStorage
 from .task_manager import TaskManager
@@ -71,11 +73,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: IntelliKeepConfigEntry) 
     )
     notification_manager.start()
 
+    notify_days_before_default = entry.options.get(
+        CONF_NOTIFY_DAYS_BEFORE_DEFAULT,
+        entry.data.get(CONF_NOTIFY_DAYS_BEFORE_DEFAULT, DEFAULT_NOTIFY_DAYS_BEFORE),
+    )
     runtime_data = IntelliKeepRuntimeData(
         storage=storage,
         task_manager=task_manager,
         coordinator=coordinator,
         notification_manager=notification_manager,
+        notify_days_before_default=int(notify_days_before_default),
     )
     entry.runtime_data = runtime_data
     hass.data[DOMAIN][entry.entry_id] = runtime_data
@@ -108,6 +115,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: IntelliKeepConfigEntry)
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id, None)
+        _async_remove_panel(hass)
 
     return unload_ok
 
@@ -147,3 +155,13 @@ async def _async_register_panel(hass: HomeAssistant) -> None:
         )
     except Exception as err:  # noqa: BLE001
         _LOGGER.warning("Could not register IntelliKeep panel: %s", err)
+
+
+def _async_remove_panel(hass: HomeAssistant) -> None:
+    """Remove the sidebar panel so a reload can re-register it cleanly."""
+    from homeassistant.components import frontend as ha_frontend  # noqa: PLC0415
+
+    try:
+        ha_frontend.async_remove_panel(hass, PANEL_URL)
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.debug("Could not remove IntelliKeep panel: %s", err)

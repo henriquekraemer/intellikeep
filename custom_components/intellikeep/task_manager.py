@@ -1,6 +1,7 @@
 """Business logic for IntelliKeep task management."""
 from __future__ import annotations
 
+import calendar
 import logging
 from datetime import datetime, timedelta
 from typing import Any
@@ -8,6 +9,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
+from .const import EVENT_TASK_UPDATED
 from .models import Task, TaskActivity, TaskActivityType, TaskExecution, TaskNote, TaskFrequency, TaskStatus
 from .storage import IntelliKeepStorage
 
@@ -66,6 +68,12 @@ class TaskManager:
         self.hass = hass
         self._storage = storage
 
+    def _fire_task_updated(self, task_id: str, action: str) -> None:
+        """Fire intellikeep_task_updated so users can build automations on changes."""
+        self.hass.bus.async_fire(
+            EVENT_TASK_UPDATED, {"task_id": task_id, "action": action}
+        )
+
     # ------------------------------------------------------------------
     # CRUD
     # ------------------------------------------------------------------
@@ -75,6 +83,7 @@ class TaskManager:
         task = Task(**kwargs)
         self._storage.upsert_task(task)
         await self._storage.async_save()
+        self._fire_task_updated(task.task_id, "created")
         _LOGGER.debug("Created task %s (%s)", task.task_id, task.name)
         return task
 
@@ -109,6 +118,7 @@ class TaskManager:
             ))
         self._storage.upsert_task(task)
         await self._storage.async_save()
+        self._fire_task_updated(task_id, "updated")
         return task
 
     async def async_complete_task(
@@ -178,6 +188,7 @@ class TaskManager:
                 )
 
         await self._storage.async_save()
+        self._fire_task_updated(task_id, "completed")
         _LOGGER.debug("Completed task %s by %s", task_id, completed_by or "unknown")
         return task
 
@@ -201,6 +212,7 @@ class TaskManager:
         task.updated_at = dt_util.utcnow()
         self._storage.upsert_task(task)
         await self._storage.async_save()
+        self._fire_task_updated(task_id, "note_added")
         _LOGGER.debug("Added note to task %s", task_id)
         return note
 
@@ -225,6 +237,7 @@ class TaskManager:
         task.updated_at = dt_util.utcnow()
         self._storage.upsert_task(task)
         await self._storage.async_save()
+        self._fire_task_updated(task_id, "note_deleted")
         _LOGGER.debug("Deleted note %s from task %s", note_id, task_id)
         return True
 
@@ -243,6 +256,7 @@ class TaskManager:
         ))
         self._storage.upsert_task(task)
         await self._storage.async_save()
+        self._fire_task_updated(task_id, "reopened")
         _LOGGER.debug("Reopened task %s", task_id)
         return task
 
@@ -250,6 +264,7 @@ class TaskManager:
         deleted = self._storage.delete_task(task_id)
         if deleted:
             await self._storage.async_save()
+            self._fire_task_updated(task_id, "deleted")
             _LOGGER.debug("Deleted task %s", task_id)
         return deleted
 
@@ -264,9 +279,9 @@ class TaskManager:
         if task.due_date is None:
             return TaskStatus.PENDING
         days_until_due = (task.due_date.date() - now.date()).days
-        if days_until_due < -1:
+        if days_until_due < 0:
             return TaskStatus.OVERDUE
-        if days_until_due <= 0:
+        if days_until_due == 0:
             return TaskStatus.DUE
         return TaskStatus.PENDING
 
@@ -331,12 +346,14 @@ class TaskManager:
                 month = base.month % 12 + 1
                 year = base.year + (1 if base.month == 12 else 0)
                 # Handle months shorter than current day (e.g. Jan 31 → Feb 28)
-                import calendar
                 last_day = calendar.monthrange(year, month)[1]
                 day = min(base.day, last_day)
                 return base.replace(year=year, month=month, day=day)
             case TaskFrequency.YEARLY:
-                return base.replace(year=base.year + 1)
+                # Handle Feb 29 when the next year is not a leap year
+                next_year = base.year + 1
+                last_day = calendar.monthrange(next_year, base.month)[1]
+                return base.replace(year=next_year, day=min(base.day, last_day))
             case TaskFrequency.CUSTOM:
                 interval = task.custom_days_interval or 30
                 return base + timedelta(days=interval)

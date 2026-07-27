@@ -103,5 +103,5 @@ Two separate systems: the backend uses `strings.json` + `translations/{en,es,pt}
 - **No external Python dependencies** — Uses only HA core APIs (`voluptuous`, `homeassistant.helpers`).
 - **Requires HA 2026.1.0+**
 - **Version is duplicated** — bump `manifest.json`, `const.py` (`VERSION`, served to the frontend via the `get_version` WebSocket command), and `panel/package.json` together when releasing; update `CHANGELOG.md`.
-- **HA bus events** — `intellikeep_task_notification` (fired by the notification manager; documented automation hook) and `intellikeep_task_updated` (pushes live updates to panel/card subscriptions).
+- **HA bus events** — `intellikeep_task_notification` is fired by the notification manager (documented automation hook). `intellikeep_task_updated` is fired by `TaskManager` on every mutation (`created`, `updated`, `completed`, `reopened`, `deleted`, `note_added`, `note_deleted`). Panel/card live updates flow through coordinator listeners via the `subscribe` WebSocket command, not through these events.
 - **CI/CD** — GitHub Actions runs pytest on Python 3.12 & 3.13 (push to `main`/`dev` and PRs), plus HACS validation, a frontend build, and `hassfest` on `main` pushes/PRs.

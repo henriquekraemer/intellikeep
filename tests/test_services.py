@@ -155,6 +155,19 @@ class TestRegisteredServices:
         assert tasks[0].notify_days_before == 2
         runtime_data.coordinator.async_refresh.assert_awaited_once()
 
+    async def test_create_task_handler_applies_configured_notify_default(
+        self, registered_service_handlers, runtime_data
+    ):
+        runtime_data.notify_days_before_default = 5
+
+        await registered_service_handlers[SERVICE_CREATE_TASK](
+            MagicMock(data={"name": "Uses default"})
+        )
+
+        tasks = runtime_data.storage.get_all_tasks()
+        assert len(tasks) == 1
+        assert tasks[0].notify_days_before == 5
+
     async def test_complete_delete_update_and_note_handlers_raise_for_missing_tasks(
         self, registered_service_handlers
     ):

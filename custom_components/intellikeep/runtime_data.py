@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from homeassistant.config_entries import ConfigEntry
 
+from .const import DEFAULT_NOTIFY_DAYS_BEFORE
 from .coordinator import IntelliKeepCoordinator
 from .notifications import NotificationManager
 from .storage import IntelliKeepStorage
@@ -19,6 +20,7 @@ class IntelliKeepRuntimeData:
     task_manager: TaskManager
     coordinator: IntelliKeepCoordinator
     notification_manager: NotificationManager
+    notify_days_before_default: int = DEFAULT_NOTIFY_DAYS_BEFORE
 
 
 type IntelliKeepConfigEntry = ConfigEntry[IntelliKeepRuntimeData]

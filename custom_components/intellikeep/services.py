@@ -68,6 +68,8 @@ def async_register_services(
         coordinator = runtime_data.coordinator
         data = _coerce_int_fields(dict(call.data), "custom_days_interval", "notify_days_before")
         data = _coerce_due_date(data)
+        if "notify_days_before" not in data:
+            data["notify_days_before"] = runtime_data.notify_days_before_default
         if "priority" in data:
             data["priority"] = TaskPriority(data["priority"])
         if "frequency" in data:

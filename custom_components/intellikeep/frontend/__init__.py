@@ -2,13 +2,12 @@
 from __future__ import annotations
 
 import logging
-import os
 from pathlib import Path
 
 from homeassistant.components import frontend as ha_frontend
 from homeassistant.components.http import StaticPathConfig
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.event import async_call_later
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
+from homeassistant.core import CoreState, Event, HomeAssistant, callback
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,7 +41,7 @@ async def async_register_frontend(hass: HomeAssistant, component_domain: str) ->
 def _async_register_card_resource(hass: HomeAssistant, component_domain: str) -> None:
     """Add the card JS as a Lovelace resource (if lovelace is available)."""
 
-    async def _do_register(_now=None) -> None:
+    async def _do_register(_event: Event | None = None) -> None:
         try:
             lovelace = hass.data.get("lovelace")
             if lovelace is None:
@@ -65,5 +64,9 @@ def _async_register_card_resource(hass: HomeAssistant, component_domain: str) ->
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Could not register Lovelace card resource: %s", err)
 
-    # Defer until HA has finished starting so Lovelace data is available
-    async_call_later(hass, 2, _do_register)
+    # Defer until HA has finished starting so Lovelace data is available;
+    # if the entry is set up at runtime (after startup), register immediately.
+    if hass.state is CoreState.running:
+        hass.async_create_task(_do_register())
+    else:
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _do_register)

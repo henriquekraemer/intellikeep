@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- The `overdue_tasks` attribute on `sensor.tasks_overdue` listed every enabled task instead of only the overdue ones ([#20](https://github.com/henriquekraemer/intellikeep/issues/20)).
+- Completing a yearly recurring task on Feb 29 raised an error when scheduling the next occurrence ([#20](https://github.com/henriquekraemer/intellikeep/issues/20)).
+- Tasks now become overdue the day after their due date. Previously there was an undocumented one-day grace period where a task past its due date still reported as due ([#20](https://github.com/henriquekraemer/intellikeep/issues/20)).
+- The "Notify Days Before" default from the integration options is now applied to tasks created without an explicit value ([#20](https://github.com/henriquekraemer/intellikeep/issues/20)).
+- The sidebar panel is removed when the integration unloads, so reloading after an options change re-registers it cleanly ([#20](https://github.com/henriquekraemer/intellikeep/issues/20)).
+
+### Added
+
+- New `intellikeep_task_updated` event fired on every task mutation (`created`, `updated`, `completed`, `reopened`, `deleted`, `note_added`, `note_deleted`), usable as an automation trigger ([#20](https://github.com/henriquekraemer/intellikeep/issues/20)).
+
+### Changed
+
+- Lovelace card resource registration now waits for Home Assistant to finish starting instead of using a fixed delay ([#20](https://github.com/henriquekraemer/intellikeep/issues/20)).
+
 ## [1.0.2] - 2026-04-13
 
 ### Changed
