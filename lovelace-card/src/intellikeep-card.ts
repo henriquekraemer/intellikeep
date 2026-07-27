@@ -258,4 +258,16 @@ declare global {
   interface HTMLElementTagNameMap {
     "intellikeep-card": IntelliKeepCard;
   }
+  interface Window {
+    customCards?: object[];
+  }
 }
+
+// Register in the Lovelace card picker
+window.customCards = window.customCards || [];
+window.customCards.push({
+  type: "intellikeep-card",
+  name: "IntelliKeep Card",
+  description: "Compact list of due and overdue IntelliKeep tasks.",
+  documentationURL: "https://github.com/henriquekraemer/intellikeep",
+});
