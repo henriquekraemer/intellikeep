@@ -40,7 +40,14 @@ cd panel && npm install && npm run build
 cd lovelace-card && npm install && npm run build
 ```
 
-Built artifacts land in `custom_components/intellikeep/frontend/`.
+Built artifacts land in `custom_components/intellikeep/frontend/` and are **committed to git** (HACS serves them from the repo) — after any frontend change, rebuild and commit the bundles.
+
+To deploy to a running Docker-based HA instance:
+
+```bash
+docker cp custom_components/intellikeep/ homeassistant:/config/custom_components/
+docker restart homeassistant
+```
 
 ## Architecture
 
@@ -81,14 +88,20 @@ Both use Rollup + TypeScript + Lit web components. The panel is the full sidebar
 
 - `panel/src/api.ts` — WebSocket client wrapping HA's connection API
 - `panel/src/types.ts` — TypeScript interfaces mirroring backend models
-- `panel/src/views/` — Page-level components (task list, task form, history, notes, settings)
+- `panel/src/views/` — Page-level components (task list, task form, calendar, history, settings)
 - `panel/src/components/` — Reusable UI elements
 
 The frontend is decoupled from business logic; it communicates exclusively through the WebSocket API.
+
+### Translations
+
+Two separate systems: the backend uses `strings.json` + `translations/{en,es,pt}.json` (config flow, services, sensor names), while the panel has its own translation table in `panel/src/translations.ts`. User-visible string changes usually touch both.
 
 ## Key Implementation Details
 
 - **Single instance only** — `single_config_entry: true` in `manifest.json`; only one IntelliKeep per HA installation.
 - **No external Python dependencies** — Uses only HA core APIs (`voluptuous`, `homeassistant.helpers`).
 - **Requires HA 2026.1.0+**
-- **CI/CD** — GitHub Actions runs pytest on Python 3.12 & 3.13, HACS validation, and `hassfest` on every push/PR.
+- **Version is duplicated** — bump `manifest.json`, `const.py` (`VERSION`, served to the frontend via the `get_version` WebSocket command), and `panel/package.json` together when releasing; update `CHANGELOG.md`.
+- **HA bus events** — `intellikeep_task_notification` (fired by the notification manager; documented automation hook) and `intellikeep_task_updated` (pushes live updates to panel/card subscriptions).
+- **CI/CD** — GitHub Actions runs pytest on Python 3.12 & 3.13 (push to `main`/`dev` and PRs), plus HACS validation, a frontend build, and `hassfest` on `main` pushes/PRs.
