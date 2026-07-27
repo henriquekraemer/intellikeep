@@ -52,6 +52,11 @@ class NotificationManager:
         self._notified_approaching.discard(task_id)
         self._notified_overdue.discard(task_id)
 
+    def reset(self) -> None:
+        """Clear all notification deduplication state."""
+        self._notified_approaching.clear()
+        self._notified_overdue.clear()
+
     async def _async_check_notifications(self, _now: datetime) -> None:
         await self._notify_approaching_tasks()
         await self._notify_overdue_tasks()

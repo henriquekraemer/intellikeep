@@ -26,6 +26,8 @@ def mock_hass():
     hass.services.async_register = MagicMock()
     hass.services.async_remove = MagicMock()
     hass.services.has_service = MagicMock(return_value=False)
+    # Execute HassJob targets directly (used by async_register_admin_service)
+    hass.async_run_hass_job = MagicMock(side_effect=lambda job, *args: job.target(*args))
     hass.bus = MagicMock()
     hass.bus.async_fire = MagicMock()
     hass.config_entries = MagicMock()

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.exceptions import ServiceValidationError
@@ -208,19 +208,32 @@ class TestRegisteredServices:
         assert len(runtime_data.storage.get_all_tasks()) > 1
         runtime_data.coordinator.async_refresh.assert_awaited_once()
 
-    async def test_delete_all_data_clears_tasks_and_notification_sets(
+    async def test_delete_all_data_clears_tasks_and_resets_notifications(
         self, registered_service_handlers, runtime_data
     ):
         task = make_task()
         runtime_data.storage.upsert_task(task)
-        runtime_data.notification_manager._notified_approaching = {task.task_id}
-        runtime_data.notification_manager._notified_overdue = {task.task_id}
 
-        await registered_service_handlers[SERVICE_DELETE_ALL_DATA](MagicMock(data={}))
+        await registered_service_handlers[SERVICE_DELETE_ALL_DATA](
+            MagicMock(data={}, context=MagicMock(user_id=None))
+        )
 
         assert runtime_data.storage.get_all_tasks() == []
-        assert runtime_data.notification_manager._notified_approaching == set()
-        assert runtime_data.notification_manager._notified_overdue == set()
+        runtime_data.notification_manager.reset.assert_called_once()
+
+    async def test_delete_all_data_rejects_non_admin(
+        self, registered_service_handlers, mock_hass
+    ):
+        from homeassistant.exceptions import Unauthorized
+
+        mock_hass.auth.async_get_user = AsyncMock(
+            return_value=MagicMock(is_admin=False)
+        )
+
+        with pytest.raises(Unauthorized):
+            await registered_service_handlers[SERVICE_DELETE_ALL_DATA](
+                MagicMock(data={}, context=MagicMock(user_id="user-1"))
+            )
 
     def test_unregister_services_removes_all(self, mock_hass):
         async_unregister_services(mock_hass)
