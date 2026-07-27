@@ -82,8 +82,7 @@ class IntelliKeepOverdueCountSensor(_IntelliKeepSensorBase):
                 "due_date": t.due_date.isoformat() if t.due_date else None,
                 "priority": str(t.priority),
             }
-            for t in (self.coordinator.data.get("all_tasks") or [])
-            if not t.enabled is False
+            for t in (self.coordinator.data.get("overdue_tasks") or [])
         ]
         return {"overdue_tasks": overdue} if overdue else None
 

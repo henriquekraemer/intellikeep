@@ -133,7 +133,7 @@ class NotificationManager:
                     {"title": title, "message": message},
                     blocking=False,
                 )
-            except (ValueError, Exception) as err:
+            except Exception as err:  # noqa: BLE001
                 _LOGGER.warning(
                     "Failed to call notification service %s: %s",
                     self.notification_service,

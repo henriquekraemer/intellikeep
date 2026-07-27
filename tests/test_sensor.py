@@ -111,13 +111,14 @@ class TestSensorEntities:
     ):
         task = make_task(
             name="Replace filter",
-            due_date=datetime.now(timezone.utc) + timedelta(days=1),
+            due_date=datetime.now(timezone.utc) - timedelta(days=2),
             linked_entity_ids=["climate.living_room"],
         )
         runtime_data.coordinator.data = {
             "all_tasks": [task],
             "tasks_due_count": 0,
             "tasks_overdue_count": 1,
+            "overdue_tasks": [task],
             "next_due_task": task,
         }
 
@@ -148,3 +149,28 @@ class TestSensorEntities:
             "linked_entity_ids": ["climate.living_room"],
             "frequency": str(task.frequency),
         }
+
+    async def test_overdue_attribute_omits_non_overdue_tasks(
+        self, mock_hass, mock_config_entry, runtime_data
+    ):
+        task = make_task(
+            name="Due tomorrow",
+            due_date=datetime.now(timezone.utc) + timedelta(days=1),
+        )
+        runtime_data.coordinator.data = {
+            "all_tasks": [task],
+            "tasks_due_count": 0,
+            "tasks_overdue_count": 0,
+            "overdue_tasks": [],
+            "next_due_task": task,
+        }
+
+        added_entities = []
+        await async_setup_entry(
+            mock_hass,
+            mock_config_entry,
+            lambda entities: added_entities.extend(entities),
+        )
+
+        _, overdue_sensor, _ = added_entities
+        assert overdue_sensor.extra_state_attributes is None

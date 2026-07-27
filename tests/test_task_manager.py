@@ -164,6 +164,11 @@ class TestTaskStatus:
         task = make_task(due_date=datetime.now(timezone.utc) - timedelta(days=3))
         assert task_manager.get_task_status(task) == TaskStatus.OVERDUE
 
+    def test_status_overdue_one_day_after_due(self, task_manager):
+        """A task becomes overdue the day after its due date."""
+        task = make_task(due_date=datetime.now(timezone.utc) - timedelta(days=1))
+        assert task_manager.get_task_status(task) == TaskStatus.OVERDUE
+
     def test_status_completed(self, task_manager):
         task = make_task(enabled=False)
         assert task_manager.get_task_status(task) == TaskStatus.COMPLETED
@@ -211,6 +216,15 @@ class TestFrequencyCalculation:
         task.last_completed_at = datetime(2025, 3, 10)
         next_due = task_manager._calculate_next_due(task)
         assert next_due.year == 2026
+
+    def test_yearly_leap_day(self, task_manager):
+        """Feb 29 → Feb 28 when the next year is not a leap year."""
+        task = make_task(frequency=TaskFrequency.YEARLY)
+        task.last_completed_at = datetime(2024, 2, 29)
+        next_due = task_manager._calculate_next_due(task)
+        assert next_due.year == 2025
+        assert next_due.month == 2
+        assert next_due.day == 28
 
     def test_custom(self, task_manager):
         task = make_task(frequency=TaskFrequency.CUSTOM, custom_days_interval=45)
@@ -279,3 +293,21 @@ class TestQueryMethods:
         mock_storage.upsert_task(disabled)
 
         assert task_manager.get_tasks_approaching_due() == []
+
+
+class TestTaskUpdatedEvent:
+    async def test_mutations_fire_task_updated_event(
+        self, task_manager, mock_storage, mock_hass
+    ):
+        task = await task_manager.async_create_task(name="Evented")
+        await task_manager.async_complete_task(task.task_id)
+        await task_manager.async_delete_task(task.task_id)
+
+        events = [
+            call.args
+            for call in mock_hass.bus.async_fire.call_args_list
+            if call.args[0] == "intellikeep_task_updated"
+        ]
+        actions = [payload["action"] for _, payload in events]
+        assert actions == ["created", "completed", "deleted"]
+        assert all(payload["task_id"] == task.task_id for _, payload in events)
