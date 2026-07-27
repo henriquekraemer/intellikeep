@@ -72,6 +72,14 @@ show_linked_entities: true
 show_description: false
 ```
 
+> **YAML-mode dashboards**: the card resource is registered automatically only when dashboards are managed via the UI (storage mode). If your dashboards are configured in YAML, add the resource manually:
+>
+> ```yaml
+> resources:
+>   - url: /intellikeep_static/intellikeep-card.js
+>     type: module
+> ```
+
 ### Panel views
 
 | View | Description |

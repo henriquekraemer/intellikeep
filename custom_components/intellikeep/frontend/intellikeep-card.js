@@ -499,5 +499,13 @@ __decorate([
 IntelliKeepCard = __decorate([
     t("intellikeep-card")
 ], IntelliKeepCard);
+// Register in the Lovelace card picker
+window.customCards = window.customCards || [];
+window.customCards.push({
+    type: "intellikeep-card",
+    name: "IntelliKeep Card",
+    description: "Compact list of due and overdue IntelliKeep tasks.",
+    documentationURL: "https://github.com/henriquekraemer/intellikeep",
+});
 
 export { IntelliKeepCard };

@@ -31,4 +31,7 @@ declare global {
     interface HTMLElementTagNameMap {
         "intellikeep-card": IntelliKeepCard;
     }
+    interface Window {
+        customCards?: object[];
+    }
 }
