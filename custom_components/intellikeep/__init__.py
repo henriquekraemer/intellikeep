@@ -49,8 +49,6 @@ async def async_setup(hass: HomeAssistant, config: Mapping[str, Any]) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: IntelliKeepConfigEntry) -> bool:
     """Set up IntelliKeep from a config entry."""
-    hass.data.setdefault(DOMAIN, {})
-
     # --- Storage ---
     storage = IntelliKeepStorage(hass)
     await storage.async_load()
@@ -59,7 +57,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: IntelliKeepConfigEntry) 
     task_manager = TaskManager(hass, storage)
 
     # --- Coordinator ---
-    coordinator = IntelliKeepCoordinator(hass, task_manager)
+    coordinator = IntelliKeepCoordinator(hass, entry, task_manager)
     await coordinator.async_config_entry_first_refresh()
 
     # --- Notifications ---
@@ -85,7 +83,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: IntelliKeepConfigEntry) 
         notify_days_before_default=int(notify_days_before_default),
     )
     entry.runtime_data = runtime_data
-    hass.data[DOMAIN][entry.entry_id] = runtime_data
 
     # --- Frontend: register static path + Lovelace card resource ---
     await async_register_frontend(hass, DOMAIN)
@@ -99,22 +96,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: IntelliKeepConfigEntry) 
     # Reload entry when options are updated
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
-    _LOGGER.info("IntelliKeep integration loaded (entry: %s)", entry.entry_id)
+    _LOGGER.debug("IntelliKeep integration loaded (entry: %s)", entry.entry_id)
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: IntelliKeepConfigEntry) -> bool:
     """Unload IntelliKeep config entry."""
-    # Stop notification manager
-    runtime_data = hass.data[DOMAIN].get(entry.entry_id)
-    notification_manager = runtime_data.notification_manager if runtime_data else None
-    if notification_manager:
-        notification_manager.stop()
+    entry.runtime_data.notification_manager.stop()
 
-    # Unload platforms
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id, None)
         _async_remove_panel(hass)
 
     return unload_ok

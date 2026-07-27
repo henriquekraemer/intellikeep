@@ -21,10 +21,16 @@ class IntelliKeepCoordinator(DataUpdateCoordinator[dict]):
 
     config_entry: ConfigEntry
 
-    def __init__(self, hass: HomeAssistant, task_manager: TaskManager) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        task_manager: TaskManager,
+    ) -> None:
         super().__init__(
             hass,
             _LOGGER,
+            config_entry=config_entry,
             name=DOMAIN,
             update_interval=UPDATE_INTERVAL,
         )
