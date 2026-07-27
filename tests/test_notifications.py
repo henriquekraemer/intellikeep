@@ -16,6 +16,16 @@ def notification_manager(mock_hass, task_manager):
     return mgr
 
 
+def test_reset_clears_dedup_state(notification_manager):
+    notification_manager._notified_approaching.add("task-a")
+    notification_manager._notified_overdue.add("task-b")
+
+    notification_manager.reset()
+
+    assert notification_manager._notified_approaching == set()
+    assert notification_manager._notified_overdue == set()
+
+
 class TestApproachingNotifications:
     async def test_notifies_approaching_task(
         self, notification_manager, mock_hass, task_manager, mock_storage

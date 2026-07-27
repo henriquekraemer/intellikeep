@@ -38,7 +38,7 @@ class IntelliKeepCoordinator(DataUpdateCoordinator[dict]):
 
     async def _async_update_data(self) -> dict:
         """Aggregate task stats for sensor entities."""
-        all_tasks = self.task_manager._storage.get_all_tasks()
+        all_tasks = self.task_manager.get_all_tasks()
         overdue_tasks = self.task_manager.get_overdue_tasks()
         return {
             "all_tasks": all_tasks,

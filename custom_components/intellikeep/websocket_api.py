@@ -60,7 +60,7 @@ def async_register_websocket_commands(
     ) -> None:
         runtime_data = _get_runtime_data(hass)
         task_manager = runtime_data.task_manager
-        task = runtime_data.storage.get_task(msg["task_id"])
+        task = task_manager.get_task(msg["task_id"])
         if task is None:
             connection.send_error(msg["id"], "not_found", f"Task {msg['task_id']} not found")
             return

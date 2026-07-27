@@ -295,6 +295,23 @@ class TestQueryMethods:
         assert task_manager.get_tasks_approaching_due() == []
 
 
+class TestBulkOperations:
+    async def test_add_tasks_assigns_sequential_numbers(self, task_manager, mock_storage):
+        await task_manager.async_add_tasks([make_task(name="A"), make_task(name="B")])
+
+        numbers = [t.task_number for t in task_manager.get_all_tasks()]
+        assert numbers == [1, 2]
+
+    async def test_delete_all_tasks_returns_count(self, task_manager, mock_storage):
+        mock_storage.upsert_task(make_task(name="One"))
+        mock_storage.upsert_task(make_task(name="Two"))
+
+        count = await task_manager.async_delete_all_tasks()
+
+        assert count == 2
+        assert task_manager.get_all_tasks() == []
+
+
 class TestTaskUpdatedEvent:
     async def test_mutations_fire_task_updated_event(
         self, task_manager, mock_storage, mock_hass

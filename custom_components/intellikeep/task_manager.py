@@ -268,9 +268,30 @@ class TaskManager:
             _LOGGER.debug("Deleted task %s", task_id)
         return deleted
 
+    async def async_add_tasks(self, tasks: list[Task]) -> None:
+        """Bulk-insert tasks, assigning sequential task numbers."""
+        for task in tasks:
+            task.task_number = self._storage.next_task_number()
+            self._storage.upsert_task(task)
+        await self._storage.async_save()
+        _LOGGER.debug("Bulk-added %d tasks", len(tasks))
+
+    async def async_delete_all_tasks(self) -> int:
+        """Delete every task and return how many were removed."""
+        count = self._storage.clear_all_tasks()
+        await self._storage.async_save()
+        _LOGGER.debug("Deleted all tasks (%d removed)", count)
+        return count
+
     # ------------------------------------------------------------------
     # Queries
     # ------------------------------------------------------------------
+
+    def get_task(self, task_id: str) -> Task | None:
+        return self._storage.get_task(task_id)
+
+    def get_all_tasks(self) -> list[Task]:
+        return self._storage.get_all_tasks()
 
     def get_task_status(self, task: Task) -> TaskStatus:
         if not task.enabled:

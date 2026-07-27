@@ -8,6 +8,7 @@ from typing import Any, cast
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers.service import async_register_admin_service
 
 from .const import (
     DOMAIN,
@@ -102,10 +103,7 @@ def async_register_services(
         from .seed import build_sample_tasks  # noqa: PLC0415
 
         tasks = build_sample_tasks()
-        for task in tasks:
-            task.task_number = task_manager._storage.next_task_number()
-            task_manager._storage.upsert_task(task)
-        await task_manager._storage.async_save()
+        await task_manager.async_add_tasks(tasks)
         await coordinator.async_refresh()
         _LOGGER.info("IntelliKeep sample data loaded (%d tasks)", len(tasks))
 
@@ -200,10 +198,8 @@ def async_register_services(
         runtime_data = _get_runtime_data(hass)
         task_manager = runtime_data.task_manager
         coordinator = runtime_data.coordinator
-        count = task_manager._storage.clear_all_tasks()
-        await task_manager._storage.async_save()
-        runtime_data.notification_manager._notified_approaching.clear()
-        runtime_data.notification_manager._notified_overdue.clear()
+        count = await task_manager.async_delete_all_tasks()
+        runtime_data.notification_manager.reset()
         await coordinator.async_refresh()
         _LOGGER.info("IntelliKeep: deleted all data (%d tasks removed)", count)
 
@@ -215,7 +211,10 @@ def async_register_services(
     hass.services.async_register(DOMAIN, SERVICE_UPDATE_TASK, handle_update_task)
     hass.services.async_register(DOMAIN, SERVICE_ADD_TASK_NOTE, handle_add_task_note)
     hass.services.async_register(DOMAIN, SERVICE_DELETE_TASK_NOTE, handle_delete_task_note)
-    hass.services.async_register(DOMAIN, SERVICE_DELETE_ALL_DATA, handle_delete_all_data)
+    # Destructive: only admins may wipe all data
+    async_register_admin_service(
+        hass, DOMAIN, SERVICE_DELETE_ALL_DATA, handle_delete_all_data
+    )
     _LOGGER.debug("IntelliKeep services registered")
 
 
