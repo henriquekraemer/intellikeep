@@ -1,6 +1,6 @@
 {
   "name": "intellikeep-panel",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "IntelliKeep Panel for Home Assistant sidebar",
   "type": "module",
   "scripts": {

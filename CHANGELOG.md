@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.4] - 2026-07-27
+
+### Added
+
+- The Lovelace card now registers itself in the card picker, so it can be added from the dashboard UI with a proper name and description ([#24](https://github.com/henriquekraemer/intellikeep/issues/24)).
+- README instructions for adding the card resource manually on YAML-mode dashboards ([#24](https://github.com/henriquekraemer/intellikeep/issues/24)).
+
+### Changed
+
+- The `intellikeep.delete_all_data` action now requires an admin user ([#23](https://github.com/henriquekraemer/intellikeep/issues/23)).
+- Integration settings are now written to the config entry options everywhere (setup, reconfigure and options flow), with fallback reads so existing installs keep working without migration ([#22](https://github.com/henriquekraemer/intellikeep/issues/22)).
+- Internal modernization: runtime data is single-sourced on the config entry, the coordinator receives the config entry (removing a Home Assistant deprecation path), and storage/notification internals are encapsulated behind public `TaskManager`/`NotificationManager` APIs ([#22](https://github.com/henriquekraemer/intellikeep/issues/22), [#23](https://github.com/henriquekraemer/intellikeep/issues/23)).
+
 ## [1.0.3] - 2026-07-27
 
 ### Fixed
