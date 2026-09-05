@@ -65,6 +65,7 @@ class TestTaskDictSerialization:
             "description",
             "priority",
             "frequency",
+            "weekdays",
             "due_date",
             "linked_entity_ids",
             "notify_days_before",

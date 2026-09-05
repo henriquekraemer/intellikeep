@@ -1,4 +1,8 @@
-import { TaskPriority, TaskStatus } from "./types";
+import { TaskPriority, TaskStatus, Weekday } from "./types";
+
+const WEEKDAY_NAMES: Record<Weekday, string> = {
+  mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun",
+};
 
 export function relativeDueDate(isoDate: string | null): string {
   if (!isoDate) return "No due date";
@@ -46,11 +50,16 @@ export function statusIcon(status: TaskStatus): string {
   return map[status] ?? "mdi:help";
 }
 
-export function frequencyLabel(freq: string, customDays?: number | null): string {
+export function frequencyLabel(
+  freq: string,
+  customDays?: number | null,
+  weekdays?: Weekday[] | null
+): string {
+  const days = (weekdays ?? []).map(d => WEEKDAY_NAMES[d]).filter(Boolean);
   const map: Record<string, string> = {
     one_time: "One-time",
     daily: "Daily",
-    weekly: "Weekly",
+    weekly: days.length ? `Weekly (${days.join(", ")})` : "Weekly",
     monthly: "Monthly",
     yearly: "Yearly",
     custom: customDays ? `Every ${customDays} days` : "Custom",

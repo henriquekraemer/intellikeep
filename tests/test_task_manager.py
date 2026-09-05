@@ -2,11 +2,15 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 
 import pytest
+from homeassistant.util import dt as dt_util
 
 from custom_components.intellikeep.models import TaskFrequency, TaskPriority, TaskStatus
 from tests.conftest import make_task
+
+UTC = timezone.utc
 
 
 class TestCreateTask:
@@ -231,6 +235,124 @@ class TestFrequencyCalculation:
         task.last_completed_at = datetime(2025, 1, 1)
         next_due = task_manager._calculate_next_due(task)
         assert next_due.date() == datetime(2025, 2, 15).date()
+
+
+class TestWeekdayScheduling:
+    """Weekly tasks pinned to specific weekdays (issue #28).
+
+    Calendar reference: 2025-06-02 is a Monday.
+    """
+
+    MONDAY = datetime(2025, 6, 2, 7, 0, tzinfo=UTC)
+
+    def _task(self, completed_at: datetime, due_date: datetime | None = MONDAY, weekdays=("mon", "wed", "fri")):
+        task = make_task(
+            frequency=TaskFrequency.WEEKLY,
+            weekdays=list(weekdays),
+            due_date=due_date,
+        )
+        task.last_completed_at = completed_at
+        return task
+
+    def test_on_time_completion_moves_to_next_selected_day(self, task_manager):
+        task = self._task(completed_at=datetime(2025, 6, 2, 8, 0, tzinfo=UTC))
+        assert task_manager._calculate_next_due(task) == datetime(2025, 6, 4, 7, 0, tzinfo=UTC)
+
+    def test_late_completion_uses_completion_day(self, task_manager):
+        task = self._task(completed_at=datetime(2025, 6, 3, 10, 0, tzinfo=UTC))  # Tuesday
+        assert task_manager._calculate_next_due(task) == datetime(2025, 6, 4, 7, 0, tzinfo=UTC)
+
+    def test_early_completion_anchors_on_due_date(self, task_manager):
+        """Completing on Sunday must not re-schedule the same Monday."""
+        task = self._task(completed_at=datetime(2025, 6, 1, 18, 0, tzinfo=UTC))
+        assert task_manager._calculate_next_due(task) == datetime(2025, 6, 4, 7, 0, tzinfo=UTC)
+
+    def test_very_late_completion_picks_next_day_after_completion(self, task_manager):
+        task = self._task(completed_at=datetime(2025, 6, 19, 12, 0, tzinfo=UTC))  # Thursday, 2 weeks late
+        assert task_manager._calculate_next_due(task) == datetime(2025, 6, 20, 7, 0, tzinfo=UTC)
+
+    def test_wraps_to_next_week(self, task_manager):
+        friday = datetime(2025, 6, 6, 7, 0, tzinfo=UTC)
+        task = self._task(completed_at=friday + timedelta(hours=1), due_date=friday)
+        assert task_manager._calculate_next_due(task) == datetime(2025, 6, 9, 7, 0, tzinfo=UTC)
+
+    def test_single_weekday_is_one_week_later(self, task_manager):
+        saturday = datetime(2025, 6, 7, 7, 0, tzinfo=UTC)
+        task = self._task(completed_at=saturday, due_date=saturday, weekdays=("sat",))
+        assert task_manager._calculate_next_due(task) == datetime(2025, 6, 14, 7, 0, tzinfo=UTC)
+
+    def test_keeps_original_time_of_day(self, task_manager):
+        task = self._task(completed_at=datetime(2025, 6, 2, 23, 45, tzinfo=UTC))
+        next_due = task_manager._calculate_next_due(task)
+        assert (next_due.hour, next_due.minute) == (7, 0)
+
+    def test_without_due_date_uses_completion_time(self, task_manager):
+        task = self._task(completed_at=datetime(2025, 6, 2, 8, 30, tzinfo=UTC), due_date=None)
+        assert task_manager._calculate_next_due(task) == datetime(2025, 6, 4, 8, 30, tzinfo=UTC)
+
+    def test_empty_weekdays_keeps_legacy_behaviour(self, task_manager):
+        completed = datetime(2025, 6, 3, 10, 0, tzinfo=UTC)
+        task = self._task(completed_at=completed, weekdays=())
+        assert task_manager._calculate_next_due(task) == completed + timedelta(weeks=1)
+
+    def test_weekday_math_uses_local_timezone(self, task_manager):
+        """Monday 23:30 in São Paulo is already Tuesday in UTC; the schedule must follow local days."""
+        original_tz = dt_util.DEFAULT_TIME_ZONE
+        tz = dt_util.get_time_zone("America/Sao_Paulo")
+        dt_util.set_default_time_zone(tz)
+        try:
+            task = self._task(
+                completed_at=datetime(2025, 6, 2, 23, 30, tzinfo=tz),  # Monday local, Tuesday UTC
+                due_date=datetime(2025, 5, 27, 7, 0, tzinfo=tz),  # overdue Tuesday
+                weekdays=("tue",),
+            )
+            next_due = task_manager._calculate_next_due(task)
+            assert next_due.utcoffset() == timedelta(0)
+            assert dt_util.as_local(next_due) == datetime(2025, 6, 3, 7, 0, tzinfo=tz)
+        finally:
+            dt_util.set_default_time_zone(original_tz)
+
+    async def test_complete_copies_weekdays_to_next_occurrence(self, task_manager, mock_storage):
+        task = make_task(
+            name="Household waste",
+            frequency=TaskFrequency.WEEKLY,
+            weekdays=["mon", "wed", "fri"],
+            due_date=self.MONDAY,
+        )
+        mock_storage.upsert_task(task)
+
+        with patch.object(dt_util, "utcnow", return_value=datetime(2025, 6, 2, 8, 0, tzinfo=UTC)):
+            await task_manager.async_complete_task(task.task_id)
+
+        next_task = next(t for t in mock_storage.get_all_tasks() if t.task_id != task.task_id)
+        assert next_task.weekdays == ["mon", "wed", "fri"]
+        assert next_task.due_date == datetime(2025, 6, 4, 7, 0, tzinfo=UTC)
+        assert next_task.previous_task_id == task.task_id
+
+    async def test_create_normalizes_weekdays(self, task_manager):
+        task = await task_manager.async_create_task(
+            name="Recyclables",
+            frequency=TaskFrequency.WEEKLY,
+            weekdays=["SAT", "tue", "sat"],
+        )
+        assert task.weekdays == ["tue", "sat"]
+
+    async def test_update_records_weekday_change_in_activity_log(self, task_manager, mock_storage):
+        task = make_task(frequency=TaskFrequency.WEEKLY, weekdays=["mon"])
+        mock_storage.upsert_task(task)
+
+        updated = await task_manager.async_update_task(task.task_id, weekdays=["wed", "mon"])
+
+        assert updated.weekdays == ["mon", "wed"]
+        assert updated.activities[-1].details == "weekdays: mon → mon, wed"
+
+    async def test_update_with_same_weekdays_does_not_log(self, task_manager, mock_storage):
+        task = make_task(frequency=TaskFrequency.WEEKLY, weekdays=["mon", "wed"])
+        mock_storage.upsert_task(task)
+
+        updated = await task_manager.async_update_task(task.task_id, weekdays=["wed", "mon"])
+
+        assert updated.activities == []
 
 
 class TestQueryMethods:

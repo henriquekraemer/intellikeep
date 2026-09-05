@@ -148,6 +148,7 @@ class TestSensorEntities:
             "priority": str(task.priority),
             "linked_entity_ids": ["climate.living_room"],
             "frequency": str(task.frequency),
+            "weekdays": [],
         }
 
     async def test_overdue_attribute_omits_non_overdue_tasks(

@@ -232,7 +232,7 @@ export class IntelliKeepCard extends LitElement {
             <span style="color: ${iconColor}">
               ${relativeDueDate(task.due_date)}
             </span>
-            <span>${frequencyLabel(task.frequency, task.custom_days_interval)}</span>
+            <span>${frequencyLabel(task.frequency, task.custom_days_interval, task.weekdays)}</span>
           </div>
 
           ${this._renderEntityChips(task)}

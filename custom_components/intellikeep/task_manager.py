@@ -6,11 +6,21 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
+from homeassistant.const import WEEKDAYS
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from .const import EVENT_TASK_UPDATED
-from .models import Task, TaskActivity, TaskActivityType, TaskExecution, TaskNote, TaskFrequency, TaskStatus
+from .models import (
+    Task,
+    TaskActivity,
+    TaskActivityType,
+    TaskExecution,
+    TaskFrequency,
+    TaskNote,
+    TaskStatus,
+    normalize_weekdays,
+)
 from .storage import IntelliKeepStorage
 
 _LOGGER = logging.getLogger(__name__)
@@ -21,6 +31,7 @@ _TRACKED_FIELD_LABELS: dict[str, str] = {
     "priority": "priority",
     "frequency": "frequency",
     "custom_days_interval": "interval",
+    "weekdays": "weekdays",
     "due_date": "due date",
     "notify_days_before": "notify before",
     "notify_on_overdue": "notify overdue",
@@ -38,6 +49,10 @@ def _fmt_val(val: object) -> str:
     if isinstance(val, bool):
         return "yes" if val else "no"
     return str(val)
+
+
+def _fmt_weekdays(val: list[str]) -> str:
+    return ", ".join(val) if val else "—"
 
 
 def _item_label(val: str) -> str:
@@ -80,6 +95,8 @@ class TaskManager:
 
     async def async_create_task(self, **kwargs: Any) -> Task:
         kwargs.setdefault("task_number", self._storage.next_task_number())
+        if "weekdays" in kwargs:
+            kwargs["weekdays"] = normalize_weekdays(kwargs["weekdays"])
         task = Task(**kwargs)
         self._storage.upsert_task(task)
         await self._storage.async_save()
@@ -92,13 +109,20 @@ class TaskManager:
         if task is None:
             _LOGGER.warning("Update called for unknown task_id: %s", task_id)
             return None
+        if "weekdays" in kwargs:
+            kwargs["weekdays"] = normalize_weekdays(kwargs["weekdays"])
         changes: list[str] = []
         for field_name, label in _TRACKED_FIELD_LABELS.items():
             if field_name not in kwargs:
                 continue
             old_val = getattr(task, field_name, None)
             new_val = kwargs[field_name]
-            if isinstance(old_val, list) and isinstance(new_val, list):
+            if field_name == "weekdays":
+                if old_val != new_val:
+                    changes.append(
+                        f"{label}: {_fmt_weekdays(old_val)} → {_fmt_weekdays(new_val)}"
+                    )
+            elif isinstance(old_val, list) and isinstance(new_val, list):
                 if set(old_val) != set(new_val):
                     changes.append(_fmt_list_diff(label, old_val, new_val))
             elif old_val != new_val:
@@ -168,6 +192,7 @@ class TaskManager:
                     priority=task.priority,
                     frequency=task.frequency,
                     custom_days_interval=task.custom_days_interval,
+                    weekdays=list(task.weekdays),
                     due_date=next_due,
                     linked_entity_ids=list(task.linked_entity_ids),
                     notify_days_before=task.notify_days_before,
@@ -362,6 +387,8 @@ class TaskManager:
             case TaskFrequency.DAILY:
                 return base + timedelta(days=1)
             case TaskFrequency.WEEKLY:
+                if task.weekdays:
+                    return self._next_weekday_due(task, base)
                 return base + timedelta(weeks=1)
             case TaskFrequency.MONTHLY:
                 month = base.month % 12 + 1
@@ -380,3 +407,29 @@ class TaskManager:
                 return base + timedelta(days=interval)
             case _:
                 return base
+
+    @staticmethod
+    def _next_weekday_due(task: Task, now: datetime) -> datetime:
+        """Next due date for a weekly task pinned to specific weekdays.
+
+        Anchors on the later of the current due date and ``now``, so completing
+        early does not re-schedule the occurrence that was just done, then picks
+        the first selected weekday strictly after that anchor. The original due
+        time of day is kept so the schedule does not drift towards completion
+        times. Weekday math runs in Home Assistant's local timezone.
+        """
+        allowed = {WEEKDAYS.index(code) for code in task.weekdays if code in WEEKDAYS}
+        if not allowed:
+            return now + timedelta(weeks=1)
+
+        now_utc = dt_util.as_utc(now)
+        due_utc = dt_util.as_utc(task.due_date) if task.due_date else None
+        anchor_local = dt_util.as_local(max(now_utc, due_utc) if due_utc else now_utc)
+        time_of_day = (dt_util.as_local(due_utc) if due_utc else anchor_local).time()
+
+        candidate = anchor_local.date() + timedelta(days=1)
+        while candidate.weekday() not in allowed:
+            candidate += timedelta(days=1)
+
+        next_local = datetime.combine(candidate, time_of_day, tzinfo=dt_util.DEFAULT_TIME_ZONE)
+        return dt_util.as_utc(next_local)

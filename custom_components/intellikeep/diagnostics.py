@@ -42,6 +42,7 @@ async def async_get_config_entry_diagnostics(
                 "task_number": task.task_number,
                 "priority": str(task.priority),
                 "frequency": str(task.frequency),
+                "weekdays": list(task.weekdays),
                 "due_date": task.due_date.isoformat() if task.due_date else None,
                 "notify_days_before": task.notify_days_before,
                 "notify_on_overdue": task.notify_on_overdue,

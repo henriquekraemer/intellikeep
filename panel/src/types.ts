@@ -7,6 +7,9 @@ export type TaskFrequency =
   | "yearly"
   | "custom";
 
+export type Weekday = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+export const WEEKDAYS: Weekday[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+
 export type TaskPriority = "low" | "medium" | "high" | "critical";
 export type TaskStatus = "pending" | "due" | "overdue" | "completed" | "snoozed";
 
@@ -46,6 +49,7 @@ export interface Task {
   priority: TaskPriority;
   frequency: TaskFrequency;
   custom_days_interval: number | null;
+  weekdays: Weekday[];
   due_date: string | null;
   linked_entity_ids: string[];
   notify_days_before: number;

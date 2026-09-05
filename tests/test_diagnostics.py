@@ -24,4 +24,5 @@ async def test_diagnostics_redacts_notification_service(
     assert result["entry"]["data"]["notification_service"] == "**REDACTED**"
     assert result["stats"]["task_count"] == 1
     assert result["tasks"][0]["linked_entity_count"] == 1
+    assert result["tasks"][0]["weekdays"] == []
     assert result["tasks"][0]["status"] == "pending"

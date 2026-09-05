@@ -211,6 +211,9 @@ const cardStyles = i$3 `
   }
 `;
 
+const WEEKDAY_NAMES = {
+    mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun",
+};
 function relativeDueDate(isoDate) {
     if (!isoDate)
         return "No due date";
@@ -257,11 +260,12 @@ function statusIcon(status) {
     };
     return map[status] ?? "mdi:help";
 }
-function frequencyLabel(freq, customDays) {
+function frequencyLabel(freq, customDays, weekdays) {
+    const days = (weekdays ?? []).map(d => WEEKDAY_NAMES[d]).filter(Boolean);
     const map = {
         one_time: "One-time",
         daily: "Daily",
-        weekly: "Weekly",
+        weekly: days.length ? `Weekly (${days.join(", ")})` : "Weekly",
         monthly: "Monthly",
         yearly: "Yearly",
         custom: customDays ? `Every ${customDays} days` : "Custom",
@@ -460,7 +464,7 @@ let IntelliKeepCard = class IntelliKeepCard extends i {
             <span style="color: ${iconColor}">
               ${relativeDueDate(task.due_date)}
             </span>
-            <span>${frequencyLabel(task.frequency, task.custom_days_interval)}</span>
+            <span>${frequencyLabel(task.frequency, task.custom_days_interval, task.weekdays)}</span>
           </div>
 
           ${this._renderEntityChips(task)}

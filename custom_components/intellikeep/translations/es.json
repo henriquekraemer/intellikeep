@@ -50,6 +50,9 @@
     },
     "task_note_not_found": {
       "message": "No se encontró la nota {note_id} para la tarea {task_id}."
+    },
+    "invalid_weekdays": {
+      "message": "Día(s) de la semana no válido(s): {weekdays}. Use mon, tue, wed, thu, fri, sat o sun."
     }
   },
   "options": {

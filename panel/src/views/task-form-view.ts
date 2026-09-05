@@ -1,6 +1,6 @@
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { HomeAssistant, Task, TaskFrequency, TaskPriority } from "../types";
+import { HomeAssistant, Task, TaskFrequency, TaskPriority, WEEKDAYS, Weekday } from "../types";
 import { createTask, updateTask, completeTask, reopenTask, deleteTask, addTaskNote, deleteTaskNote } from "../api";
 import { t } from "../translations";
 import "../components/confirm-dialog";
@@ -19,6 +19,8 @@ export class IkTaskFormView extends LitElement {
   @state() private _priority: TaskPriority = "medium";
   @state() private _frequency: TaskFrequency = "one_time";
   @state() private _customDays: number | null = null;
+  @state() private _weekdays: Weekday[] = [];
+  @state() private _dueDateSnapped = false;
   @state() private _dueDate = "";
   @state() private _dueTime = "";
   @state() private _linkedEntities: string[] = [];
@@ -53,6 +55,7 @@ export class IkTaskFormView extends LitElement {
       this._priority = this.task.priority;
       this._frequency = this.task.frequency;
       this._customDays = this.task.custom_days_interval;
+      this._weekdays = [...(this.task.weekdays ?? [])];
       this._dueDate = this.task.due_date ? this.task.due_date.substring(0, 10) : "";
       this._dueTime = this.task.due_date ? this.task.due_date.substring(11, 16) : "";
       this._linkedEntities = [...this.task.linked_entity_ids];
@@ -103,6 +106,28 @@ export class IkTaskFormView extends LitElement {
     textarea { resize: vertical; min-height: 72px; }
     .row { display: flex; gap: 12px; flex-wrap: wrap; }
     .row label { flex: 1; min-width: 160px; }
+    .weekday-picker { display: flex; flex-direction: column; gap: 6px; }
+    .field-label { font-size: 13px; color: var(--secondary-text-color); }
+    .field-hint { font-size: 12px; color: var(--secondary-text-color); }
+    .weekday-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .weekday-chip {
+      flex: 1 1 0;
+      min-width: 44px;
+      max-width: 72px;
+      padding: 8px 0;
+      border-radius: 6px;
+      border: 1px solid var(--divider-color);
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .weekday-chip.selected {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+    .weekday-chip:disabled { opacity: 0.6; cursor: not-allowed; }
     input:disabled, select:disabled, textarea:disabled {
       opacity: 0.6;
       cursor: not-allowed;
@@ -499,6 +524,53 @@ export class IkTaskFormView extends LitElement {
     this._navigate(this.returnPath);
   }
 
+  /** Short localized weekday names, Monday first (2024-01-01 is a Monday). */
+  private _weekdayLabels(): string[] {
+    const lang = this.hass?.language || "en";
+    return WEEKDAYS.map((_, i) => {
+      const raw = new Date(2024, 0, 1 + i).toLocaleDateString(lang, { weekday: "short" }).replace(/\.$/, "");
+      return raw.charAt(0).toUpperCase() + raw.slice(1);
+    });
+  }
+
+  private _toggleWeekday(code: Weekday) {
+    const next = this._weekdays.includes(code)
+      ? this._weekdays.filter(c => c !== code)
+      : [...this._weekdays, code];
+    this._weekdays = WEEKDAYS.filter(c => next.includes(c));
+    this._snapDueDateToWeekdays();
+  }
+
+  /**
+   * Weekly tasks pinned to weekdays must start on one of those days. If the
+   * chosen due date does not match, move it forward to the next selected day
+   * and flag it so the form can explain the change.
+   */
+  private _snapDueDateToWeekdays() {
+    this._dueDateSnapped = false;
+    if (this._frequency !== "weekly" || this._weekdays.length === 0 || !this._dueDate) return;
+    const [y, m, d] = this._dueDate.split("-").map(Number);
+    const date = new Date(y, m - 1, d);
+    const codeOf = (dt: Date): Weekday => WEEKDAYS[(dt.getDay() + 6) % 7];
+    if (this._weekdays.includes(codeOf(date))) return;
+    for (let i = 1; i <= 7; i++) {
+      const candidate = new Date(y, m - 1, d + i);
+      if (this._weekdays.includes(codeOf(candidate))) {
+        const pad = (n: number) => String(n).padStart(2, "0");
+        this._dueDate = `${candidate.getFullYear()}-${pad(candidate.getMonth() + 1)}-${pad(candidate.getDate())}`;
+        this._dueDateSnapped = true;
+        return;
+      }
+    }
+  }
+
+  private _formatDueDateHint(): string {
+    const [y, m, d] = this._dueDate.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString(this.hass?.language || "en", {
+      weekday: "short", day: "2-digit", month: "2-digit",
+    });
+  }
+
   private async _save() {
     const tr = t(this.hass?.language);
     if (!this._name.trim()) {
@@ -514,6 +586,7 @@ export class IkTaskFormView extends LitElement {
         priority: this._priority,
         frequency: this._frequency,
         custom_days_interval: this._frequency === "custom" ? this._customDays : null,
+        weekdays: this._frequency === "weekly" ? this._weekdays : [],
         due_date: this._dueDate ? new Date(`${this._dueDate}T${this._dueTime || "00:00"}`).toISOString() : null,
         linked_entity_ids: this._linkedEntities.filter(Boolean),
         notify_days_before: this._notifyDaysBefore,
@@ -574,7 +647,7 @@ export class IkTaskFormView extends LitElement {
           </label>
           <label>
             ${tr.frequency}
-            <select .value=${this._frequency} ?disabled=${isCompleted} @change=${(e: Event) => { this._frequency = (e.target as HTMLSelectElement).value as TaskFrequency; }}>
+            <select .value=${this._frequency} ?disabled=${isCompleted} @change=${(e: Event) => { this._frequency = (e.target as HTMLSelectElement).value as TaskFrequency; this._snapDueDateToWeekdays(); }}>
               <option value="one_time">${tr.freqOneTime}</option>
               <option value="daily">${tr.freqDaily}</option>
               <option value="weekly">${tr.freqWeekly}</option>
@@ -594,10 +667,38 @@ export class IkTaskFormView extends LitElement {
             `
           : nothing}
 
+        ${this._frequency === "weekly"
+          ? html`
+              <div class="weekday-picker">
+                <div class="field-label">${tr.repeatOn}</div>
+                <div class="weekday-chips" role="group" aria-label=${tr.repeatOn}>
+                  ${this._weekdayLabels().map((label, i) => {
+                    const code = WEEKDAYS[i];
+                    const selected = this._weekdays.includes(code);
+                    return html`
+                      <button
+                        type="button"
+                        class="weekday-chip ${selected ? "selected" : ""}"
+                        aria-pressed=${selected ? "true" : "false"}
+                        ?disabled=${isCompleted}
+                        @click=${() => this._toggleWeekday(code)}
+                      >${label}</button>
+                    `;
+                  })}
+                </div>
+                ${this._weekdays.length === 0
+                  ? html`<div class="field-hint">${tr.weekdaysNoneHint}</div>`
+                  : this._dueDateSnapped && this._dueDate
+                    ? html`<div class="field-hint">${tr.dueDateSnapped(this._formatDueDateHint())}</div>`
+                    : nothing}
+              </div>
+            `
+          : nothing}
+
         <label>
           ${tr.dueDate}
           <div style="display:flex;gap:8px;">
-            <input type="date" style="flex:1" ?disabled=${isCompleted} .value=${this._dueDate} @change=${(e: Event) => { this._dueDate = (e.target as HTMLInputElement).value; }} />
+            <input type="date" style="flex:1" ?disabled=${isCompleted} .value=${this._dueDate} @change=${(e: Event) => { this._dueDate = (e.target as HTMLInputElement).value; this._snapDueDateToWeekdays(); }} />
             <input type="time" style="width:110px" ?disabled=${isCompleted} .value=${this._dueTime} @change=${(e: Event) => { this._dueTime = (e.target as HTMLInputElement).value; }} />
           </div>
         </label>
