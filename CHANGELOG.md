@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- Weekly tasks can now repeat on specific days of the week. Pick the days in the task form or pass `weekdays: [mon, wed, fri]` to `intellikeep.create_task` / `intellikeep.update_task`. The next occurrence lands on the next selected day at the original time, anchored on the due date rather than on the completion time ([#28](https://github.com/henriquekraemer/intellikeep/issues/28)).
+
 ## [1.0.4] - 2026-07-27
 
 ### Added

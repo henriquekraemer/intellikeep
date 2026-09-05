@@ -49,6 +49,9 @@
     },
     "task_note_not_found": {
       "message": "Note {note_id} for task {task_id} was not found."
+    },
+    "invalid_weekdays": {
+      "message": "Invalid weekday value(s): {weekdays}. Use mon, tue, wed, thu, fri, sat or sun."
     }
   },
   "options": {

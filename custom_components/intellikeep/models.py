@@ -7,6 +7,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
+from homeassistant.const import WEEKDAYS
 from homeassistant.util import dt as dt_util
 
 
@@ -17,6 +18,31 @@ class TaskFrequency(StrEnum):
     MONTHLY = "monthly"
     YEARLY = "yearly"
     CUSTOM = "custom"  # uses custom_days_interval
+
+
+def normalize_weekdays(value: Any, *, strict: bool = True) -> list[str]:
+    """Return a de-duplicated list of weekday codes in Monday-first order.
+
+    Accepts a single code or an iterable of codes. Codes are matched
+    case-insensitively on their first three letters, so ``"Monday"`` and
+    ``"mon"`` are equivalent. With ``strict`` unknown values raise
+    ``ValueError``; otherwise they are dropped (used when loading storage).
+    """
+    if value is None:
+        return []
+    if isinstance(value, str) or not isinstance(value, (list, tuple, set, frozenset)):
+        value = [value]
+    codes: set[str] = set()
+    invalid: list[str] = []
+    for item in value:
+        code = str(item).strip().lower()[:3]
+        if code in WEEKDAYS:
+            codes.add(code)
+        else:
+            invalid.append(str(item))
+    if invalid and strict:
+        raise ValueError(", ".join(invalid))
+    return [code for code in WEEKDAYS if code in codes]
 
 
 class TaskPriority(StrEnum):
@@ -141,6 +167,7 @@ class Task:
     priority: TaskPriority = TaskPriority.MEDIUM
     frequency: TaskFrequency = TaskFrequency.ONE_TIME
     custom_days_interval: int | None = None
+    weekdays: list[str] = field(default_factory=list)
     due_date: datetime | None = None
     linked_entity_ids: list[str] = field(default_factory=list)
     notify_days_before: int = 1
@@ -163,6 +190,7 @@ class Task:
             "priority": str(self.priority),
             "frequency": str(self.frequency),
             "custom_days_interval": self.custom_days_interval,
+            "weekdays": list(self.weekdays),
             "due_date": self.due_date.isoformat() if self.due_date else None,
             "linked_entity_ids": self.linked_entity_ids,
             "notify_days_before": self.notify_days_before,
@@ -189,6 +217,7 @@ class Task:
             priority=TaskPriority(data.get("priority", TaskPriority.MEDIUM)),
             frequency=TaskFrequency(data.get("frequency", TaskFrequency.ONE_TIME)),
             custom_days_interval=data.get("custom_days_interval"),
+            weekdays=normalize_weekdays(data.get("weekdays"), strict=False),
             due_date=(
                 dt_util.as_utc(datetime.fromisoformat(data["due_date"]))
                 if data.get("due_date")

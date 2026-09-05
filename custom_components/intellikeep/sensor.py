@@ -110,4 +110,5 @@ class IntelliKeepNextDueSensor(_IntelliKeepSensorBase):
             "priority": str(task.priority),
             "linked_entity_ids": task.linked_entity_ids,
             "frequency": str(task.frequency),
+            "weekdays": list(task.weekdays),
         }

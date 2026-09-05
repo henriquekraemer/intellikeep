@@ -22,7 +22,7 @@ from .const import (
     SERVICE_REOPEN_TASK,
     SERVICE_UPDATE_TASK,
 )
-from .models import TaskFrequency, TaskPriority
+from .models import TaskFrequency, TaskPriority, normalize_weekdays
 from .runtime_data import IntelliKeepRuntimeData
 
 _LOGGER = logging.getLogger(__name__)
@@ -41,6 +41,21 @@ def _coerce_due_date(data: dict[str, Any]) -> dict[str, Any]:
     value = data.get("due_date")
     if isinstance(value, str):
         data["due_date"] = datetime.fromisoformat(value)
+    return data
+
+
+def _coerce_weekdays(data: dict[str, Any]) -> dict[str, Any]:
+    """Validate and normalize weekday codes (mon..sun)."""
+    if "weekdays" not in data:
+        return data
+    try:
+        data["weekdays"] = normalize_weekdays(data["weekdays"])
+    except ValueError as err:
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="invalid_weekdays",
+            translation_placeholders={"weekdays": str(err)},
+        ) from err
     return data
 
 
@@ -69,6 +84,7 @@ def async_register_services(
         coordinator = runtime_data.coordinator
         data = _coerce_int_fields(dict(call.data), "custom_days_interval", "notify_days_before")
         data = _coerce_due_date(data)
+        data = _coerce_weekdays(data)
         if "notify_days_before" not in data:
             data["notify_days_before"] = runtime_data.notify_days_before_default
         if "priority" in data:
@@ -143,6 +159,7 @@ def async_register_services(
         coordinator = runtime_data.coordinator
         data = _coerce_int_fields(dict(call.data), "custom_days_interval", "notify_days_before")
         data = _coerce_due_date(data)
+        data = _coerce_weekdays(data)
         task_id = data.pop("task_id")
         updated_by = data.pop("updated_by", "")
         if "priority" in data:

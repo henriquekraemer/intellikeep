@@ -36,6 +36,16 @@ class TestLoad:
         assert loaded is not None
         assert loaded.name == "Loaded task"
 
+    async def test_load_task_saved_before_weekdays_existed(self, storage):
+        task = make_task(name="Legacy weekly", frequency=TaskFrequency.WEEKLY)
+        data = task.as_dict()
+        del data["weekdays"]
+        storage._store.async_load.return_value = {"tasks": {task.task_id: data}}
+
+        await storage.async_load()
+
+        assert storage.get_task(task.task_id).weekdays == []
+
     async def test_load_skips_malformed_entries(self, storage):
         storage._store.async_load.return_value = {
             "tasks": {

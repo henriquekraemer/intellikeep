@@ -155,6 +155,49 @@ class TestRegisteredServices:
         assert tasks[0].notify_days_before == 2
         runtime_data.coordinator.async_refresh.assert_awaited_once()
 
+    async def test_create_task_handler_accepts_weekdays(
+        self, registered_service_handlers, runtime_data
+    ):
+        await registered_service_handlers[SERVICE_CREATE_TASK](
+            MagicMock(
+                data={
+                    "name": "Household waste",
+                    "frequency": "weekly",
+                    "weekdays": ["wed", "mon", "fri"],
+                }
+            )
+        )
+
+        tasks = runtime_data.storage.get_all_tasks()
+        assert len(tasks) == 1
+        assert tasks[0].frequency == TaskFrequency.WEEKLY
+        assert tasks[0].weekdays == ["mon", "wed", "fri"]
+
+    async def test_create_task_handler_rejects_invalid_weekday(
+        self, registered_service_handlers, runtime_data
+    ):
+        with pytest.raises(ServiceValidationError) as excinfo:
+            await registered_service_handlers[SERVICE_CREATE_TASK](
+                MagicMock(data={"name": "Bad", "weekdays": ["mon", "funday"]})
+            )
+
+        assert excinfo.value.translation_key == "invalid_weekdays"
+        assert excinfo.value.translation_placeholders == {"weekdays": "funday"}
+        assert runtime_data.storage.get_all_tasks() == []
+
+    async def test_update_task_handler_updates_weekdays(
+        self, registered_service_handlers, runtime_data
+    ):
+        task = make_task(frequency=TaskFrequency.WEEKLY, weekdays=["mon"])
+        runtime_data.storage.upsert_task(task)
+
+        await registered_service_handlers[SERVICE_UPDATE_TASK](
+            MagicMock(data={"task_id": task.task_id, "weekdays": "sat"})
+        )
+
+        assert runtime_data.storage.get_task(task.task_id).weekdays == ["sat"]
+        runtime_data.coordinator.async_refresh.assert_awaited_once()
+
     async def test_create_task_handler_applies_configured_notify_default(
         self, registered_service_handlers, runtime_data
     ):

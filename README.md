@@ -15,6 +15,7 @@ IntelliKeep is a free, open-source Home Assistant integration for keeping track 
 ## Features
 
 - One-time and recurring tasks (daily, weekly, monthly, yearly, or a custom interval)
+- Weekly tasks can be pinned to specific days of the week, such as garbage collection on Mon/Wed/Fri
 - Four priority levels (low, medium, high, critical) shown with a color-coded bar
 - Link a task to a Home Assistant area or a specific device
 - Timestamped notes per task, with author tracking, that you can add, view and delete
@@ -112,6 +113,19 @@ data:
     - area:living_room          # link to an area
     - device:abc123def456       # or a specific device ID
   notify_days_before: 3
+```
+
+### Example: weekly task on specific days
+
+Pick the days with `weekdays` (`mon` to `sun`). The next occurrence is always the next selected day after the current one, at the same time of day, so the schedule does not drift when a task is completed late. Leave `weekdays` empty to keep repeating every 7 days from the last completion.
+
+```yaml
+action: intellikeep.create_task
+data:
+  name: Take out the garbage
+  frequency: weekly
+  weekdays: [mon, wed, fri]
+  due_date: "2026-09-07T07:00:00"
 ```
 
 ### Example: reopen a completed task

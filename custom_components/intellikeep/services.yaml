@@ -51,6 +51,20 @@ create_task:
           step: 1
           mode: box
           unit_of_measurement: days
+    weekdays:
+      name: Weekdays
+      description: Days of the week the task repeats on when frequency is "weekly". Leave empty to repeat every 7 days from the last completion.
+      selector:
+        select:
+          multiple: true
+          options:
+            - mon
+            - tue
+            - wed
+            - thu
+            - fri
+            - sat
+            - sun
     due_date:
       name: Due Date
       description: When the task is due.
@@ -150,6 +164,20 @@ update_task:
       selector:
         select:
           options: [one_time, daily, weekly, monthly, yearly, custom]
+    weekdays:
+      name: Weekdays
+      description: Days of the week the task repeats on when frequency is "weekly". Leave empty to repeat every 7 days from the last completion.
+      selector:
+        select:
+          multiple: true
+          options:
+            - mon
+            - tue
+            - wed
+            - thu
+            - fri
+            - sat
+            - sun
     due_date:
       name: Due Date
       selector:
