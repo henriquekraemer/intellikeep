@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
+from homeassistant.util import dt as dt_util
 
 from custom_components.intellikeep.coordinator import IntelliKeepCoordinator
 from custom_components.intellikeep.models import Task, TaskFrequency, TaskPriority
@@ -36,6 +37,16 @@ def mock_hass():
     hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
     hass.config_entries.async_reload = AsyncMock()
     return hass
+
+
+@pytest.fixture
+def sao_paulo_tz():
+    """Home Assistant configured for America/Sao_Paulo (UTC-3)."""
+    original_tz = dt_util.DEFAULT_TIME_ZONE
+    tz = dt_util.get_time_zone("America/Sao_Paulo")
+    dt_util.set_default_time_zone(tz)
+    yield tz
+    dt_util.set_default_time_zone(original_tz)
 
 
 @pytest.fixture

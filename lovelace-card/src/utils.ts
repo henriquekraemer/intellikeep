@@ -8,8 +8,12 @@ export function relativeDueDate(isoDate: string | null): string {
   if (!isoDate) return "No due date";
   const due = new Date(isoDate);
   const now = new Date();
-  const diffMs = due.getTime() - now.getTime();
-  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+  // Count calendar days in local time (Date.UTC keeps DST shifts out of it)
+  const diffDays = Math.round(
+    (Date.UTC(due.getFullYear(), due.getMonth(), due.getDate()) -
+      Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) /
+      (1000 * 60 * 60 * 24)
+  );
 
   if (diffDays === 0) return "Due today";
   if (diffDays === 1) return "Due tomorrow";

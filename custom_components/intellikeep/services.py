@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.service import async_register_admin_service
+from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
@@ -37,10 +38,16 @@ def _coerce_int_fields(data: dict[str, Any], *fields: str) -> dict[str, Any]:
 
 
 def _coerce_due_date(data: dict[str, Any]) -> dict[str, Any]:
-    """Convert due_date to datetime if HA sent it as a string."""
+    """Convert due_date to a UTC datetime.
+
+    HA may send it as a string, and the datetime selector sends no offset: such
+    values are in Home Assistant's local timezone.
+    """
     value = data.get("due_date")
     if isinstance(value, str):
-        data["due_date"] = datetime.fromisoformat(value)
+        value = datetime.fromisoformat(value)
+    if isinstance(value, datetime):
+        data["due_date"] = dt_util.as_utc(value)
     return data
 
 

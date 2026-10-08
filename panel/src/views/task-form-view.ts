@@ -3,6 +3,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant, Task, TaskFrequency, TaskPriority, WEEKDAYS, Weekday } from "../types";
 import { createTask, updateTask, completeTask, reopenTask, deleteTask, addTaskNote, deleteTaskNote } from "../api";
 import { t } from "../translations";
+import { localDate, localTime } from "../utils";
 import "../components/confirm-dialog";
 import "../components/searchable-select";
 
@@ -56,18 +57,18 @@ export class IkTaskFormView extends LitElement {
       this._frequency = this.task.frequency;
       this._customDays = this.task.custom_days_interval;
       this._weekdays = [...(this.task.weekdays ?? [])];
-      this._dueDate = this.task.due_date ? this.task.due_date.substring(0, 10) : "";
-      this._dueTime = this.task.due_date ? this.task.due_date.substring(11, 16) : "";
+      // due_date comes in UTC; the inputs (and the save below) work in local time
+      const due = this.task.due_date ? new Date(this.task.due_date) : null;
+      this._dueDate = due ? localDate(due) : "";
+      this._dueTime = due ? localTime(due) : "";
       this._linkedEntities = [...this.task.linked_entity_ids];
       this._notifyDaysBefore = this.task.notify_days_before;
       this._notifyOnOverdue = this.task.notify_on_overdue;
     } else {
       // Pre-fill due date with current local date/time for new tasks
       const now = new Date();
-      now.setSeconds(0, 0);
-      const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString();
-      this._dueDate = local.substring(0, 10);
-      this._dueTime = local.substring(11, 16);
+      this._dueDate = localDate(now);
+      this._dueTime = localTime(now);
     }
     this._loadRegistries();
   }

@@ -121,6 +121,24 @@ class TestUpdateAndNotes:
         assert "name:" in updated.activities[-1].details
         assert "linked:" in updated.activities[-1].details
 
+    async def test_update_activity_shows_due_date_as_local_day(
+        self, task_manager, mock_storage, sao_paulo_tz
+    ):
+        task = make_task(
+            name="Bins",
+            due_date=dt_util.as_utc(datetime(2026, 10, 9, 8, 0, tzinfo=sao_paulo_tz)),
+        )
+        mock_storage.upsert_task(task)
+
+        updated = await task_manager.async_update_task(
+            task.task_id,
+            # 22:00 in São Paulo is 01:00 UTC on the 11th
+            due_date=dt_util.as_utc(datetime(2026, 10, 10, 22, 0, tzinfo=sao_paulo_tz)),
+        )
+
+        assert updated is not None
+        assert "due date: 2026-10-09 → 2026-10-10" in updated.activities[-1].details
+
     async def test_add_and_delete_note_roundtrip(self, task_manager, mock_storage):
         task = make_task(name="With notes")
         mock_storage.upsert_task(task)
@@ -172,6 +190,26 @@ class TestTaskStatus:
         """A task becomes overdue the day after its due date."""
         task = make_task(due_date=datetime.now(timezone.utc) - timedelta(days=1))
         assert task_manager.get_task_status(task) == TaskStatus.OVERDUE
+
+    def test_status_due_until_local_midnight(self, task_manager, sao_paulo_tz):
+        """21:30 in São Paulo is already the next day in UTC; the task is still due today."""
+        task = make_task(due_date=dt_util.as_utc(datetime(2026, 10, 10, 8, 0, tzinfo=sao_paulo_tz)))
+        now = datetime(2026, 10, 10, 21, 30, tzinfo=sao_paulo_tz)
+        with patch.object(dt_util, "utcnow", return_value=dt_util.as_utc(now)):
+            assert task_manager.get_task_status(task) == TaskStatus.DUE
+
+    def test_status_due_when_due_time_is_next_day_in_utc(self, task_manager, sao_paulo_tz):
+        """22:00 in São Paulo is stored as 01:00 UTC of the next day; it is due today."""
+        task = make_task(due_date=dt_util.as_utc(datetime(2026, 10, 10, 22, 0, tzinfo=sao_paulo_tz)))
+        now = datetime(2026, 10, 10, 9, 0, tzinfo=sao_paulo_tz)
+        with patch.object(dt_util, "utcnow", return_value=dt_util.as_utc(now)):
+            assert task_manager.get_task_status(task) == TaskStatus.DUE
+
+    def test_status_overdue_from_local_midnight(self, task_manager, sao_paulo_tz):
+        task = make_task(due_date=dt_util.as_utc(datetime(2026, 10, 10, 8, 0, tzinfo=sao_paulo_tz)))
+        now = datetime(2026, 10, 11, 0, 30, tzinfo=sao_paulo_tz)
+        with patch.object(dt_util, "utcnow", return_value=dt_util.as_utc(now)):
+            assert task_manager.get_task_status(task) == TaskStatus.OVERDUE
 
     def test_status_completed(self, task_manager):
         task = make_task(enabled=False)
@@ -415,6 +453,29 @@ class TestQueryMethods:
         mock_storage.upsert_task(disabled)
 
         assert task_manager.get_tasks_approaching_due() == []
+
+
+    async def test_due_today_and_approaching_follow_local_day(
+        self, task_manager, mock_storage, sao_paulo_tz
+    ):
+        """After 21:00 in São Paulo the UTC date is already tomorrow."""
+        tonight = make_task(
+            name="Tonight",
+            due_date=dt_util.as_utc(datetime(2026, 10, 10, 22, 0, tzinfo=sao_paulo_tz)),
+        )
+        tomorrow = make_task(
+            name="Tomorrow",
+            due_date=dt_util.as_utc(datetime(2026, 10, 11, 8, 0, tzinfo=sao_paulo_tz)),
+            notify_days_before=1,
+        )
+        mock_storage.upsert_task(tonight)
+        mock_storage.upsert_task(tomorrow)
+
+        now = datetime(2026, 10, 10, 21, 30, tzinfo=sao_paulo_tz)
+        with patch.object(dt_util, "utcnow", return_value=dt_util.as_utc(now)):
+            assert [t.name for t in task_manager.get_tasks_due_today()] == ["Tonight"]
+            assert [t.name for t in task_manager.get_tasks_approaching_due()] == ["Tomorrow"]
+            assert task_manager.get_overdue_tasks() == []
 
 
 class TestBulkOperations:

@@ -39,11 +39,21 @@ _TRACKED_FIELD_LABELS: dict[str, str] = {
 }
 
 
+def days_until_due(due_date: datetime) -> int:
+    """Calendar days from today to the due date, negative once it has passed.
+
+    Days are counted in Home Assistant's local timezone: due dates are stored
+    in UTC, and the UTC date differs from the local one for part of every day.
+    """
+    today = dt_util.as_local(dt_util.utcnow()).date()
+    return (dt_util.as_local(due_date).date() - today).days
+
+
 def _fmt_val(val: object) -> str:
     if val is None:
         return "—"
     if isinstance(val, datetime):
-        return val.date().isoformat()
+        return dt_util.as_local(val).date().isoformat()
     if isinstance(val, list):
         return f"{len(val)} entr{'y' if len(val) == 1 else 'ies'}"
     if isinstance(val, bool):
@@ -321,24 +331,22 @@ class TaskManager:
     def get_task_status(self, task: Task) -> TaskStatus:
         if not task.enabled:
             return TaskStatus.COMPLETED
-        now = dt_util.utcnow()
         if task.due_date is None:
             return TaskStatus.PENDING
-        days_until_due = (task.due_date.date() - now.date()).days
-        if days_until_due < 0:
+        days_left = days_until_due(task.due_date)
+        if days_left < 0:
             return TaskStatus.OVERDUE
-        if days_until_due == 0:
+        if days_left == 0:
             return TaskStatus.DUE
         return TaskStatus.PENDING
 
     def get_tasks_due_today(self) -> list[Task]:
-        now = dt_util.utcnow()
         return [
             t
             for t in self._storage.get_all_tasks()
             if t.enabled
             and t.due_date is not None
-            and t.due_date.date() <= now.date()
+            and days_until_due(t.due_date) <= 0
         ]
 
     def get_overdue_tasks(self) -> list[Task]:
@@ -350,12 +358,11 @@ class TaskManager:
 
     def get_tasks_approaching_due(self) -> list[Task]:
         """Return tasks within their notify_days_before window (but not yet due)."""
-        now = dt_util.utcnow()
         result = []
         for task in self._storage.get_all_tasks():
             if not task.enabled or task.due_date is None:
                 continue
-            days_left = (task.due_date.date() - now.date()).days
+            days_left = days_until_due(task.due_date)
             if 0 < days_left <= task.notify_days_before:
                 result.append(task)
         return result

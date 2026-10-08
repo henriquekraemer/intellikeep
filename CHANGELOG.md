@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Editing a task no longer shifts its due time. Outside UTC, every save moved the time by the timezone offset (3 hours per save in UTC−3) ([#30](https://github.com/henriquekraemer/intellikeep/issues/30)).
+- Tasks become due and overdue at local midnight. Status, the due-today and overdue sensors and the notifications used to switch at UTC midnight, which is 21:00 in UTC−3 ([#30](https://github.com/henriquekraemer/intellikeep/issues/30)).
+- The calendar shows each task on its local day, and the "Due today" / "Due tomorrow" labels in the panel and the card count calendar days instead of 24-hour blocks ([#30](https://github.com/henriquekraemer/intellikeep/issues/30)).
+- A `due_date` sent to `intellikeep.create_task` or `intellikeep.update_task` without a UTC offset is read as Home Assistant local time right away. It used to be kept without a timezone until the next restart ([#30](https://github.com/henriquekraemer/intellikeep/issues/30)).
 - Reconfiguring the integration reloaded it twice. Home Assistant 2026.6 started warning about this and 2026.12 turns it into an error ([#32](https://github.com/henriquekraemer/intellikeep/issues/32)).
 
 ## [1.1.0] - 2026-09-05

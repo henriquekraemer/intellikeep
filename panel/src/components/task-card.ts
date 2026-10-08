@@ -2,6 +2,7 @@ import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { HomeAssistant, Task } from "../types";
 import { t } from "../translations";
+import { daysUntil } from "../utils";
 
 type AreaEntry = { area_id: string; name: string };
 type DeviceEntry = { id: string; area_id: string | null; name_by_user: string | null; name: string };
@@ -152,7 +153,7 @@ export class IkTaskCard extends LitElement {
   private _relativeDue(iso: string | null): string {
     const tr = t(this.hass?.language);
     if (!iso) return tr.noDueDate;
-    const days = Math.round((new Date(iso).getTime() - Date.now()) / 86400000);
+    const days = daysUntil(new Date(iso));
     if (days === 0) return tr.dueTodayCard;
     if (days === 1) return tr.dueTomorrow;
     if (days === -1) return tr.daysOverdue(1);

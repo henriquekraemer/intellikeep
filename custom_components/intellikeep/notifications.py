@@ -5,11 +5,10 @@ import logging
 from datetime import datetime, timedelta
 
 from homeassistant.core import HomeAssistant
-from homeassistant.util import dt as dt_util
 from homeassistant.helpers.event import async_track_time_interval
 
 from .const import DOMAIN, EVENT_TASK_NOTIFICATION
-from .task_manager import TaskManager
+from .task_manager import TaskManager, days_until_due
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -65,9 +64,7 @@ class NotificationManager:
         for task in self.task_manager.get_tasks_approaching_due():
             if task.task_id in self._notified_approaching:
                 continue
-            days_left = (
-                task.due_date.date() - dt_util.utcnow().date()  # type: ignore[union-attr]
-            ).days
+            days_left = days_until_due(task.due_date)  # type: ignore[arg-type]
             unit = "day" if days_left == 1 else "days"
             await self._send_notification(
                 notification_id=f"{DOMAIN}_approaching_{task.task_id}",
