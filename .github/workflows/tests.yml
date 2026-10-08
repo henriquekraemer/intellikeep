@@ -5,13 +5,18 @@ on:
     branches: [main, dev]
   pull_request:
     branches: [main]
+  schedule:
+    # Mondays 06:00 UTC, so a new Home Assistant release that breaks us shows up
+    - cron: "0 6 * * 1"
 
 jobs:
   pytest:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.12", "3.13"]
+        # pip picks the newest Home Assistant each Python can install:
+        # 3.14 gets the current release, 3.13 the oldest line we support (2026.2.x)
+        python-version: ["3.13", "3.14"]
 
     steps:
       - uses: actions/checkout@v4
@@ -24,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements_test.txt
+
+      - name: Show Home Assistant version
+        run: pip list | grep -iE "^(homeassistant|pytest-homeassistant-custom-component) "
 
       - name: Run tests
         run: pytest tests/ -v --tb=short

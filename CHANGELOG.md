@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- Tests now run against the current Home Assistant release (Python 3.14) and the oldest supported line (2026.2.x, Python 3.13), with a weekly scheduled run to catch breakage from new Home Assistant releases ([#33](https://github.com/henriquekraemer/intellikeep/issues/33)).
+
 ## [1.1.0] - 2026-09-05
 
 ### Added
