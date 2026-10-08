@@ -186,6 +186,7 @@ const cardStyles = i$3 `
   .complete-btn {
     flex-shrink: 0;
     margin-left: 8px;
+    /* Current Home Assistant sizes ha-icon-button from --ha-icon-button-size; 2026.1 still reads the --mdc- one */
     --ha-icon-button-size: 36px;
     --mdc-icon-button-size: 36px;
   }
@@ -276,12 +277,30 @@ function frequencyLabel(freq, customDays, weekdays) {
     return map[freq] ?? freq;
 }
 
+// `title` has no entry: Home Assistant labels that field with its own translation
 const CONFIG_LABELS = {
-    title: "Title",
-    max_tasks: "Max tasks to show",
-    show_linked_entities: "Show linked entity states",
-    show_description: "Show task description",
+    en: {
+        max_tasks: "Max tasks to show",
+        show_linked_entities: "Show linked entity states",
+        show_description: "Show task description",
+    },
+    pt: {
+        max_tasks: "Máximo de tarefas a exibir",
+        show_linked_entities: "Mostrar estado das entidades vinculadas",
+        show_description: "Mostrar descrição da tarefa",
+    },
+    es: {
+        max_tasks: "Máximo de tareas a mostrar",
+        show_linked_entities: "Mostrar estado de las entidades vinculadas",
+        show_description: "Mostrar descripción de la tarea",
+    },
 };
+/** Editor label in the frontend's language. getConfigForm is static, so there is no `hass` to read it from. */
+function configLabel(name) {
+    const root = document.querySelector("home-assistant");
+    const lang = root?.hass?.language?.split("-")[0]?.toLowerCase() ?? "en";
+    return (CONFIG_LABELS[lang] ?? CONFIG_LABELS.en)[name];
+}
 let IntelliKeepCard = class IntelliKeepCard extends i {
     constructor() {
         super(...arguments);
@@ -295,7 +314,6 @@ let IntelliKeepCard = class IntelliKeepCard extends i {
     setConfig(config) {
         this.config = config;
     }
-    // Home Assistant builds the visual editor from this schema
     static getConfigForm() {
         return {
             schema: [
@@ -304,7 +322,7 @@ let IntelliKeepCard = class IntelliKeepCard extends i {
                 { name: "show_linked_entities", selector: { boolean: {} } },
                 { name: "show_description", selector: { boolean: {} } },
             ],
-            computeLabel: (field) => CONFIG_LABELS[field.name],
+            computeLabel: (field) => configLabel(field.name),
         };
     }
     static getStubConfig() {

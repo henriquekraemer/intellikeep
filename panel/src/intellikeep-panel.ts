@@ -69,6 +69,7 @@ export class IntelliKeepPanel extends LitElement {
     .appbar-back {
       margin-right: -8px;
       color: var(--app-header-text-color, #fff);
+      /* Current Home Assistant sizes ha-icon-button from --ha-icon-button-size; 2026.1 still reads the --mdc- one */
       --ha-icon-button-size: 40px;
       --mdc-icon-button-size: 40px;
       --mdc-ripple-color: var(--app-header-text-color, #fff);

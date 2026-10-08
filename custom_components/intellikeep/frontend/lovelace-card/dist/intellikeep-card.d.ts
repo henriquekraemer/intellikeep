@@ -38,7 +38,7 @@ export declare class IntelliKeepCard extends LitElement {
         })[];
         computeLabel: (field: {
             name: string;
-        }) => string;
+        }) => string | undefined;
     };
     static getStubConfig(): {
         title: string;
