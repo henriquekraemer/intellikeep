@@ -9,7 +9,37 @@ export declare class IntelliKeepCard extends LitElement {
     private _unsubscribe?;
     static get styles(): import("lit").CSSResult;
     setConfig(config: IntelliKeepCardConfig): void;
-    static getConfigElement(): import("./intellikeep-card-editor").IntelliKeepCardEditor;
+    static getConfigForm(): {
+        schema: ({
+            name: string;
+            selector: {
+                text: {};
+                number?: undefined;
+                boolean?: undefined;
+            };
+        } | {
+            name: string;
+            selector: {
+                number: {
+                    min: number;
+                    max: number;
+                    mode: string;
+                };
+                text?: undefined;
+                boolean?: undefined;
+            };
+        } | {
+            name: string;
+            selector: {
+                boolean: {};
+                text?: undefined;
+                number?: undefined;
+            };
+        })[];
+        computeLabel: (field: {
+            name: string;
+        }) => string | undefined;
+    };
     static getStubConfig(): {
         title: string;
         max_tasks: number;

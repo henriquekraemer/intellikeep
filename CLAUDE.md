@@ -20,7 +20,10 @@ IntelliKeep is a custom Home Assistant integration for household task management
 # Filter by test name
 ./run-tests.sh -k test_complete_recurring
 
-# Run locally (requires Python 3.12+ and dependencies)
+# Test against the oldest supported Home Assistant (2026.2.x) instead of the current one
+PYTHON_IMAGE=python:3.13-slim ./run-tests.sh
+
+# Run locally (requires Python 3.14+ for the current Home Assistant, and dependencies)
 pip install -r requirements_test.txt
 pytest tests/ -v
 ```
@@ -104,4 +107,4 @@ Two separate systems: the backend uses `strings.json` + `translations/{en,es,pt}
 - **Requires HA 2026.1.0+**
 - **Version is duplicated** — bump `manifest.json`, `const.py` (`VERSION`, served to the frontend via the `get_version` WebSocket command), and `panel/package.json` together when releasing; update `CHANGELOG.md`.
 - **HA bus events** — `intellikeep_task_notification` is fired by the notification manager (documented automation hook). `intellikeep_task_updated` is fired by `TaskManager` on every mutation (`created`, `updated`, `completed`, `reopened`, `deleted`, `note_added`, `note_deleted`). Panel/card live updates flow through coordinator listeners via the `subscribe` WebSocket command, not through these events.
-- **CI/CD** — GitHub Actions runs pytest on Python 3.12 & 3.13 (push to `main`/`dev` and PRs), plus HACS validation, a frontend build, and `hassfest` on `main` pushes/PRs.
+- **CI/CD** — GitHub Actions runs pytest on Python 3.13 & 3.14 (push to `main`/`dev`, PRs and a weekly schedule; 3.14 installs the current Home Assistant, 3.13 the 2026.2.x line), plus HACS validation, a frontend build, and `hassfest` on `main` pushes/PRs.

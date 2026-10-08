@@ -56,6 +56,7 @@ export interface HassAreaRegistryEntry {
     name: string;
 }
 export interface HomeAssistant {
+    language: string;
     states: Record<string, HassEntityState>;
     devices: Record<string, HassDeviceRegistryEntry>;
     areas: Record<string, HassAreaRegistryEntry>;

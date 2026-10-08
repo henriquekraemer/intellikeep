@@ -118,6 +118,19 @@ async function deleteAllData(hass) {
 
 /** Returns true when the device has a precise pointer and hover support (desktop/laptop). */
 const isDesktop = () => window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+const pad2 = (n) => String(n).padStart(2, "0");
+/** Local calendar date of `d` as YYYY-MM-DD, the format of `<input type="date">`. */
+const localDate = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+/** Local time of day of `d` as HH:MM, the format of `<input type="time">`. */
+const localTime = (d) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+/** Calendar days from today to `d` in local time; negative once `d` is a past day. */
+const daysUntil = (d) => {
+    const today = new Date();
+    // Date.UTC on the local year/month/day keeps DST shifts out of the difference
+    const from = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+    const to = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+    return Math.round((to - from) / 86400000);
+};
 
 const messages = {
     en: {
@@ -627,7 +640,7 @@ let IkTaskCard = class IkTaskCard extends i {
         const tr = t(this.hass?.language);
         if (!iso)
             return tr.noDueDate;
-        const days = Math.round((new Date(iso).getTime() - Date.now()) / 86400000);
+        const days = daysUntil(new Date(iso));
         if (days === 0)
             return tr.dueTodayCard;
         if (days === 1)
@@ -2436,8 +2449,10 @@ let IkTaskFormView = class IkTaskFormView extends i {
             this._frequency = this.task.frequency;
             this._customDays = this.task.custom_days_interval;
             this._weekdays = [...(this.task.weekdays ?? [])];
-            this._dueDate = this.task.due_date ? this.task.due_date.substring(0, 10) : "";
-            this._dueTime = this.task.due_date ? this.task.due_date.substring(11, 16) : "";
+            // due_date comes in UTC; the inputs (and the save below) work in local time
+            const due = this.task.due_date ? new Date(this.task.due_date) : null;
+            this._dueDate = due ? localDate(due) : "";
+            this._dueTime = due ? localTime(due) : "";
             this._linkedEntities = [...this.task.linked_entity_ids];
             this._notifyDaysBefore = this.task.notify_days_before;
             this._notifyOnOverdue = this.task.notify_on_overdue;
@@ -2445,10 +2460,8 @@ let IkTaskFormView = class IkTaskFormView extends i {
         else {
             // Pre-fill due date with current local date/time for new tasks
             const now = new Date();
-            now.setSeconds(0, 0);
-            const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString();
-            this._dueDate = local.substring(0, 10);
-            this._dueTime = local.substring(11, 16);
+            this._dueDate = localDate(now);
+            this._dueTime = localTime(now);
         }
         this._loadRegistries();
     }
@@ -4394,9 +4407,6 @@ const PRIORITY_COLOR = {
     high: "var(--error-color, #f44336)",
     critical: "#9c27b0",
 };
-function isoDate(d) {
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 function sameDay(a, b) {
     return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
@@ -4455,7 +4465,7 @@ let IkCalendarView = class IkCalendarView extends i {
     }
     updated(changed) {
         if (changed.has("_refDate")) {
-            localStorage.setItem("intellikeep.calendar.refDate", isoDate(this._refDate));
+            localStorage.setItem("intellikeep.calendar.refDate", localDate(this._refDate));
         }
         if (changed.has("_mode")) {
             localStorage.setItem("intellikeep.calendar.mode", this._mode);
@@ -4517,7 +4527,7 @@ let IkCalendarView = class IkCalendarView extends i {
                 continue;
             if (!this._matchesLinkedFilters(task))
                 continue;
-            const key = task.due_date.slice(0, 10);
+            const key = localDate(new Date(task.due_date));
             if (!map.has(key))
                 map.set(key, []);
             map.get(key).push(task);
@@ -4580,7 +4590,7 @@ let IkCalendarView = class IkCalendarView extends i {
       <div class="month-grid" style="${gridStyle}">
         ${weekdays.map(w => b `<div class="weekday-header">${w}</div>`)}
         ${days.map(d => {
-            const key = isoDate(d);
+            const key = localDate(d);
             const dayTasks = (taskMap.get(key) ?? []).sort((a, b) => {
                 const aU = a.status === "due" || a.status === "overdue";
                 const bU = b.status === "due" || b.status === "overdue";
@@ -4629,7 +4639,7 @@ let IkCalendarView = class IkCalendarView extends i {
           `;
         })}
         ${days.map(d => {
-            const key = isoDate(d);
+            const key = localDate(d);
             const dayTasks = taskMap.get(key) ?? [];
             const isToday = sameDay(d, today);
             return b `
@@ -5298,6 +5308,8 @@ IntelliKeepPanel.styles = i$3 `
     .appbar-back {
       margin-right: -8px;
       color: var(--app-header-text-color, #fff);
+      /* Current Home Assistant sizes ha-icon-button from --ha-icon-button-size; 2026.1 still reads the --mdc- one */
+      --ha-icon-button-size: 40px;
       --mdc-icon-button-size: 40px;
       --mdc-ripple-color: var(--app-header-text-color, #fff);
     }

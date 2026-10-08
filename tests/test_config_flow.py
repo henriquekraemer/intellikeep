@@ -1,10 +1,12 @@
 """Tests for IntelliKeep config flow."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.intellikeep import _async_options_updated
 from custom_components.intellikeep.const import (
     CONF_INSTANCE_NAME,
     CONF_NOTIFICATION_SERVICE,
@@ -80,7 +82,7 @@ class TestConfigFlow:
         }
         entry.options = {}
         flow._get_reconfigure_entry = MagicMock(return_value=entry)
-        flow.async_update_reload_and_abort = MagicMock(
+        flow.async_update_and_abort = MagicMock(
             return_value={"type": "abort", "reason": "reconfigured"}
         )
 
@@ -93,8 +95,8 @@ class TestConfigFlow:
         )
 
         assert result["reason"] == "reconfigured"
-        flow.async_update_reload_and_abort.assert_called_once()
-        kwargs = flow.async_update_reload_and_abort.call_args.kwargs
+        flow.async_update_and_abort.assert_called_once()
+        kwargs = flow.async_update_and_abort.call_args.kwargs
         assert kwargs["options"][CONF_NOTIFY_DAYS_BEFORE_DEFAULT] == 3
         assert "data" not in kwargs
 
@@ -113,6 +115,49 @@ class TestConfigFlow:
 
         assert result["type"] == "form"
         assert result["step_id"] == "reconfigure"
+
+    async def test_reconfigure_reloads_once_through_listener(self, hass, caplog):
+        """The update listener is the only reload path for a reconfigure."""
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            title="Old",
+            unique_id=DOMAIN,
+            options={
+                CONF_INSTANCE_NAME: "Old",
+                CONF_NOTIFY_DAYS_BEFORE_DEFAULT: 1,
+                CONF_NOTIFICATION_SERVICE: "",
+            },
+        )
+        entry.add_to_hass(hass)
+        # Registered by async_setup_entry on a real install
+        entry.add_update_listener(_async_options_updated)
+
+        flow = IntelliKeepConfigFlow()
+        flow.hass = hass
+        flow.handler = DOMAIN
+        flow.context = {"source": "reconfigure", "entry_id": entry.entry_id}
+
+        with (
+            patch.object(hass.config_entries, "async_reload", AsyncMock()) as reload,
+            patch.object(hass.config_entries, "async_schedule_reload") as schedule_reload,
+        ):
+            result = await flow.async_step_reconfigure(
+                {
+                    CONF_INSTANCE_NAME: "New",
+                    CONF_NOTIFY_DAYS_BEFORE_DEFAULT: 3,
+                    CONF_NOTIFICATION_SERVICE: "",
+                }
+            )
+            await hass.async_block_till_done()
+
+        assert result["reason"] == "reconfigure_successful"
+        assert entry.title == "New"
+        assert entry.options[CONF_NOTIFY_DAYS_BEFORE_DEFAULT] == 3
+        reload.assert_awaited_once_with(entry.entry_id)
+        schedule_reload.assert_not_called()
+        # Home Assistant 2026.6+ logs a deprecation when a flow reloads an entry
+        # that already reloads itself through an update listener
+        assert "update listener" not in caplog.text
 
 
 class TestOptionsFlow:

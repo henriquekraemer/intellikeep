@@ -2,7 +2,7 @@ import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { HomeAssistant, Task, TaskPriority } from "../types";
 import { t } from "../translations";
-import { isDesktop } from "../utils";
+import { isDesktop, localDate } from "../utils";
 import "../components/link-filter";
 
 type CalMode = "week" | "month";
@@ -21,10 +21,6 @@ const PRIORITY_COLOR: Record<string, string> = {
   high:     "var(--error-color, #f44336)",
   critical: "#9c27b0",
 };
-
-function isoDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 function sameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -383,7 +379,7 @@ export class IkCalendarView extends LitElement {
 
   override updated(changed: Map<PropertyKey, unknown>) {
     if (changed.has("_refDate")) {
-      localStorage.setItem("intellikeep.calendar.refDate", isoDate(this._refDate));
+      localStorage.setItem("intellikeep.calendar.refDate", localDate(this._refDate));
     }
     if (changed.has("_mode")) {
       localStorage.setItem("intellikeep.calendar.mode", this._mode);
@@ -449,7 +445,7 @@ export class IkCalendarView extends LitElement {
       if (!task.due_date) continue;
       if (this._filterPriority !== "all" && task.priority !== this._filterPriority) continue;
       if (!this._matchesLinkedFilters(task)) continue;
-      const key = task.due_date.slice(0, 10);
+      const key = localDate(new Date(task.due_date));
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(task);
     }
@@ -515,7 +511,7 @@ export class IkCalendarView extends LitElement {
       <div class="month-grid" style="${gridStyle}">
         ${weekdays.map(w => html`<div class="weekday-header">${w}</div>`)}
         ${days.map(d => {
-          const key = isoDate(d);
+          const key = localDate(d);
           const dayTasks = (taskMap.get(key) ?? []).sort((a, b) => {
             const aU = a.status === "due" || a.status === "overdue";
             const bU = b.status === "due" || b.status === "overdue";
@@ -562,7 +558,7 @@ export class IkCalendarView extends LitElement {
           `;
         })}
         ${days.map(d => {
-          const key = isoDate(d);
+          const key = localDate(d);
           const dayTasks = taskMap.get(key) ?? [];
           const isToday = sameDay(d, today);
           return html`

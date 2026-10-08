@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- The dashboard card follows the Home Assistant language. Its texts (due labels, priority, frequency, task count, empty state) are available in English, Portuguese and Spanish, like the panel; it used to be English only.
+
+### Changed
+
+- Tests now run against the current Home Assistant release (Python 3.14) and the oldest supported line (2026.2.x, Python 3.13), with a weekly scheduled run to catch breakage from new Home Assistant releases ([#33](https://github.com/henriquekraemer/intellikeep/issues/33)).
+
+### Fixed
+
+- Editing a task no longer shifts its due time. Outside UTC, every save moved the time by the timezone offset (3 hours per save in UTC−3) ([#30](https://github.com/henriquekraemer/intellikeep/issues/30)).
+- Tasks become due and overdue at local midnight. Status, the due-today and overdue sensors and the notifications used to switch at UTC midnight, which is 21:00 in UTC−3 ([#30](https://github.com/henriquekraemer/intellikeep/issues/30)).
+- The calendar shows each task on its local day, and the "Due today" / "Due tomorrow" labels in the panel and the card count calendar days instead of 24-hour blocks ([#30](https://github.com/henriquekraemer/intellikeep/issues/30)).
+- A `due_date` sent to `intellikeep.create_task` or `intellikeep.update_task` without a UTC offset is read as Home Assistant local time right away. It used to be kept without a timezone until the next restart ([#30](https://github.com/henriquekraemer/intellikeep/issues/30)).
+- The card can be configured from the dashboard's visual editor. Home Assistant showed "Visual editor not supported" because the card's editor element was never shipped in the bundle; the card now describes its options as a form that Home Assistant renders itself, with labels in English, Portuguese and Spanish ([#31](https://github.com/henriquekraemer/intellikeep/issues/31)).
+- The complete button on the card and the back button in the panel header are back to their intended size. Home Assistant renamed the CSS variable that sets it ([#31](https://github.com/henriquekraemer/intellikeep/issues/31)).
+- The card is registered as a dashboard resource again on Home Assistant 2026.2 and later. Registration failed silently there, so on a fresh install the card did not load ("Custom element doesn't exist: intellikeep-card") unless the resource was added by hand ([#34](https://github.com/henriquekraemer/intellikeep/issues/34)).
+- Reconfiguring the integration reloaded it twice. Home Assistant 2026.6 started warning about this and 2026.12 turns it into an error ([#32](https://github.com/henriquekraemer/intellikeep/issues/32)).
+
 ## [1.1.0] - 2026-09-05
 
 ### Added

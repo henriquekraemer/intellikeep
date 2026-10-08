@@ -7,6 +7,7 @@ import {
   TaskStatus,
 } from "./types";
 import { cardStyles } from "./styles";
+import { t } from "./translations";
 import {
   priorityColor,
   relativeDueDate,
@@ -14,6 +15,19 @@ import {
   statusIcon,
   frequencyLabel,
 } from "./utils";
+
+/** Editor label in the frontend's language. getConfigForm is static, so there is no `hass` to read it from. */
+function configLabel(name: string): string | undefined {
+  const root = document.querySelector("home-assistant") as (Element & { hass?: HomeAssistant }) | null;
+  const tr = t(root?.hass?.language);
+  // `title` has no entry: Home Assistant labels that field with its own translation
+  const labels: Record<string, string> = {
+    max_tasks: tr.editorMaxTasks,
+    show_linked_entities: tr.editorShowLinkedEntities,
+    show_description: tr.editorShowDescription,
+  };
+  return labels[name];
+}
 
 @customElement("intellikeep-card")
 export class IntelliKeepCard extends LitElement {
@@ -34,9 +48,16 @@ export class IntelliKeepCard extends LitElement {
     this.config = config;
   }
 
-  // Called by HA Lovelace editor for the graphical config UI
-  static getConfigElement() {
-    return document.createElement("intellikeep-card-editor");
+  static getConfigForm() {
+    return {
+      schema: [
+        { name: "title", selector: { text: {} } },
+        { name: "max_tasks", selector: { number: { min: 1, max: 50, mode: "box" } } },
+        { name: "show_linked_entities", selector: { boolean: {} } },
+        { name: "show_description", selector: { boolean: {} } },
+      ],
+      computeLabel: (field: { name: string }) => configLabel(field.name),
+    };
   }
 
   static getStubConfig() {
@@ -167,6 +188,7 @@ export class IntelliKeepCard extends LitElement {
   protected render() {
     const title = this.config?.title ?? "IntelliKeep";
     const tasks = this._filteredTasks;
+    const tr = t(this.hass?.language);
 
     return html`
       <ha-card>
@@ -177,18 +199,18 @@ export class IntelliKeepCard extends LitElement {
           </span>
           ${tasks.length > 0
             ? html`<span style="font-size:13px;color:var(--secondary-text-color);">
-                ${tasks.length} task${tasks.length !== 1 ? "s" : ""}
+                ${tr.taskCount(tasks.length)}
               </span>`
             : nothing}
         </div>
 
         ${this._loading
-          ? html`<div class="empty-state">Loading tasks…</div>`
+          ? html`<div class="empty-state">${tr.loading}</div>`
           : tasks.length === 0
           ? html`
               <div class="empty-state">
                 <ha-icon icon="mdi:check-all"></ha-icon>
-                All caught up!
+                ${tr.allClear}
               </div>
             `
           : html`
@@ -206,6 +228,8 @@ export class IntelliKeepCard extends LitElement {
   private _renderTask(task: Task) {
     const isCompleting = this._completing.has(task.task_id);
     const iconColor = statusColor(task.status as TaskStatus);
+    const language = this.hass?.language;
+    const tr = t(language);
 
     return html`
       <div class="task-item">
@@ -227,12 +251,12 @@ export class IntelliKeepCard extends LitElement {
               class="priority-badge"
               style="background-color: ${priorityColor(task.priority)}"
             >
-              ${task.priority}
+              ${tr[task.priority] ?? task.priority}
             </span>
             <span style="color: ${iconColor}">
-              ${relativeDueDate(task.due_date)}
+              ${relativeDueDate(task.due_date, language)}
             </span>
-            <span>${frequencyLabel(task.frequency, task.custom_days_interval, task.weekdays)}</span>
+            <span>${frequencyLabel(task.frequency, task.custom_days_interval, task.weekdays, language)}</span>
           </div>
 
           ${this._renderEntityChips(task)}
@@ -242,7 +266,7 @@ export class IntelliKeepCard extends LitElement {
           ? html`
               <ha-icon-button
                 class="complete-btn"
-                .label=${"Mark as done"}
+                .label=${tr.markAsDone}
                 .path=${"M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"}
                 ?disabled=${isCompleting}
                 @click=${() => this._completeTask(task.task_id)}

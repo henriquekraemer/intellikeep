@@ -1,7 +1,7 @@
 """Tests for IntelliKeep HA services."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -154,6 +154,21 @@ class TestRegisteredServices:
         assert tasks[0].custom_days_interval == 7
         assert tasks[0].notify_days_before == 2
         runtime_data.coordinator.async_refresh.assert_awaited_once()
+
+    async def test_create_task_handler_reads_due_date_without_offset_as_local(
+        self, registered_service_handlers, runtime_data, sao_paulo_tz
+    ):
+        """The datetime selector sends "YYYY-MM-DD HH:MM:SS" in Home Assistant's timezone."""
+        handler = registered_service_handlers[SERVICE_CREATE_TASK]
+
+        await handler(MagicMock(data={"name": "Bins", "due_date": "2026-10-10 08:00:00"}))
+        await handler(MagicMock(data={"name": "Filter", "due_date": "2026-10-09T12:00:00+00:00"}))
+
+        bins = runtime_data.storage.get_all_tasks()[0]
+        assert bins.due_date == datetime(2026, 10, 10, 11, 0, tzinfo=timezone.utc)
+        assert bins.due_date.utcoffset() == timedelta(0)
+        # Both kinds of value must stay comparable
+        assert runtime_data.task_manager.get_next_due_task().name == "Filter"
 
     async def test_create_task_handler_accepts_weekdays(
         self, registered_service_handlers, runtime_data

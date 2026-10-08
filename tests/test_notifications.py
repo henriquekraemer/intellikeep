@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
+from homeassistant.util import dt as dt_util
 
 from custom_components.intellikeep.notifications import NOTIFICATION_CHECK_INTERVAL, NotificationManager
 from tests.conftest import make_task
@@ -76,6 +77,25 @@ class TestApproachingNotifications:
 
         assert task.task_id not in notification_manager._notified_approaching
         assert task.task_id not in notification_manager._notified_overdue
+
+
+    async def test_days_left_counts_local_days(
+        self, notification_manager, mock_hass, mock_storage, sao_paulo_tz
+    ):
+        """At 21:30 in São Paulo a task due tomorrow morning is one day away, not zero."""
+        task = make_task(
+            name="Change filter",
+            due_date=dt_util.as_utc(datetime(2026, 10, 11, 8, 0, tzinfo=sao_paulo_tz)),
+            notify_days_before=1,
+        )
+        mock_storage.upsert_task(task)
+
+        now = datetime(2026, 10, 10, 21, 30, tzinfo=sao_paulo_tz)
+        with patch.object(dt_util, "utcnow", return_value=dt_util.as_utc(now)):
+            await notification_manager._async_check_notifications(None)
+
+        mock_hass.services.async_call.assert_called_once()
+        assert "due in 1 day." in mock_hass.services.async_call.call_args[0][2]["message"]
 
 
 class TestOverdueNotifications:

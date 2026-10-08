@@ -114,6 +114,8 @@ export const cardStyles = css`
   .complete-btn {
     flex-shrink: 0;
     margin-left: 8px;
+    /* Current Home Assistant sizes ha-icon-button from --ha-icon-button-size; 2026.1 still reads the --mdc- one */
+    --ha-icon-button-size: 36px;
     --mdc-icon-button-size: 36px;
   }
 
