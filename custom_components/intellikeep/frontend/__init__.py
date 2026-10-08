@@ -49,20 +49,21 @@ def _async_register_card_resource(hass: HomeAssistant, component_domain: str) ->
                 return
 
             url = f"/{STATIC_PATH}/{CARD_FILENAME}"
-            resources = lovelace.get("resources")
-            if resources is None:
+            resources = lovelace.resources
+            # YAML-mode resources are read-only; the README covers adding it by hand
+            if not hasattr(resources, "async_create_item"):
                 return
 
+            # async_get_info only returns a count, but it loads the collection
+            await resources.async_get_info()
             # Avoid duplicate registration
-            existing = await resources.async_get_info()
-            for resource in existing.get("resources", []):
-                if resource.get("url") == url:
-                    return
+            if any(item.get("url") == url for item in resources.async_items()):
+                return
 
             await resources.async_create_item({"res_type": "module", "url": url})
             _LOGGER.info("IntelliKeep Lovelace card resource registered: %s", url)
         except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not register Lovelace card resource: %s", err)
+            _LOGGER.warning("Could not register Lovelace card resource: %s", err)
 
     # Defer until HA has finished starting so Lovelace data is available;
     # if the entry is set up at runtime (after startup), register immediately.
