@@ -39,16 +39,6 @@ _TRACKED_FIELD_LABELS: dict[str, str] = {
 }
 
 
-def days_until_due(due_date: datetime) -> int:
-    """Calendar days from today to the due date, negative once it has passed.
-
-    Days are counted in Home Assistant's local timezone: due dates are stored
-    in UTC, and the UTC date differs from the local one for part of every day.
-    """
-    today = dt_util.as_local(dt_util.utcnow()).date()
-    return (dt_util.as_local(due_date).date() - today).days
-
-
 def _fmt_val(val: object) -> str:
     if val is None:
         return "—"
@@ -328,12 +318,24 @@ class TaskManager:
     def get_all_tasks(self) -> list[Task]:
         return self._storage.get_all_tasks()
 
+    def days_until_due(self, task: Task) -> int | None:
+        """Calendar days from today to the due date, negative once it has passed.
+
+        None for a task without due date. Days are counted in Home Assistant's
+        local timezone: due dates are stored in UTC, and the UTC date differs
+        from the local one for part of every day.
+        """
+        if task.due_date is None:
+            return None
+        today = dt_util.as_local(dt_util.utcnow()).date()
+        return (dt_util.as_local(task.due_date).date() - today).days
+
     def get_task_status(self, task: Task) -> TaskStatus:
         if not task.enabled:
             return TaskStatus.COMPLETED
-        if task.due_date is None:
+        days_left = self.days_until_due(task)
+        if days_left is None:
             return TaskStatus.PENDING
-        days_left = days_until_due(task.due_date)
         if days_left < 0:
             return TaskStatus.OVERDUE
         if days_left == 0:
@@ -345,8 +347,8 @@ class TaskManager:
             t
             for t in self._storage.get_all_tasks()
             if t.enabled
-            and t.due_date is not None
-            and days_until_due(t.due_date) <= 0
+            and (days_left := self.days_until_due(t)) is not None
+            and days_left <= 0
         ]
 
     def get_overdue_tasks(self) -> list[Task]:
@@ -360,10 +362,10 @@ class TaskManager:
         """Return tasks within their notify_days_before window (but not yet due)."""
         result = []
         for task in self._storage.get_all_tasks():
-            if not task.enabled or task.due_date is None:
+            if not task.enabled:
                 continue
-            days_left = days_until_due(task.due_date)
-            if 0 < days_left <= task.notify_days_before:
+            days_left = self.days_until_due(task)
+            if days_left is not None and 0 < days_left <= task.notify_days_before:
                 result.append(task)
         return result
 

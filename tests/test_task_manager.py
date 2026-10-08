@@ -333,22 +333,16 @@ class TestWeekdayScheduling:
         task = self._task(completed_at=completed, weekdays=())
         assert task_manager._calculate_next_due(task) == completed + timedelta(weeks=1)
 
-    def test_weekday_math_uses_local_timezone(self, task_manager):
+    def test_weekday_math_uses_local_timezone(self, task_manager, sao_paulo_tz):
         """Monday 23:30 in São Paulo is already Tuesday in UTC; the schedule must follow local days."""
-        original_tz = dt_util.DEFAULT_TIME_ZONE
-        tz = dt_util.get_time_zone("America/Sao_Paulo")
-        dt_util.set_default_time_zone(tz)
-        try:
-            task = self._task(
-                completed_at=datetime(2025, 6, 2, 23, 30, tzinfo=tz),  # Monday local, Tuesday UTC
-                due_date=datetime(2025, 5, 27, 7, 0, tzinfo=tz),  # overdue Tuesday
-                weekdays=("tue",),
-            )
-            next_due = task_manager._calculate_next_due(task)
-            assert next_due.utcoffset() == timedelta(0)
-            assert dt_util.as_local(next_due) == datetime(2025, 6, 3, 7, 0, tzinfo=tz)
-        finally:
-            dt_util.set_default_time_zone(original_tz)
+        task = self._task(
+            completed_at=datetime(2025, 6, 2, 23, 30, tzinfo=sao_paulo_tz),  # Monday local, Tuesday UTC
+            due_date=datetime(2025, 5, 27, 7, 0, tzinfo=sao_paulo_tz),  # overdue Tuesday
+            weekdays=("tue",),
+        )
+        next_due = task_manager._calculate_next_due(task)
+        assert next_due.utcoffset() == timedelta(0)
+        assert dt_util.as_local(next_due) == datetime(2025, 6, 3, 7, 0, tzinfo=sao_paulo_tz)
 
     async def test_complete_copies_weekdays_to_next_occurrence(self, task_manager, mock_storage):
         task = make_task(
