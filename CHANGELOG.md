@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- The dashboard card follows the Home Assistant language. Its texts (due labels, priority, frequency, task count, empty state) are available in English, Portuguese and Spanish, like the panel; it used to be English only.
+
 ### Changed
 
 - Tests now run against the current Home Assistant release (Python 3.14) and the oldest supported line (2026.2.x, Python 3.13), with a weekly scheduled run to catch breakage from new Home Assistant releases ([#33](https://github.com/henriquekraemer/intellikeep/issues/33)).

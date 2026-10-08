@@ -1,11 +1,19 @@
+import { t } from "./translations";
 import { TaskPriority, TaskStatus, Weekday } from "./types";
 
-const WEEKDAY_NAMES: Record<Weekday, string> = {
-  mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun",
-};
+const WEEKDAYS: Weekday[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
-export function relativeDueDate(isoDate: string | null): string {
-  if (!isoDate) return "No due date";
+/** Short localized weekday name (2024-01-01 is a Monday). */
+function weekdayName(day: Weekday, language: string | undefined): string {
+  const raw = new Date(2024, 0, 1 + WEEKDAYS.indexOf(day))
+    .toLocaleDateString(language || "en", { weekday: "short" })
+    .replace(/\.$/, "");
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+export function relativeDueDate(isoDate: string | null, language: string | undefined): string {
+  const tr = t(language);
+  if (!isoDate) return tr.noDueDate;
   const due = new Date(isoDate);
   const now = new Date();
   // Count calendar days in local time (Date.UTC keeps DST shifts out of it)
@@ -15,11 +23,10 @@ export function relativeDueDate(isoDate: string | null): string {
       (1000 * 60 * 60 * 24)
   );
 
-  if (diffDays === 0) return "Due today";
-  if (diffDays === 1) return "Due tomorrow";
-  if (diffDays === -1) return "1 day overdue";
-  if (diffDays > 0) return `Due in ${diffDays} days`;
-  return `${Math.abs(diffDays)} days overdue`;
+  if (diffDays === 0) return tr.dueToday;
+  if (diffDays === 1) return tr.dueTomorrow;
+  if (diffDays > 0) return tr.dueInDays(diffDays);
+  return tr.daysOverdue(Math.abs(diffDays));
 }
 
 export function priorityColor(priority: TaskPriority): string {
@@ -56,17 +63,19 @@ export function statusIcon(status: TaskStatus): string {
 
 export function frequencyLabel(
   freq: string,
-  customDays?: number | null,
-  weekdays?: Weekday[] | null
+  customDays: number | null | undefined,
+  weekdays: Weekday[] | null | undefined,
+  language: string | undefined
 ): string {
-  const days = (weekdays ?? []).map(d => WEEKDAY_NAMES[d]).filter(Boolean);
+  const tr = t(language);
+  const days = (weekdays ?? []).filter(d => WEEKDAYS.includes(d)).map(d => weekdayName(d, language));
   const map: Record<string, string> = {
-    one_time: "One-time",
-    daily: "Daily",
-    weekly: days.length ? `Weekly (${days.join(", ")})` : "Weekly",
-    monthly: "Monthly",
-    yearly: "Yearly",
-    custom: customDays ? `Every ${customDays} days` : "Custom",
+    one_time: tr.freqOneTime,
+    daily: tr.freqDaily,
+    weekly: days.length ? `${tr.freqWeekly} (${days.join(", ")})` : tr.freqWeekly,
+    monthly: tr.freqMonthly,
+    yearly: tr.freqYearly,
+    custom: customDays ? tr.freqEveryDays(customDays) : tr.freqCustom,
   };
   return map[freq] ?? freq;
 }
