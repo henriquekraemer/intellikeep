@@ -80,7 +80,9 @@ class IntelliKeepConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         entry = self._get_reconfigure_entry()
 
         if user_input is not None:
-            return self.async_update_reload_and_abort(
+            # The entry's update listener reloads it; asking for a reload here
+            # as well would reload twice
+            return self.async_update_and_abort(
                 entry,
                 title=user_input[CONF_INSTANCE_NAME],
                 options=user_input,
