@@ -114,6 +114,7 @@ export const cardStyles = css`
   .complete-btn {
     flex-shrink: 0;
     margin-left: 8px;
+    --ha-icon-button-size: 36px;
     --mdc-icon-button-size: 36px;
   }
 

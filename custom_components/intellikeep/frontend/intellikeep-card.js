@@ -186,6 +186,7 @@ const cardStyles = i$3 `
   .complete-btn {
     flex-shrink: 0;
     margin-left: 8px;
+    --ha-icon-button-size: 36px;
     --mdc-icon-button-size: 36px;
   }
 
@@ -275,6 +276,12 @@ function frequencyLabel(freq, customDays, weekdays) {
     return map[freq] ?? freq;
 }
 
+const CONFIG_LABELS = {
+    title: "Title",
+    max_tasks: "Max tasks to show",
+    show_linked_entities: "Show linked entity states",
+    show_description: "Show task description",
+};
 let IntelliKeepCard = class IntelliKeepCard extends i {
     constructor() {
         super(...arguments);
@@ -288,9 +295,17 @@ let IntelliKeepCard = class IntelliKeepCard extends i {
     setConfig(config) {
         this.config = config;
     }
-    // Called by HA Lovelace editor for the graphical config UI
-    static getConfigElement() {
-        return document.createElement("intellikeep-card-editor");
+    // Home Assistant builds the visual editor from this schema
+    static getConfigForm() {
+        return {
+            schema: [
+                { name: "title", selector: { text: {} } },
+                { name: "max_tasks", selector: { number: { min: 1, max: 50, mode: "box" } } },
+                { name: "show_linked_entities", selector: { boolean: {} } },
+                { name: "show_description", selector: { boolean: {} } },
+            ],
+            computeLabel: (field) => CONFIG_LABELS[field.name],
+        };
     }
     static getStubConfig() {
         return {

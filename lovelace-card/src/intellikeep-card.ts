@@ -15,6 +15,13 @@ import {
   frequencyLabel,
 } from "./utils";
 
+const CONFIG_LABELS: Record<string, string> = {
+  title: "Title",
+  max_tasks: "Max tasks to show",
+  show_linked_entities: "Show linked entity states",
+  show_description: "Show task description",
+};
+
 @customElement("intellikeep-card")
 export class IntelliKeepCard extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
@@ -34,9 +41,17 @@ export class IntelliKeepCard extends LitElement {
     this.config = config;
   }
 
-  // Called by HA Lovelace editor for the graphical config UI
-  static getConfigElement() {
-    return document.createElement("intellikeep-card-editor");
+  // Home Assistant builds the visual editor from this schema
+  static getConfigForm() {
+    return {
+      schema: [
+        { name: "title", selector: { text: {} } },
+        { name: "max_tasks", selector: { number: { min: 1, max: 50, mode: "box" } } },
+        { name: "show_linked_entities", selector: { boolean: {} } },
+        { name: "show_description", selector: { boolean: {} } },
+      ],
+      computeLabel: (field: { name: string }) => CONFIG_LABELS[field.name],
+    };
   }
 
   static getStubConfig() {

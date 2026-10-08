@@ -5308,6 +5308,7 @@ IntelliKeepPanel.styles = i$3 `
     .appbar-back {
       margin-right: -8px;
       color: var(--app-header-text-color, #fff);
+      --ha-icon-button-size: 40px;
       --mdc-icon-button-size: 40px;
       --mdc-ripple-color: var(--app-header-text-color, #fff);
     }
