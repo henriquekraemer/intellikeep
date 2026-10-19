@@ -148,6 +148,7 @@ class TestSensorEntities:
             "priority": str(task.priority),
             "linked_entity_ids": ["climate.living_room"],
             "frequency": str(task.frequency),
+            "repeat_interval": 1,
             "weekdays": [],
         }
 

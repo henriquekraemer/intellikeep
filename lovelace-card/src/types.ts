@@ -3,8 +3,7 @@ export type TaskFrequency =
   | "daily"
   | "weekly"
   | "monthly"
-  | "yearly"
-  | "custom";
+  | "yearly";
 
 export type Weekday = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 
@@ -25,8 +24,10 @@ export interface Task {
   description: string;
   priority: TaskPriority;
   frequency: TaskFrequency;
-  custom_days_interval: number | null;
+  repeat_interval: number;
+  schedule_anchor: "completion" | "due_date";
   weekdays: Weekday[];
+  icon: string | null;
   due_date: string | null; // ISO datetime
   linked_entity_ids: string[];
   notify_days_before: number;
@@ -38,6 +39,7 @@ export interface Task {
   executions_count: number;
   enabled: boolean;
   status: TaskStatus;
+  task_number: number;
 }
 
 export interface IntelliKeepCardConfig {
@@ -73,6 +75,14 @@ export interface HassAreaRegistryEntry {
 
 export interface HomeAssistant {
   language: string;
+  /** Date and time settings from the user profile. */
+  locale?: {
+    language: string;
+    time_format?: "language" | "system" | "12" | "24";
+    time_zone?: "local" | "server";
+  };
+  config?: { time_zone: string };
+  user?: { name: string };
   states: Record<string, HassEntityState>;
   devices: Record<string, HassDeviceRegistryEntry>;
   areas: Record<string, HassAreaRegistryEntry>;

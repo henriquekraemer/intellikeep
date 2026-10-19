@@ -8,8 +8,18 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import config_validation as cv
+from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, VERSION, WS_GET_TASK, WS_GET_TASKS, WS_GET_VERSION, WS_SUBSCRIBE
+from .const import (
+    DOMAIN,
+    VERSION,
+    WS_GET_REPEATS,
+    WS_GET_TASK,
+    WS_GET_TASKS,
+    WS_GET_VERSION,
+    WS_SUBSCRIBE,
+)
 from .runtime_data import IntelliKeepRuntimeData
 
 _LOGGER = logging.getLogger(__name__)
@@ -105,6 +115,27 @@ def async_register_websocket_commands(
 
     @websocket_api.websocket_command(
         {
+            vol.Required("type"): f"{DOMAIN}/{WS_GET_REPEATS}",
+            vol.Required("start"): cv.datetime,
+            vol.Required("end"): cv.datetime,
+        }
+    )
+    @callback
+    def ws_get_repeats(
+        hass: HomeAssistant,
+        connection: websocket_api.ActiveConnection,
+        msg: dict,
+    ) -> None:
+        """Future repeats of the open recurring tasks from start to end, for the panel calendar."""
+        task_manager = _get_runtime_data(hass).task_manager
+        repeats = task_manager.get_future_repeats(dt_util.as_utc(msg["start"]), dt_util.as_utc(msg["end"]))
+        connection.send_result(
+            msg["id"],
+            {"repeats": [{"task_id": task.task_id, "due_date": due.isoformat()} for task, due in repeats]},
+        )
+
+    @websocket_api.websocket_command(
+        {
             vol.Required("type"): f"{DOMAIN}/{WS_GET_VERSION}",
         }
     )
@@ -120,6 +151,7 @@ def async_register_websocket_commands(
     websocket_api.async_register_command(hass, ws_get_tasks)
     websocket_api.async_register_command(hass, ws_get_task)
     websocket_api.async_register_command(hass, ws_subscribe)
+    websocket_api.async_register_command(hass, ws_get_repeats)
     websocket_api.async_register_command(hass, ws_get_version)
     hass.data[DOMAIN]["websocket_registered"] = True
 

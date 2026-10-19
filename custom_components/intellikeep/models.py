@@ -17,7 +17,33 @@ class TaskFrequency(StrEnum):
     WEEKLY = "weekly"
     MONTHLY = "monthly"
     YEARLY = "yearly"
-    CUSTOM = "custom"  # uses custom_days_interval
+    # Legacy "every N days" with custom_days_interval: accepted as input, stored as daily + repeat_interval
+    CUSTOM = "custom"
+
+
+class ScheduleAnchor(StrEnum):
+    """What the next occurrence of a recurring task is counted from."""
+
+    COMPLETION = "completion"  # when it gets done: completed late, the next one moves too
+    DUE_DATE = "due_date"  # its own due date: keeps a fixed calendar
+
+
+def migrate_legacy_interval(
+    data: dict[str, Any], current_frequency: TaskFrequency | None = None
+) -> dict[str, Any]:
+    """Turn the legacy ``custom`` frequency and ``custom_days_interval`` into daily + ``repeat_interval``.
+
+    Changes ``data`` in place. ``custom_days_interval`` without a frequency (an
+    update of the interval alone) applies when the task already repeats daily.
+    """
+    days = data.pop("custom_days_interval", None)
+    frequency = data.get("frequency", current_frequency)
+    if frequency == TaskFrequency.CUSTOM:
+        data["frequency"] = TaskFrequency.DAILY
+        data.setdefault("repeat_interval", days or 30)
+    elif days is not None and frequency == TaskFrequency.DAILY:
+        data.setdefault("repeat_interval", days)
+    return data
 
 
 def normalize_weekdays(value: Any, *, strict: bool = True) -> list[str]:
@@ -68,6 +94,8 @@ class TaskExecution:
     completed_by: str = ""
     notes: str = ""
     was_late: bool = False
+    # Occurrence this completion created for a recurring task, so reopening can take it back
+    next_task_id: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -77,6 +105,7 @@ class TaskExecution:
             "completed_by": self.completed_by,
             "notes": self.notes,
             "was_late": self.was_late,
+            "next_task_id": self.next_task_id,
         }
 
     @classmethod
@@ -88,6 +117,7 @@ class TaskExecution:
             completed_by=data.get("completed_by", ""),
             notes=data.get("notes", ""),
             was_late=data.get("was_late", False),
+            next_task_id=data.get("next_task_id"),
         )
 
 
@@ -166,8 +196,11 @@ class Task:
     description: str = ""
     priority: TaskPriority = TaskPriority.MEDIUM
     frequency: TaskFrequency = TaskFrequency.ONE_TIME
-    custom_days_interval: int | None = None
+    # Repeats every N days, weeks, months or years, the unit given by frequency
+    repeat_interval: int = 1
+    schedule_anchor: ScheduleAnchor = ScheduleAnchor.COMPLETION
     weekdays: list[str] = field(default_factory=list)
+    icon: str | None = None
     due_date: datetime | None = None
     linked_entity_ids: list[str] = field(default_factory=list)
     notify_days_before: int = 1
@@ -189,8 +222,10 @@ class Task:
             "description": self.description,
             "priority": str(self.priority),
             "frequency": str(self.frequency),
-            "custom_days_interval": self.custom_days_interval,
+            "repeat_interval": self.repeat_interval,
+            "schedule_anchor": str(self.schedule_anchor),
             "weekdays": list(self.weekdays),
+            "icon": self.icon,
             "due_date": self.due_date.isoformat() if self.due_date else None,
             "linked_entity_ids": self.linked_entity_ids,
             "notify_days_before": self.notify_days_before,
@@ -209,6 +244,7 @@ class Task:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Task:
+        data = migrate_legacy_interval(dict(data))
         task = cls(
             task_id=data["task_id"],
             task_number=data.get("task_number", 0),
@@ -216,8 +252,10 @@ class Task:
             description=data.get("description", ""),
             priority=TaskPriority(data.get("priority", TaskPriority.MEDIUM)),
             frequency=TaskFrequency(data.get("frequency", TaskFrequency.ONE_TIME)),
-            custom_days_interval=data.get("custom_days_interval"),
+            repeat_interval=max(1, int(data.get("repeat_interval") or 1)),
+            schedule_anchor=ScheduleAnchor(data.get("schedule_anchor") or ScheduleAnchor.COMPLETION),
             weekdays=normalize_weekdays(data.get("weekdays"), strict=False),
+            icon=data.get("icon") or None,
             due_date=(
                 dt_util.as_utc(datetime.fromisoformat(data["due_date"]))
                 if data.get("due_date")

@@ -23,7 +23,7 @@ from .const import (
     SERVICE_REOPEN_TASK,
     SERVICE_UPDATE_TASK,
 )
-from .models import TaskFrequency, TaskPriority, normalize_weekdays
+from .models import ScheduleAnchor, TaskFrequency, TaskPriority, normalize_weekdays
 from .runtime_data import IntelliKeepRuntimeData
 
 _LOGGER = logging.getLogger(__name__)
@@ -89,7 +89,7 @@ def async_register_services(
         runtime_data = _get_runtime_data(hass)
         task_manager = runtime_data.task_manager
         coordinator = runtime_data.coordinator
-        data = _coerce_int_fields(dict(call.data), "custom_days_interval", "notify_days_before")
+        data = _coerce_int_fields(dict(call.data), "custom_days_interval", "repeat_interval", "notify_days_before")
         data = _coerce_due_date(data)
         data = _coerce_weekdays(data)
         if "notify_days_before" not in data:
@@ -98,6 +98,8 @@ def async_register_services(
             data["priority"] = TaskPriority(data["priority"])
         if "frequency" in data:
             data["frequency"] = TaskFrequency(data["frequency"])
+        if "schedule_anchor" in data:
+            data["schedule_anchor"] = ScheduleAnchor(data["schedule_anchor"])
         await task_manager.async_create_task(**data)
         await coordinator.async_refresh()
 
@@ -164,7 +166,7 @@ def async_register_services(
         runtime_data = _get_runtime_data(hass)
         task_manager = runtime_data.task_manager
         coordinator = runtime_data.coordinator
-        data = _coerce_int_fields(dict(call.data), "custom_days_interval", "notify_days_before")
+        data = _coerce_int_fields(dict(call.data), "custom_days_interval", "repeat_interval", "notify_days_before")
         data = _coerce_due_date(data)
         data = _coerce_weekdays(data)
         task_id = data.pop("task_id")
@@ -173,6 +175,8 @@ def async_register_services(
             data["priority"] = TaskPriority(data["priority"])
         if "frequency" in data:
             data["frequency"] = TaskFrequency(data["frequency"])
+        if "schedule_anchor" in data:
+            data["schedule_anchor"] = ScheduleAnchor(data["schedule_anchor"])
         task = await task_manager.async_update_task(task_id, updated_by=updated_by, **data)
         if task is None:
             raise ServiceValidationError(

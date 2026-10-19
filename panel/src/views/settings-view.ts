@@ -72,7 +72,7 @@ export class IkSettingsView extends LitElement {
       height: 16px;
       left: 3px;
       top: 3px;
-      background: #fff;
+      background: var(--text-primary-color);
       border-radius: 50%;
       transition: transform 0.2s;
     }
@@ -105,7 +105,7 @@ export class IkSettingsView extends LitElement {
       font-size: 14px;
       font-weight: 500;
       background: var(--error-color, #f44336);
-      color: #fff;
+      color: var(--text-primary-color);
       --mdc-icon-size: 18px;
     }
     .btn-danger:disabled { opacity: 0.6; cursor: default; }

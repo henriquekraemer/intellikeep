@@ -35,13 +35,14 @@ WS_GET_TASKS = "get_tasks"
 WS_GET_TASK = "get_task"
 WS_SUBSCRIBE = "subscribe"
 WS_GET_VERSION = "get_version"
+WS_GET_REPEATS = "get_repeats"
 
 # Events
 EVENT_TASK_NOTIFICATION = f"{DOMAIN}_task_notification"
 EVENT_TASK_UPDATED = f"{DOMAIN}_task_updated"
 
 # Platforms
-PLATFORMS = ["sensor"]
+PLATFORMS = ["calendar", "sensor", "todo"]
 
 # Frontend
 FRONTEND_STATIC_PATH = "intellikeep_static"

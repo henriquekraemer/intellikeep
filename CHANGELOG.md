@@ -2,6 +2,52 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Upgrading from 1.x
+
+The panel and the dashboard card were redesigned, and a few things work differently from 1.x. Back up Home Assistant before updating: stored tasks are converted on the first start, and going back to 1.x afterwards is not supported.
+
+- The card lists 3 tasks by default instead of 10 and leaves completed tasks out. Add `max_tasks: 10` to keep the old length and `filter_status: [pending, due, overdue, completed]` to keep showing completed tasks.
+- `intellikeep.reopen_task` undoes the completion: the record leaves the history, and the next occurrence of a recurring task is removed unless someone already worked on it. Check automations that reopen tasks.
+- `frequency: custom` is stored as `frequency: daily` with a `repeat_interval`. Actions that send `custom` keep working, but the `next_due_task` sensor and the panel report `daily`, so templates that compare the frequency with `custom` need updating.
+- 1.x ignores the new task fields. Back on 1.x, a task that repeats every 3 days would repeat every day, and one counted from its due date would count from completion again.
+
+### Added
+
+- Tasks can be duplicated from their ⋮ menu. The new-task form opens with the same fields filled in.
+- Recurring tasks can repeat every N days, weeks, months or years with `repeat_interval`, including weekly tasks on chosen weekdays every N weeks.
+- `schedule_anchor` sets what the next due date is counted from: the completion (`completion`, the default and the behavior so far) or the task's own due date (`due_date`), which keeps a fixed calendar and skips periods already past.
+- A to-do list entity, `todo.intellikeep_tasks`, puts the tasks in Home Assistant's To-do lists. It shows the open tasks by due date and the tasks completed in the last 30 days. Checking an item completes the task, recording who did it, and unchecking it reopens the task. Items added there become one-time tasks, and name, description and due date can be edited. Completed tasks can't be deleted from the list, so Clear completed doesn't erase their history.
+- A calendar entity, `calendar.intellikeep_tasks`, shows the open tasks on their due dates in Home Assistant's Calendar and calendar cards, and calendar triggers can start automations when a task becomes due. Tasks without a time (due at midnight) are all-day events.
+- Tasks can have an icon (`icon`), shown in the task list. The task dialog picks it with Home Assistant's icon picker (search by name or keyword, with a preview of each icon). A task without an icon uses the wrench (`mdi:wrench-outline`), which the picker shows by name like any other icon. The sample data comes with icons.
+- The panel's Calendar tab shows the future repeats of recurring tasks, not only the open occurrence, as dashed outlines with a repeat icon. They are projected the way completing creates the next occurrence, each one assumed done on its due date (an overdue one, today): exact for tasks counted from their due date, an estimate for tasks counted from completion. Clicking one opens the task, and Filters has a switch to hide them. The new `intellikeep/get_repeats` WebSocket command returns them for a date range; the `calendar.intellikeep_tasks` entity still lists only the open occurrences, so calendar triggers fire only for real tasks.
+
+### Changed
+
+- Open tasks are grouped by due date (Overdue, Today, This week, Later, No due date), or by priority or area, instead of being filtered by the This week / Next week / This month / Custom chips.
+- A checkbox on each task completes it, and the "Task completed" toast offers Undo. Edit, Duplicate, History and Delete moved to a ⋮ menu; the hover buttons and the swipe gestures are gone, and Delete always asks for confirmation.
+- Red and amber mark only overdue tasks, tasks due today and Critical priority. Priority shows as an icon and a label instead of a colored strip with rotated text.
+- A due date without a time (saved at midnight, as dates from the calendar and from Home Assistant's To-do lists are) means all day throughout the panel. Due today, such a task shows "Today" in the task list and the dashboard card instead of "Today, 12:00 AM", and "All day" under the Today group on phones, as the calendar shows it. The task dialog shows its time as "All day" instead of 00:00, and a × on a time removes it, making the task all day.
+- Open and Completed replace Pending and Done. Open counts every open task; Completed lists the completions of the last 30 days, so its count matches the History tab.
+- Add task moved from the header to the list toolbar.
+- On phones and narrow windows (under 600px, or when Home Assistant hides the sidebar), the Tasks, Calendar and History tabs fill the width, and search moves to a magnifier in the header. Each task row keeps only the checkbox and the name, with due date, priority and repeat in a line below. Group by moves into Filters, and Add task becomes a floating button. The header settings icon is now `mdi:cog-outline`.
+- The task dialog has a header with the task name, its number and how it repeats, plus a ⋮ menu for Duplicate and Delete; Delete is no longer a footer button. The footer holds Mark complete, Cancel and Save. Priority is a four-option control, the schedule reads "Repeat every [N] [days/weeks/months/years]", linked areas and devices show as removable chips, and "Notify when overdue" is a switch. The Edit tab is now Details.
+- History lists each completion with the task icon and number, a relative time ("Today, 19:16", full timestamp on hover), who completed it and an On time / N days late chip. It shows the last 30 days by default, with 7 and 90 days, 12 months and all time to choose from; Columns, Export CSV and Print moved to a ⋮ menu, and the Areas and Devices columns start hidden. On phones the records are a list grouped by day (Today, Yesterday, then the date), each with the time, who completed it and On time / N days late, instead of a table that scrolled sideways.
+- The Calendar tab follows Home Assistant's calendar: Today, previous and next, and the month or week in the toolbar, next to Filters, Month / Week and Add task. Tasks with a time show it with a dot and all-day tasks show as a tinted bar; color marks only overdue tasks and tasks due today, Critical tasks get their priority icon, and completed ones are greyed with a check. A day with more tasks than fit shows "+N more", which opens its week. Clicking a day's empty space adds a task due that day. Days and weeks follow the time zone and first weekday of the user profile, and the tab opens on the current month instead of the last one viewed. On phones, the month is a small grid with a dot per task and the chosen day's tasks listed under it, and the week is a list of days.
+- The dashboard card was redesigned. Its header shows the title (by default "Home maintenance", in the user's language) and how many tasks are overdue and due today. Each task has a checkbox that completes it, with Undo, and the same due chip as the panel. "View all N tasks" opens the panel. It lists 3 tasks by default instead of 10 and leaves completed tasks out unless `filter_status` asks for them. The priority badges, status icons and frequency labels are gone, and `show_linked_entities` shows the linked areas and devices as a line under the task.
+- `frequency: custom` with `custom_days_interval` is stored as `frequency: daily` with a `repeat_interval`. Existing tasks are converted on load and automations that send `custom` keep working, but the option no longer shows in the action editor.
+- `intellikeep.reopen_task` undoes the completion: its record leaves the history, and the next occurrence it created for a recurring task is removed unless it was already edited, noted or completed. Reopening a recurring task used to leave two open occurrences.
+
+### Fixed
+
+- Repeats are counted on the local calendar. The time of day no longer shifts after a daylight-saving change, and month ends follow the local date: a task done on Mar 30 at 22:00 in UTC−3 got its next occurrence on Apr 29 instead of Apr 30.
+- Dates and times in the panel follow the language, time zone and 12/24-hour clock of the Home Assistant user profile. History, the CSV export and print, notes, the activity log and the list of previous occurrences used the browser's locale instead, so History showed `10/18/2026, 7:19:16 PM` while the form showed `18/10/2026`.
+- Tasks completed from the dashboard card record who completed them; the History tab showed an empty "By" for them.
+- The "Due today" and "N days overdue" labels in the panel and the card count days in the server's time zone when the user profile is set to use it.
+- Confirmation dialogs (delete a task, a note or all data) work from the keyboard. Focus moves to Cancel when one opens and stays on its two buttons, Escape cancels without closing the task dialog under it, and focus goes back to where it was. Before, Tab moved through the page behind the dialog.
+- The red Delete buttons and the Settings switch take their light color from the theme instead of a fixed white.
+
 ## [1.1.1] - 2026-10-08
 
 ### Added

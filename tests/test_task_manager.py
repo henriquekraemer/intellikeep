@@ -7,7 +7,13 @@ from unittest.mock import patch
 import pytest
 from homeassistant.util import dt as dt_util
 
-from custom_components.intellikeep.models import TaskFrequency, TaskPriority, TaskStatus
+from custom_components.intellikeep.models import (
+    ScheduleAnchor,
+    TaskExecution,
+    TaskFrequency,
+    TaskPriority,
+    TaskStatus,
+)
 from tests.conftest import make_task
 
 UTC = timezone.utc
@@ -172,6 +178,68 @@ class TestUpdateAndNotes:
         assert reopened.enabled is True
         assert reopened.activities[-1].performed_by == "Eve"
 
+    async def test_reopen_drops_the_completion_record(self, task_manager, mock_storage):
+        task = make_task(name="Fix tap")
+        mock_storage.upsert_task(task)
+        await task_manager.async_complete_task(task.task_id)
+
+        reopened = await task_manager.async_reopen_task(task.task_id)
+
+        assert reopened.executions == []
+        assert [a.action for a in reopened.activities] == ["completed", "reopened"]
+
+    async def test_reopen_recurring_removes_the_occurrence_it_created(
+        self, task_manager, mock_storage, mock_hass
+    ):
+        task = make_task(
+            name="Monthly clean",
+            frequency=TaskFrequency.MONTHLY,
+            due_date=datetime(2025, 1, 1, tzinfo=UTC),
+        )
+        mock_storage.upsert_task(task)
+        await task_manager.async_complete_task(task.task_id)
+        next_task_id = task.executions[-1].next_task_id
+        assert mock_storage.get_task(next_task_id) is not None
+
+        await task_manager.async_reopen_task(task.task_id)
+
+        assert mock_storage.get_task(next_task_id) is None
+        assert mock_storage.get_all_tasks() == [task]
+        assert task.enabled is True
+        fired = [c.args[1] for c in mock_hass.bus.async_fire.call_args_list]
+        assert {"task_id": next_task_id, "action": "deleted"} in fired
+
+    async def test_reopen_keeps_an_occurrence_someone_worked_on(self, task_manager, mock_storage):
+        task = make_task(name="Weekly", frequency=TaskFrequency.WEEKLY)
+        mock_storage.upsert_task(task)
+        await task_manager.async_complete_task(task.task_id)
+        next_task_id = task.executions[-1].next_task_id
+        await task_manager.async_add_task_note(next_task_id, "Bought the filter")
+
+        await task_manager.async_reopen_task(task.task_id)
+
+        assert mock_storage.get_task(next_task_id) is not None
+        assert task.executions == []
+
+    async def test_reopen_without_link_keeps_open_occurrences(self, task_manager, mock_storage):
+        # Completions stored before next_task_id existed don't say what they created
+        task = make_task(name="Weekly", frequency=TaskFrequency.WEEKLY)
+        mock_storage.upsert_task(task)
+        await task_manager.async_complete_task(task.task_id)
+        task.executions[-1].next_task_id = None
+
+        await task_manager.async_reopen_task(task.task_id)
+
+        assert len(mock_storage.get_all_tasks()) == 2
+
+    async def test_reopen_open_task_keeps_its_history(self, task_manager, mock_storage):
+        task = make_task(name="Fix tap", executions=[TaskExecution()])
+        mock_storage.upsert_task(task)
+
+        await task_manager.async_reopen_task(task.task_id)
+
+        assert len(task.executions) == 1
+
 
 class TestTaskStatus:
     def test_status_pending(self, task_manager):
@@ -268,11 +336,190 @@ class TestFrequencyCalculation:
         assert next_due.month == 2
         assert next_due.day == 28
 
-    def test_custom(self, task_manager):
-        task = make_task(frequency=TaskFrequency.CUSTOM, custom_days_interval=45)
+    def test_every_45_days(self, task_manager):
+        task = make_task(frequency=TaskFrequency.DAILY, repeat_interval=45)
         task.last_completed_at = datetime(2025, 1, 1)
         next_due = task_manager._calculate_next_due(task)
         assert next_due.date() == datetime(2025, 2, 15).date()
+
+    def test_every_two_weeks(self, task_manager):
+        task = make_task(frequency=TaskFrequency.WEEKLY, repeat_interval=2)
+        task.last_completed_at = datetime(2025, 6, 1, tzinfo=UTC)
+        assert task_manager._calculate_next_due(task) == datetime(2025, 6, 15, tzinfo=UTC)
+
+    def test_every_three_months_clamps_month_end(self, task_manager):
+        task = make_task(frequency=TaskFrequency.MONTHLY, repeat_interval=3)
+        task.last_completed_at = datetime(2025, 11, 30, tzinfo=UTC)
+        assert task_manager._calculate_next_due(task) == datetime(2026, 2, 28, tzinfo=UTC)
+
+    def test_every_two_years(self, task_manager):
+        task = make_task(frequency=TaskFrequency.YEARLY, repeat_interval=2)
+        task.last_completed_at = datetime(2025, 3, 10, tzinfo=UTC)
+        assert task_manager._calculate_next_due(task) == datetime(2027, 3, 10, tzinfo=UTC)
+
+    def test_keeps_local_time_of_day_across_months(self, task_manager, sao_paulo_tz):
+        """23:00 in São Paulo is the next day in UTC; months must be added to the local date."""
+        task = make_task(frequency=TaskFrequency.MONTHLY)
+        task.last_completed_at = datetime(2025, 1, 31, 23, 0, tzinfo=sao_paulo_tz)
+        next_due = task_manager._calculate_next_due(task)
+        assert dt_util.as_local(next_due) == datetime(2025, 2, 28, 23, 0, tzinfo=sao_paulo_tz)
+
+
+class TestScheduleAnchor:
+    """schedule_anchor "due_date" counts from the due date and keeps a fixed calendar."""
+
+    DUE = datetime(2025, 1, 15, 10, 0, tzinfo=UTC)
+
+    def _task(self, completed_at: datetime, due_date: datetime = DUE, **kwargs):
+        kwargs.setdefault("frequency", TaskFrequency.MONTHLY)
+        task = make_task(due_date=due_date, schedule_anchor=ScheduleAnchor.DUE_DATE, **kwargs)
+        task.last_completed_at = completed_at
+        return task
+
+    def test_late_completion_keeps_the_calendar(self, task_manager):
+        task = self._task(completed_at=datetime(2025, 1, 20, 18, 0, tzinfo=UTC))
+        assert task_manager._calculate_next_due(task) == datetime(2025, 2, 15, 10, 0, tzinfo=UTC)
+
+    def test_early_completion_does_not_skip_a_period(self, task_manager):
+        task = self._task(completed_at=datetime(2025, 1, 10, tzinfo=UTC))
+        assert task_manager._calculate_next_due(task) == datetime(2025, 2, 15, 10, 0, tzinfo=UTC)
+
+    def test_skips_periods_already_past(self, task_manager):
+        task = self._task(completed_at=datetime(2025, 4, 2, tzinfo=UTC))
+        assert task_manager._calculate_next_due(task) == datetime(2025, 4, 15, 10, 0, tzinfo=UTC)
+
+    def test_month_end_does_not_drift(self, task_manager):
+        task = self._task(
+            completed_at=datetime(2025, 3, 5, tzinfo=UTC),
+            due_date=datetime(2025, 1, 31, 10, 0, tzinfo=UTC),
+        )
+        # Feb 28 is past; the next one is Mar 31, not Mar 28
+        assert task_manager._calculate_next_due(task) == datetime(2025, 3, 31, 10, 0, tzinfo=UTC)
+
+    def test_respects_repeat_interval(self, task_manager):
+        task = self._task(completed_at=datetime(2025, 2, 1, tzinfo=UTC), repeat_interval=6)
+        assert task_manager._calculate_next_due(task) == datetime(2025, 7, 15, 10, 0, tzinfo=UTC)
+
+    def test_without_due_date_counts_from_completion(self, task_manager):
+        task = make_task(frequency=TaskFrequency.DAILY, schedule_anchor=ScheduleAnchor.DUE_DATE)
+        task.last_completed_at = datetime(2025, 1, 20, 18, 0, tzinfo=UTC)
+        assert task_manager._calculate_next_due(task) == datetime(2025, 1, 21, 18, 0, tzinfo=UTC)
+
+    def test_completion_anchor_moves_with_a_late_completion(self, task_manager):
+        task = make_task(frequency=TaskFrequency.MONTHLY, due_date=self.DUE)
+        task.last_completed_at = datetime(2025, 1, 20, 18, 0, tzinfo=UTC)
+        assert task_manager._calculate_next_due(task) == datetime(2025, 2, 20, 18, 0, tzinfo=UTC)
+
+
+class TestFutureRepeats:
+    """get_future_repeats projects the occurrences after the open one, for the panel calendar."""
+
+    DUE = datetime(2025, 1, 15, 10, 0, tzinfo=UTC)
+    START = datetime(2025, 1, 1, tzinfo=UTC)
+    END = datetime(2025, 5, 1, tzinfo=UTC)
+
+    def _repeats(self, task_manager, now: datetime, start: datetime = START, end: datetime = END):
+        with patch.object(dt_util, "utcnow", return_value=now):
+            return [due for _, due in task_manager.get_future_repeats(start, end)]
+
+    def test_projects_the_repeats_after_the_open_occurrence(self, task_manager, mock_storage):
+        mock_storage.upsert_task(make_task(frequency=TaskFrequency.MONTHLY, due_date=self.DUE))
+        assert self._repeats(task_manager, now=datetime(2025, 1, 10, tzinfo=UTC)) == [
+            datetime(2025, 2, 15, 10, 0, tzinfo=UTC),
+            datetime(2025, 3, 15, 10, 0, tzinfo=UTC),
+            datetime(2025, 4, 15, 10, 0, tzinfo=UTC),
+        ]
+
+    def test_only_the_range_asked_for(self, task_manager, mock_storage):
+        mock_storage.upsert_task(make_task(frequency=TaskFrequency.MONTHLY, due_date=self.DUE))
+        repeats = self._repeats(
+            task_manager,
+            now=datetime(2025, 1, 10, tzinfo=UTC),
+            start=datetime(2025, 3, 1, tzinfo=UTC),
+            end=datetime(2025, 4, 15, 10, 0, tzinfo=UTC),
+        )
+        assert repeats == [datetime(2025, 3, 15, 10, 0, tzinfo=UTC)]
+
+    def test_skips_one_time_completed_and_undated_tasks(self, task_manager, mock_storage):
+        mock_storage.upsert_task(make_task(due_date=self.DUE))
+        mock_storage.upsert_task(make_task(frequency=TaskFrequency.MONTHLY, due_date=self.DUE, enabled=False))
+        mock_storage.upsert_task(make_task(frequency=TaskFrequency.MONTHLY))
+        assert self._repeats(task_manager, now=datetime(2025, 1, 10, tzinfo=UTC)) == []
+
+    def test_overdue_task_counted_from_completion_starts_from_today_at_its_time(self, task_manager, mock_storage):
+        mock_storage.upsert_task(make_task(frequency=TaskFrequency.MONTHLY, due_date=self.DUE))
+        repeats = self._repeats(task_manager, now=datetime(2025, 3, 20, 18, 0, tzinfo=UTC))
+        assert repeats == [datetime(2025, 4, 20, 10, 0, tzinfo=UTC)]
+
+    def test_overdue_task_counted_from_due_date_keeps_its_calendar(self, task_manager, mock_storage):
+        mock_storage.upsert_task(make_task(
+            frequency=TaskFrequency.MONTHLY, due_date=self.DUE, schedule_anchor=ScheduleAnchor.DUE_DATE,
+        ))
+        repeats = self._repeats(task_manager, now=datetime(2025, 3, 5, tzinfo=UTC))
+        assert repeats == [datetime(2025, 3, 15, 10, 0, tzinfo=UTC), datetime(2025, 4, 15, 10, 0, tzinfo=UTC)]
+
+    def test_weekly_on_chosen_days(self, task_manager, mock_storage):
+        monday = datetime(2025, 1, 6, 7, 0, tzinfo=UTC)
+        mock_storage.upsert_task(make_task(frequency=TaskFrequency.WEEKLY, weekdays=["mon", "wed"], due_date=monday))
+        repeats = self._repeats(task_manager, now=datetime(2025, 1, 1, tzinfo=UTC), end=datetime(2025, 1, 16, tzinfo=UTC))
+        assert repeats == [
+            datetime(2025, 1, 8, 7, 0, tzinfo=UTC),
+            datetime(2025, 1, 13, 7, 0, tzinfo=UTC),
+            datetime(2025, 1, 15, 7, 0, tzinfo=UTC),
+        ]
+
+    async def test_first_repeat_is_what_completing_on_time_creates(self, task_manager, mock_storage):
+        task = make_task(frequency=TaskFrequency.MONTHLY, due_date=datetime(2025, 1, 31, 10, 0, tzinfo=UTC))
+        mock_storage.upsert_task(task)
+        projected = self._repeats(task_manager, now=datetime(2025, 1, 10, tzinfo=UTC))
+
+        with patch.object(dt_util, "utcnow", return_value=task.due_date):
+            completed = await task_manager.async_complete_task(task.task_id)
+        next_task = mock_storage.get_task(completed.executions[0].next_task_id)
+
+        # Month ends clamp the way completing does: Jan 31, Feb 28, Mar 28
+        assert projected[0] == next_task.due_date == datetime(2025, 2, 28, 10, 0, tzinfo=UTC)
+        assert projected[1] == datetime(2025, 3, 28, 10, 0, tzinfo=UTC)
+
+
+class TestNewFieldsLifecycle:
+    async def test_complete_copies_schedule_and_icon(self, task_manager, mock_storage):
+        task = make_task(
+            frequency=TaskFrequency.MONTHLY,
+            repeat_interval=3,
+            schedule_anchor=ScheduleAnchor.DUE_DATE,
+            icon="mdi:air-filter",
+            due_date=datetime(2025, 1, 15, tzinfo=UTC),
+        )
+        mock_storage.upsert_task(task)
+
+        await task_manager.async_complete_task(task.task_id)
+
+        next_task = mock_storage.get_task(task.executions[-1].next_task_id)
+        assert (next_task.repeat_interval, next_task.schedule_anchor, next_task.icon) == (
+            3, ScheduleAnchor.DUE_DATE, "mdi:air-filter"
+        )
+
+    async def test_update_logs_interval_change(self, task_manager, mock_storage):
+        task = make_task(frequency=TaskFrequency.WEEKLY)
+        mock_storage.upsert_task(task)
+
+        updated = await task_manager.async_update_task(task.task_id, repeat_interval=2)
+
+        assert updated.repeat_interval == 2
+        assert updated.activities[-1].details == "repeat every: 1 → 2"
+
+    async def test_update_legacy_interval_alone_applies_to_daily_tasks(self, task_manager, mock_storage):
+        task = make_task(frequency=TaskFrequency.DAILY, repeat_interval=45)
+        mock_storage.upsert_task(task)
+
+        updated = await task_manager.async_update_task(task.task_id, custom_days_interval=10)
+
+        assert updated.repeat_interval == 10
+
+    async def test_interval_below_one_and_empty_icon_are_cleaned(self, task_manager):
+        task = await task_manager.async_create_task(name="Odd input", repeat_interval=0, icon="  ")
+        assert (task.repeat_interval, task.icon) == (1, None)
 
 
 class TestWeekdayScheduling:
@@ -343,6 +590,28 @@ class TestWeekdayScheduling:
         next_due = task_manager._calculate_next_due(task)
         assert next_due.utcoffset() == timedelta(0)
         assert dt_util.as_local(next_due) == datetime(2025, 6, 3, 7, 0, tzinfo=sao_paulo_tz)
+
+    def test_every_two_weeks_jumps_a_week_after_the_last_day(self, task_manager):
+        wednesday = datetime(2025, 6, 4, 7, 0, tzinfo=UTC)
+        task = self._task(completed_at=wednesday, due_date=wednesday, weekdays=("mon", "wed"))
+        task.repeat_interval = 2
+        assert task_manager._calculate_next_due(task) == datetime(2025, 6, 16, 7, 0, tzinfo=UTC)
+
+    def test_every_two_weeks_fills_the_current_week_first(self, task_manager):
+        task = self._task(completed_at=datetime(2025, 6, 2, 8, 0, tzinfo=UTC), weekdays=("mon", "wed"))
+        task.repeat_interval = 2
+        assert task_manager._calculate_next_due(task) == datetime(2025, 6, 4, 7, 0, tzinfo=UTC)
+
+    def test_due_date_anchor_keeps_the_fortnight_after_a_late_completion(self, task_manager):
+        task = self._task(completed_at=datetime(2025, 6, 11, 12, 0, tzinfo=UTC), weekdays=("mon",))  # Wed, a week late
+        task.repeat_interval = 2
+        task.schedule_anchor = ScheduleAnchor.DUE_DATE
+        assert task_manager._calculate_next_due(task) == datetime(2025, 6, 16, 7, 0, tzinfo=UTC)
+
+    def test_completion_anchor_restarts_the_fortnight_after_a_late_completion(self, task_manager):
+        task = self._task(completed_at=datetime(2025, 6, 11, 12, 0, tzinfo=UTC), weekdays=("mon",))
+        task.repeat_interval = 2
+        assert task_manager._calculate_next_due(task) == datetime(2025, 6, 23, 7, 0, tzinfo=UTC)
 
     async def test_complete_copies_weekdays_to_next_occurrence(self, task_manager, mock_storage):
         task = make_task(

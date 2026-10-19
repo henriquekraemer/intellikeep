@@ -1,4 +1,4 @@
-import { HomeAssistant, Task } from "./types";
+import { HomeAssistant, Task, TaskRepeat } from "./types";
 
 const DOMAIN = "intellikeep";
 
@@ -15,6 +15,16 @@ export async function getTask(hass: HomeAssistant, taskId: string): Promise<Task
     task_id: taskId,
   });
   return result.task;
+}
+
+/** Future repeats of the open recurring tasks due from `start` to `end`. */
+export async function getRepeats(hass: HomeAssistant, start: Date, end: Date): Promise<TaskRepeat[]> {
+  const result = await hass.connection.sendMessagePromise<{ repeats: TaskRepeat[] }>({
+    type: `${DOMAIN}/get_repeats`,
+    start: start.toISOString(),
+    end: end.toISOString(),
+  });
+  return result.repeats;
 }
 
 export async function subscribeTasks(

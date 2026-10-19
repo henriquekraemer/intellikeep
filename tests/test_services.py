@@ -18,7 +18,7 @@ from custom_components.intellikeep.const import (
     SERVICE_REOPEN_TASK,
     SERVICE_UPDATE_TASK,
 )
-from custom_components.intellikeep.models import TaskFrequency, TaskPriority
+from custom_components.intellikeep.models import ScheduleAnchor, TaskFrequency, TaskPriority
 from custom_components.intellikeep.services import async_register_services, async_unregister_services
 from tests.conftest import make_task
 
@@ -37,13 +37,14 @@ class TestCreateTaskService:
         assert "climate.living_room" in task.linked_entity_ids
         assert mock_storage.get_task(task.task_id) is not None
 
-    async def test_create_task_with_custom_interval(self, task_manager, mock_storage):
+    async def test_create_task_with_legacy_custom_interval(self, task_manager, mock_storage):
         task = await task_manager.async_create_task(
             name="Custom task",
             frequency=TaskFrequency.CUSTOM,
             custom_days_interval=45,
         )
-        assert task.custom_days_interval == 45
+        assert task.frequency == TaskFrequency.DAILY
+        assert task.repeat_interval == 45
 
 
 class TestCompleteTaskService:
@@ -140,7 +141,9 @@ class TestRegisteredServices:
                     "name": "Monthly filter",
                     "priority": "high",
                     "frequency": "monthly",
-                    "custom_days_interval": 7.0,
+                    "repeat_interval": 3.0,
+                    "schedule_anchor": "due_date",
+                    "icon": "mdi:air-filter",
                     "notify_days_before": 2.0,
                     "due_date": "2025-02-01T09:00:00+00:00",
                 }
@@ -151,9 +154,21 @@ class TestRegisteredServices:
         assert len(tasks) == 1
         assert tasks[0].priority == TaskPriority.HIGH
         assert tasks[0].frequency == TaskFrequency.MONTHLY
-        assert tasks[0].custom_days_interval == 7
+        assert tasks[0].repeat_interval == 3
+        assert tasks[0].schedule_anchor == ScheduleAnchor.DUE_DATE
+        assert tasks[0].icon == "mdi:air-filter"
         assert tasks[0].notify_days_before == 2
         runtime_data.coordinator.async_refresh.assert_awaited_once()
+
+    async def test_create_task_handler_keeps_legacy_custom_frequency(
+        self, registered_service_handlers, runtime_data
+    ):
+        handler = registered_service_handlers[SERVICE_CREATE_TASK]
+
+        await handler(MagicMock(data={"name": "Descale", "frequency": "custom", "custom_days_interval": 10.0}))
+
+        task = runtime_data.storage.get_all_tasks()[0]
+        assert (task.frequency, task.repeat_interval) == (TaskFrequency.DAILY, 10)
 
     async def test_create_task_handler_reads_due_date_without_offset_as_local(
         self, registered_service_handlers, runtime_data, sao_paulo_tz
