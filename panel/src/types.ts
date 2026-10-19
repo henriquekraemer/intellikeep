@@ -4,8 +4,7 @@ export type TaskFrequency =
   | "daily"
   | "weekly"
   | "monthly"
-  | "yearly"
-  | "custom";
+  | "yearly";
 
 export type Weekday = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 export const WEEKDAYS: Weekday[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
@@ -48,8 +47,13 @@ export interface Task {
   description: string;
   priority: TaskPriority;
   frequency: TaskFrequency;
-  custom_days_interval: number | null;
+  /** Repeats every N days, weeks, months or years, the unit given by frequency. */
+  repeat_interval: number;
+  /** What the next occurrence is counted from: the completion, or the task's own due date. */
+  schedule_anchor: "completion" | "due_date";
   weekdays: Weekday[];
+  /** MDI icon, e.g. "mdi:air-filter"; null shows the default wrench. */
+  icon: string | null;
   due_date: string | null;
   linked_entity_ids: string[];
   notify_days_before: number;
@@ -66,6 +70,12 @@ export interface Task {
   previous_task_id?: string | null;
 }
 
+/** A future due date of an open recurring task, projected by the backend (nothing stored). */
+export interface TaskRepeat {
+  task_id: string;
+  due_date: string;
+}
+
 export interface HomeAssistant {
   auth: { data: { access_token: string } };
   connection: {
@@ -80,9 +90,26 @@ export interface HomeAssistant {
   themes: unknown;
   user: { id: string; name: string; is_admin: boolean };
   language: string;
+  /** Date and time settings from the user profile. */
+  locale?: {
+    language: string;
+    time_format?: "language" | "system" | "12" | "24";
+    time_zone?: "local" | "server";
+    first_weekday?: "language" | "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
+  };
+  config?: { time_zone: string };
 }
 
 export type Route = { prefix: string; path: string };
+
+/** Asks the panel to open the task form: an existing task, or a new one (optionally copied from `template`). */
+export interface OpenTaskRequest {
+  taskId: string | null;
+  tab?: "edit" | "notes" | "history";
+  template?: Task;
+  /** New tasks: due on this day (YYYY-MM-DD), with no time. */
+  dueDate?: string;
+}
 
 export type PanelView =
   | { view: "tasks" }

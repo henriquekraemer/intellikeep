@@ -72,144 +72,203 @@ const t$1=t=>(e,o)=>{ void 0!==o?o.addInitializer(()=>{customElements.define(t,e
  * SPDX-License-Identifier: BSD-3-Clause
  */function r(r){return n({...r,state:true,attribute:false})}
 
+// Colors follow the panel's tokens (panel/src/styles.ts): red and amber mean overdue and due today only
 const cardStyles = i$3 `
   :host {
     display: block;
-    font-family: var(--paper-font-body1_-_font-family);
+    --ik-error-text: color-mix(in srgb, var(--error-color) 70%, var(--primary-text-color));
+    --ik-error-fill: color-mix(in srgb, var(--error-color) 20%, transparent);
+    --ik-warning-text: color-mix(in srgb, var(--warning-color) 55%, var(--primary-text-color));
+    --ik-warning-fill: color-mix(in srgb, var(--warning-color) 16%, transparent);
+    --ik-primary-fill: color-mix(in srgb, var(--primary-color) 16%, transparent);
+    --ik-focus-ring: var(--ha-color-focus, var(--primary-color));
   }
 
   ha-card {
-    padding: 0;
     overflow: hidden;
   }
 
-  .card-header {
+  button {
+    font: inherit;
+  }
+
+  button:focus-visible,
+  a:focus-visible {
+    outline: 2px solid var(--ik-focus-ring);
+    outline-offset: 2px;
+  }
+
+  .header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 16px 16px 8px;
-    font-size: 18px;
-    font-weight: 500;
-    color: var(--primary-text-color);
+    gap: 12px;
+    padding: 14px 16px;
   }
 
-  .card-header ha-icon {
-    color: var(--primary-color);
-    margin-right: 8px;
-  }
-
-  .task-list {
-    padding: 0 8px 8px;
-  }
-
-  .task-item {
+  .header-icon {
+    width: 40px;
+    height: 40px;
+    flex: none;
     display: flex;
-    align-items: flex-start;
-    padding: 10px 8px;
-    border-radius: 8px;
-    margin-bottom: 4px;
-    cursor: default;
-    transition: background-color 0.15s;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--ik-primary-fill);
+    color: var(--primary-color);
+    --mdc-icon-size: 20px;
   }
 
-  .task-item:hover {
-    background-color: var(--secondary-background-color);
-  }
-
-  .task-status-icon {
-    margin-right: 10px;
-    margin-top: 2px;
-    flex-shrink: 0;
-  }
-
-  .task-body {
-    flex: 1;
+  .header-text {
+    flex: 1 1 auto;
     min-width: 0;
   }
 
-  .task-name {
+  .title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--primary-text-color);
+  }
+
+  .summary {
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--secondary-text-color);
+  }
+
+  .summary .overdue {
+    color: var(--ik-error-text);
+  }
+
+  .summary .today {
+    color: var(--ik-warning-text);
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 56px;
+    padding-inline-end: 12px;
+    border-top: 1px solid var(--divider-color);
+  }
+
+  .check {
+    width: 44px;
+    height: 44px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-inline-start: 4px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    cursor: pointer;
+  }
+
+  .check:hover:not(:disabled) {
+    background: var(--secondary-background-color);
+  }
+
+  .check:disabled {
+    cursor: default;
+  }
+
+  .box {
+    width: 20px;
+    height: 20px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--secondary-text-color);
+    border-radius: 6px;
+    color: var(--text-primary-color);
+    --mdc-icon-size: 16px;
+  }
+
+  .check:hover:not(:disabled) .box {
+    border-color: var(--primary-color);
+  }
+
+  .check[aria-checked="true"] .box {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+
+  .text {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 8px 0;
+  }
+
+  .name,
+  .secondary {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .name {
+    font-size: 14px;
     font-weight: 500;
     color: var(--primary-text-color);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
-  .task-meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  .secondary {
     margin-top: 2px;
     font-size: 12px;
     color: var(--secondary-text-color);
-    flex-wrap: wrap;
   }
 
-  .task-description {
-    font-size: 12px;
-    color: var(--secondary-text-color);
-    margin-top: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .priority-badge {
+  .chip {
+    flex: none;
     display: inline-flex;
     align-items: center;
-    padding: 1px 6px;
-    border-radius: 10px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: white;
-  }
-
-  .entity-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 4px;
-  }
-
-  .entity-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    background: var(--secondary-background-color);
+    height: 24px;
+    padding: 0 10px;
     border-radius: 12px;
-    font-size: 11px;
-    color: var(--secondary-text-color);
+    background: var(--secondary-background-color);
+    color: var(--primary-text-color);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
   }
 
-  .complete-btn {
-    flex-shrink: 0;
-    margin-left: 8px;
-    /* Current Home Assistant sizes ha-icon-button from --ha-icon-button-size; 2026.1 still reads the --mdc- one */
-    --ha-icon-button-size: 36px;
-    --mdc-icon-button-size: 36px;
+  .chip.overdue {
+    background: var(--ik-error-fill);
+    color: var(--ik-error-text);
   }
 
-  .empty-state {
-    text-align: center;
-    padding: 24px;
-    color: var(--secondary-text-color);
+  .chip.today {
+    background: var(--ik-warning-fill);
+    color: var(--ik-warning-text);
+  }
+
+  .footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 4px 8px;
+    border-top: 1px solid var(--divider-color);
+  }
+
+  .footer a {
+    display: inline-flex;
+    align-items: center;
+    height: 44px;
+    padding: 0 12px;
+    border-radius: 22px;
     font-size: 14px;
-  }
-
-  .empty-state ha-icon {
-    display: block;
-    --mdc-icon-size: 40px;
-    margin-bottom: 8px;
+    font-weight: 500;
     color: var(--primary-color);
-    opacity: 0.5;
+    text-decoration: none;
   }
 
-  .divider {
-    height: 1px;
-    background: var(--divider-color);
-    margin: 0 8px;
+  .footer a:hover {
+    background: var(--ik-primary-fill);
   }
 `;
 
@@ -218,76 +277,55 @@ const messages = {
     en: {
         loading: "Loading tasks…",
         allClear: "All caught up!",
-        taskCount: (n) => `${n} task${n !== 1 ? "s" : ""}`,
-        markAsDone: "Mark as done",
-        critical: "Critical",
-        high: "High",
-        medium: "Medium",
-        low: "Low",
-        noDueDate: "No due date",
-        dueToday: "Due today",
-        dueTomorrow: "Due tomorrow",
+        defaultTitle: "Home maintenance",
+        overdueCount: (n) => `${n} overdue`,
+        dueTodayCount: (n) => `${n} due today`,
+        openCount: (n) => `${n} open task${n !== 1 ? "s" : ""}`,
+        viewAll: (n) => (n === 1 ? "View 1 task" : `View all ${n} tasks`),
+        markComplete: (name) => `Mark ${name} as complete`,
+        taskCompleted: "Task completed",
+        undoAction: "Undo",
+        actionFailed: (error) => `Something went wrong: ${error}`,
+        overdue: "Overdue",
         daysOverdue: (n) => `${n} day${n !== 1 ? "s" : ""} overdue`,
-        dueInDays: (n) => `Due in ${n} day${n !== 1 ? "s" : ""}`,
-        freqOneTime: "One-time",
-        freqDaily: "Daily",
-        freqWeekly: "Weekly",
-        freqMonthly: "Monthly",
-        freqYearly: "Yearly",
-        freqCustom: "Custom",
-        freqEveryDays: (n) => `Every ${n} days`,
         editorMaxTasks: "Max tasks to show",
-        editorShowLinkedEntities: "Show linked entity states",
+        editorShowLinkedEntities: "Show linked areas and devices",
         editorShowDescription: "Show task description",
     },
     pt: {
         loading: "Carregando tarefas…",
         allClear: "Está tudo em dia!",
-        taskCount: (n) => `${n} tarefa${n !== 1 ? "s" : ""}`,
-        markAsDone: "Marcar como concluída",
-        critical: "Crítica",
-        high: "Alta",
-        medium: "Média",
-        low: "Baixa",
-        noDueDate: "Sem data prevista",
-        dueToday: "Vence hoje",
-        dueTomorrow: "Vence amanhã",
+        defaultTitle: "Manutenção da casa",
+        overdueCount: (n) => `${n} atrasada${n !== 1 ? "s" : ""}`,
+        dueTodayCount: (n) => `${n} vence${n !== 1 ? "m" : ""} hoje`,
+        openCount: (n) => `${n} tarefa${n !== 1 ? "s" : ""} aberta${n !== 1 ? "s" : ""}`,
+        viewAll: (n) => (n === 1 ? "Ver 1 tarefa" : `Ver todas as ${n} tarefas`),
+        markComplete: (name) => `Marcar ${name} como concluída`,
+        taskCompleted: "Tarefa concluída",
+        undoAction: "Desfazer",
+        actionFailed: (error) => `Algo deu errado: ${error}`,
+        overdue: "Atrasada",
         daysOverdue: (n) => `${n} dia${n !== 1 ? "s" : ""} de atraso`,
-        dueInDays: (n) => `Vence em ${n} dia${n !== 1 ? "s" : ""}`,
-        freqOneTime: "Única",
-        freqDaily: "Diária",
-        freqWeekly: "Semanal",
-        freqMonthly: "Mensal",
-        freqYearly: "Anual",
-        freqCustom: "Intervalo personalizado",
-        freqEveryDays: (n) => `A cada ${n} dias`,
         editorMaxTasks: "Máximo de tarefas a exibir",
-        editorShowLinkedEntities: "Mostrar estado das entidades vinculadas",
+        editorShowLinkedEntities: "Mostrar áreas e dispositivos vinculados",
         editorShowDescription: "Mostrar descrição da tarefa",
     },
     es: {
         loading: "Cargando tareas…",
         allClear: "¡Todo al día!",
-        taskCount: (n) => `${n} tarea${n !== 1 ? "s" : ""}`,
-        markAsDone: "Marcar como completada",
-        critical: "Crítica",
-        high: "Alta",
-        medium: "Media",
-        low: "Baja",
-        noDueDate: "Sin fecha de vencimiento",
-        dueToday: "Vence hoy",
-        dueTomorrow: "Vence mañana",
+        defaultTitle: "Mantenimiento del hogar",
+        overdueCount: (n) => `${n} vencida${n !== 1 ? "s" : ""}`,
+        dueTodayCount: (n) => `${n} vence${n !== 1 ? "n" : ""} hoy`,
+        openCount: (n) => `${n} tarea${n !== 1 ? "s" : ""} abierta${n !== 1 ? "s" : ""}`,
+        viewAll: (n) => (n === 1 ? "Ver 1 tarea" : `Ver las ${n} tareas`),
+        markComplete: (name) => `Marcar ${name} como completada`,
+        taskCompleted: "Tarea completada",
+        undoAction: "Deshacer",
+        actionFailed: (error) => `Algo salió mal: ${error}`,
+        overdue: "Vencida",
         daysOverdue: (n) => `${n} día${n !== 1 ? "s" : ""} de retraso`,
-        dueInDays: (n) => `Vence en ${n} día${n !== 1 ? "s" : ""}`,
-        freqOneTime: "Una vez",
-        freqDaily: "Diaria",
-        freqWeekly: "Semanal",
-        freqMonthly: "Mensual",
-        freqYearly: "Anual",
-        freqCustom: "Intervalo personalizado",
-        freqEveryDays: (n) => `Cada ${n} días`,
         editorMaxTasks: "Máximo de tareas a mostrar",
-        editorShowLinkedEntities: "Mostrar estado de las entidades vinculadas",
+        editorShowLinkedEntities: "Mostrar áreas y dispositivos vinculados",
         editorShowDescription: "Mostrar descripción de la tarea",
     },
 };
@@ -296,75 +334,118 @@ function t(language) {
     return messages[lang] ?? messages.en;
 }
 
-const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
-/** Short localized weekday name (2024-01-01 is a Monday). */
-function weekdayName(day, language) {
-    const raw = new Date(2024, 0, 1 + WEEKDAYS.indexOf(day))
-        .toLocaleDateString(language || "en", { weekday: "short" })
-        .replace(/\.$/, "");
+// Date helpers, kept in sync with panel/src/utils.ts (the card is a separate bundle)
+/** Language of the user's Home Assistant profile, used for every date and time. */
+const hassLanguage = (hass) => hass?.locale?.language ?? hass?.language ?? "en";
+/**
+ * Time zone Home Assistant shows times in: the server's when the user profile
+ * asks for it, otherwise undefined, which Intl reads as the browser's own zone.
+ */
+const hassTimeZone = (hass) => hass?.locale?.time_zone === "server" ? hass.config?.time_zone : undefined;
+/** 12- or 24-hour clock from the profile's time format; undefined follows the language. */
+const hourCycle = (hass) => {
+    switch (hass?.locale?.time_format) {
+        case "12":
+            return "h12";
+        case "24":
+            return "h23";
+        case "system":
+            return formatter(undefined, { hour: "numeric" }).resolvedOptions().hour12 ? "h12" : "h23";
+        default:
+            return undefined;
+    }
+};
+// Building an Intl.DateTimeFormat is slow, and lists format the same pattern for every row
+const formatters = new Map();
+const formatter = (language, options) => {
+    const key = JSON.stringify([language, options]);
+    let f = formatters.get(key);
+    if (!f) {
+        f = new Intl.DateTimeFormat(language, options);
+        formatters.set(key, f);
+    }
+    return f;
+};
+const format = (date, hass, options) => {
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime()))
+        return "—";
+    const opts = { timeZone: hassTimeZone(hass), ...options };
+    if (opts.hour !== undefined)
+        opts.hourCycle ?? (opts.hourCycle = hourCycle(hass));
+    return formatter(hassLanguage(hass), opts).format(d);
+};
+const DATE = { year: "numeric", month: "short", day: "numeric" };
+const TIME = { hour: "numeric", minute: "2-digit" };
+/** Date like "Oct 18, 2026" / "18 de out. de 2026"; `options` override the default fields. */
+const formatDate = (date, hass, options = {}) => format(date, hass, { ...DATE, ...options });
+/** Time of day like "19:14" or "7:14 PM", following the profile's 12/24-hour setting. */
+const formatTime = (date, hass, options = {}) => format(date, hass, { ...TIME, ...options });
+/** Date and time like "Oct 18, 2026, 7:14 PM"; `options` override the default fields. */
+const formatDateTime = (date, hass, options = {}) => format(date, hass, { ...DATE, ...TIME, ...options });
+/** Calendar date of `d` in `timeZone` as a UTC timestamp, so day differences ignore DST. */
+const dayStamp = (d, timeZone) => {
+    if (!timeZone)
+        return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+    const parts = formatter("en-US", { timeZone, year: "numeric", month: "numeric", day: "numeric" }).formatToParts(d);
+    const part = (type) => Number(parts.find(p => p.type === type)?.value);
+    return Date.UTC(part("year"), part("month") - 1, part("day"));
+};
+/** Calendar days from today to `d` in the Home Assistant time zone; negative once `d` is a past day. */
+const daysUntil = (d, hass) => {
+    if (Number.isNaN(d.getTime()))
+        return NaN;
+    const timeZone = hassTimeZone(hass);
+    return Math.round((dayStamp(d, timeZone) - dayStamp(new Date(), timeZone)) / 86400000);
+};
+/** Whether `date` is midnight in the Home Assistant time zone, which is how a due date without a time is saved. */
+const isMidnight = (date, hass) => {
+    const parts = formatter("en-US", { timeZone: hassTimeZone(hass), hour: "numeric", minute: "numeric", hourCycle: "h23" })
+        .formatToParts(new Date(date));
+    const part = (type) => Number(parts.find(p => p.type === type)?.value);
+    return part("hour") === 0 && part("minute") === 0;
+};
+/** "Today", "Yesterday" or "Tomorrow" in the profile language; null for any other day. */
+const relativeDay = (date, hass) => {
+    const days = daysUntil(new Date(date), hass);
+    if (Number.isNaN(days) || Math.abs(days) > 1)
+        return null;
+    const raw = new Intl.RelativeTimeFormat(hassLanguage(hass), { numeric: "auto" }).format(days, "day");
     return raw.charAt(0).toUpperCase() + raw.slice(1);
-}
-function relativeDueDate(isoDate, language) {
-    const tr = t(language);
-    if (!isoDate)
-        return tr.noDueDate;
-    const due = new Date(isoDate);
-    const now = new Date();
-    // Count calendar days in local time (Date.UTC keeps DST shifts out of it)
-    const diffDays = Math.round((Date.UTC(due.getFullYear(), due.getMonth(), due.getDate()) -
-        Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) /
-        (1000 * 60 * 60 * 24));
-    if (diffDays === 0)
-        return tr.dueToday;
-    if (diffDays === 1)
-        return tr.dueTomorrow;
-    if (diffDays > 0)
-        return tr.dueInDays(diffDays);
-    return tr.daysOverdue(Math.abs(diffDays));
-}
-function priorityColor(priority) {
-    const map = {
-        low: "var(--success-color, #4caf50)",
-        medium: "var(--warning-color, #ff9800)",
-        high: "var(--error-color, #f44336)",
-        critical: "#9c27b0",
-    };
-    return map[priority] ?? "var(--secondary-text-color)";
-}
-function statusColor(status) {
-    const map = {
-        pending: "var(--secondary-text-color)",
-        due: "var(--warning-color, #ff9800)",
-        overdue: "var(--error-color, #f44336)",
-        completed: "var(--success-color, #4caf50)",
-        snoozed: "var(--disabled-color)",
-    };
-    return map[status] ?? "var(--secondary-text-color)";
-}
-function statusIcon(status) {
-    const map = {
-        pending: "mdi:clock-outline",
-        due: "mdi:alert-circle-outline",
-        overdue: "mdi:alert-outline",
-        completed: "mdi:check-circle-outline",
-        snoozed: "mdi:sleep",
-    };
-    return map[status] ?? "mdi:help";
-}
-function frequencyLabel(freq, customDays, weekdays, language) {
-    const tr = t(language);
-    const days = (weekdays ?? []).filter(d => WEEKDAYS.includes(d)).map(d => weekdayName(d, language));
-    const map = {
-        one_time: tr.freqOneTime,
-        daily: tr.freqDaily,
-        weekly: days.length ? `${tr.freqWeekly} (${days.join(", ")})` : tr.freqWeekly,
-        monthly: tr.freqMonthly,
-        yearly: tr.freqYearly,
-        custom: customDays ? tr.freqEveryDays(customDays) : tr.freqCustom,
-    };
-    return map[freq] ?? freq;
-}
+};
+/**
+ * "Today, 19:14", "Yesterday, 08:02" or "Tomorrow, 09:00" for the days next
+ * to today; any other day falls back to formatDateTime.
+ */
+const formatRelative = (date, hass) => {
+    const day = relativeDay(date, hass);
+    return day ? `${day}, ${formatTime(date, hass)}` : formatDateTime(date, hass);
+};
+/** A due date like formatRelative, but just "Today" for a task due all day (saved at midnight), as the panel calendar shows it. */
+const formatRelativeDue = (date, hass) => isMidnight(date, hass) ? relativeDay(date, hass) ?? formatDate(date, hass) : formatRelative(date, hass);
+/** "Tue, Oct 20"; the year shows only when it isn't the current one. */
+const formatShortDate = (date, hass) => {
+    const d = new Date(date);
+    const timeZone = hassTimeZone(hass);
+    const year = (stamp) => new Date(stamp).getUTCFullYear();
+    const sameYear = year(dayStamp(d, timeZone)) === year(dayStamp(new Date(), timeZone));
+    return formatDate(d, hass, { weekday: "short", year: sameYear ? undefined : "numeric" });
+};
+/** Overdue and due-today tasks are tinted; nothing else is (same rule as the panel). */
+const urgencyOf = (task, hass) => {
+    if (task.status === "overdue")
+        return "overdue";
+    if (task.status !== "completed" && task.due_date && daysUntil(new Date(task.due_date), hass) <= 0)
+        return "today";
+    return null;
+};
+/** Readable text of an error from a service call or anything thrown. */
+const errorText = (err) => err instanceof Error ? err.message : err?.message ?? String(err);
 
+/** The IntelliKeep panel; "View all" opens it. */
+const PANEL_PATH = "/intellikeep";
+const DEFAULT_MAX_TASKS = 3;
+const PRIORITIES = ["critical", "high", "medium", "low"];
 /** Editor label in the frontend's language. getConfigForm is static, so there is no `hass` to read it from. */
 function configLabel(name) {
     const root = document.querySelector("home-assistant");
@@ -377,6 +458,11 @@ function configLabel(name) {
     };
     return labels[name];
 }
+/**
+ * Dashboard card: a header with how many tasks are overdue and due today,
+ * the next open tasks with a checkbox that completes them (with Undo), and
+ * a link to the panel.
+ */
 let IntelliKeepCard = class IntelliKeepCard extends i {
     constructor() {
         super(...arguments);
@@ -401,13 +487,17 @@ let IntelliKeepCard = class IntelliKeepCard extends i {
             computeLabel: (field) => configLabel(field.name),
         };
     }
+    // No title: the card then shows its default one in the user's language
     static getStubConfig() {
         return {
-            title: "IntelliKeep",
-            max_tasks: 5,
-            show_linked_entities: true,
+            max_tasks: DEFAULT_MAX_TASKS,
+            show_linked_entities: false,
             show_description: false,
         };
+    }
+    /** Height in 50px units, for masonry dashboards: header, one per row, footer. */
+    getCardSize() {
+        return 2 + (this.config?.max_tasks ?? DEFAULT_MAX_TASKS);
     }
     firstUpdated(_changedProperties) {
         this._subscribe();
@@ -439,47 +529,70 @@ let IntelliKeepCard = class IntelliKeepCard extends i {
             this._loading = false;
         }
     }
-    get _filteredTasks() {
-        let tasks = [...this._tasks];
-        if (this.config.filter_status?.length) {
-            tasks = tasks.filter((t) => this.config.filter_status.includes(t.status));
-        }
-        if (this.config.filter_priority?.length) {
-            tasks = tasks.filter((t) => this.config.filter_priority.includes(t.priority));
-        }
-        // Sort: overdue first, then by due date
-        tasks.sort((a, b) => {
-            const order = {
-                overdue: 0,
-                due: 1,
-                pending: 2,
-                snoozed: 3,
-                completed: 4,
-            };
-            const statusDiff = (order[a.status] ?? 5) - (order[b.status] ?? 5);
-            if (statusDiff !== 0)
-                return statusDiff;
-            if (!a.due_date)
-                return 1;
-            if (!b.due_date)
-                return -1;
-            return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-        });
-        const max = this.config.max_tasks ?? 10;
-        return tasks.slice(0, max);
+    /** Open tasks (or the configured statuses and priorities), most urgent first. */
+    get _openTasks() {
+        const statuses = this.config.filter_status;
+        const priorities = this.config.filter_priority;
+        const dueTime = (task) => (task.due_date ? Date.parse(task.due_date) : Infinity);
+        return this._tasks
+            .filter((task) => (statuses?.length ? statuses.includes(task.status) : task.status !== "completed"))
+            .filter((task) => !priorities?.length || priorities.includes(task.priority))
+            .sort((a, b) => dueTime(a) - dueTime(b)
+            || PRIORITIES.indexOf(a.priority) - PRIORITIES.indexOf(b.priority)
+            || a.task_number - b.task_number);
     }
-    async _completeTask(taskId) {
-        this._completing = new Set([...this._completing, taskId]);
+    _toast(message, action, duration = 4000) {
+        this.dispatchEvent(new CustomEvent("hass-notification", {
+            detail: { message, action, duration },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+    _setCompleting(taskId, busy) {
+        const next = new Set(this._completing);
+        if (busy)
+            next.add(taskId);
+        else
+            next.delete(taskId);
+        this._completing = next;
+    }
+    async _completeTask(task) {
+        const tr = t(this.hass.language);
+        this._setCompleting(task.task_id, true);
         try {
             await this.hass.callService("intellikeep", "complete_task", {
-                task_id: taskId,
+                task_id: task.task_id,
+                completed_by: this.hass.user?.name ?? "",
             });
+            this._toast(tr.taskCompleted, { text: tr.undoAction, action: () => void this._reopenTask(task) }, 8000);
+        }
+        catch (err) {
+            this._toast(tr.actionFailed(errorText(err)));
         }
         finally {
-            this._completing = new Set([...this._completing].filter((id) => id !== taskId));
+            this._setCompleting(task.task_id, false);
         }
     }
-    _resolveLinkedLabel(entry) {
+    async _reopenTask(task) {
+        try {
+            await this.hass.callService("intellikeep", "reopen_task", {
+                task_id: task.task_id,
+                performed_by: this.hass.user?.name ?? "",
+            });
+        }
+        catch (err) {
+            this._toast(t(this.hass.language).actionFailed(errorText(err)));
+        }
+    }
+    /** Same-tab navigation inside Home Assistant; modified clicks keep the browser's handling. */
+    _openPanel(e) {
+        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+            return;
+        e.preventDefault();
+        history.pushState(null, "", PANEL_PATH);
+        window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+    }
+    _linkedLabel(entry) {
         if (entry.startsWith("area:")) {
             const areaId = entry.slice(5);
             return this.hass.areas?.[areaId]?.name ?? areaId;
@@ -495,107 +608,85 @@ let IntelliKeepCard = class IntelliKeepCard extends i {
         }
         return entry;
     }
-    _renderEntityChips(task) {
-        if (!this.config.show_linked_entities || task.linked_entity_ids.length === 0) {
+    _renderSummary(tasks) {
+        const tr = t(this.hass?.language);
+        if (this._loading)
+            return tr.loading;
+        if (tasks.length === 0)
+            return tr.allClear;
+        const overdue = tasks.filter((task) => urgencyOf(task, this.hass) === "overdue").length;
+        const today = tasks.filter((task) => urgencyOf(task, this.hass) === "today").length;
+        const parts = [
+            overdue ? b `<span class="overdue">${tr.overdueCount(overdue)}</span>` : null,
+            today ? b `<span class="today">${tr.dueTodayCount(today)}</span>` : null,
+        ].filter((part) => part !== null);
+        if (parts.length === 0)
+            return tr.openCount(tasks.length);
+        return parts.map((part, i) => b `${i > 0 ? " · " : ""}${part}`);
+    }
+    _renderChip(task) {
+        const tr = t(this.hass?.language);
+        if (!task.due_date)
             return A;
+        const urgency = urgencyOf(task, this.hass);
+        if (urgency === "overdue") {
+            const days = -daysUntil(new Date(task.due_date), this.hass);
+            return b `<span class="chip overdue">${days > 0 ? tr.daysOverdue(days) : tr.overdue}</span>`;
         }
+        if (urgency === "today") {
+            return b `<span class="chip today">${formatRelativeDue(task.due_date, this.hass)}</span>`;
+        }
+        return b `<span class="chip">${formatShortDate(task.due_date, this.hass)}</span>`;
+    }
+    _renderTask(task) {
+        const tr = t(this.hass?.language);
+        const completing = this._completing.has(task.task_id);
+        const description = this.config.show_description ? task.description : "";
+        const links = this.config.show_linked_entities
+            ? task.linked_entity_ids.map((entry) => this._linkedLabel(entry)).join(", ")
+            : "";
         return b `
-      <div class="entity-chips">
-        ${task.linked_entity_ids.map((entry) => b `
-          <span class="entity-chip">
-            <ha-icon icon="mdi:devices" style="--mdc-icon-size:12px"></ha-icon>
-            ${this._resolveLinkedLabel(entry)}
-          </span>
-        `)}
+      <div class="row">
+        <button
+          class="check"
+          role="checkbox"
+          aria-checked=${completing ? "true" : "false"}
+          aria-label=${tr.markComplete(task.name)}
+          ?disabled=${completing || task.status === "completed"}
+          @click=${() => this._completeTask(task)}
+        >
+          <span class="box">${completing ? b `<ha-icon icon="mdi:check"></ha-icon>` : A}</span>
+        </button>
+        <div class="text">
+          <div class="name">${task.name}</div>
+          ${description ? b `<div class="secondary">${description}</div>` : A}
+          ${links ? b `<div class="secondary">${links}</div>` : A}
+        </div>
+        ${this._renderChip(task)}
       </div>
     `;
     }
     render() {
-        const title = this.config?.title ?? "IntelliKeep";
-        const tasks = this._filteredTasks;
         const tr = t(this.hass?.language);
+        const title = this.config?.title || tr.defaultTitle;
+        const open = this._openTasks;
+        const shown = open.slice(0, this.config.max_tasks ?? DEFAULT_MAX_TASKS);
         return b `
       <ha-card>
-        <div class="card-header">
-          <span>
-            <ha-icon icon="mdi:clipboard-check-multiple-outline"></ha-icon>
-            ${title}
-          </span>
-          ${tasks.length > 0
-            ? b `<span style="font-size:13px;color:var(--secondary-text-color);">
-                ${tr.taskCount(tasks.length)}
-              </span>`
-            : A}
-        </div>
-
-        ${this._loading
-            ? b `<div class="empty-state">${tr.loading}</div>`
-            : tasks.length === 0
-                ? b `
-              <div class="empty-state">
-                <ha-icon icon="mdi:check-all"></ha-icon>
-                ${tr.allClear}
-              </div>
-            `
-                : b `
-              <div class="task-list">
-                ${tasks.map((task, i) => b `
-                  ${i > 0 ? b `<div class="divider"></div>` : A}
-                  ${this._renderTask(task)}
-                `)}
-              </div>
-            `}
-      </ha-card>
-    `;
-    }
-    _renderTask(task) {
-        const isCompleting = this._completing.has(task.task_id);
-        const iconColor = statusColor(task.status);
-        const language = this.hass?.language;
-        const tr = t(language);
-        return b `
-      <div class="task-item">
-        <ha-icon
-          class="task-status-icon"
-          icon=${statusIcon(task.status)}
-          style="color: ${iconColor}"
-        ></ha-icon>
-
-        <div class="task-body">
-          <div class="task-name">${task.name}</div>
-
-          ${this.config.show_description && task.description
-            ? b `<div class="task-description">${task.description}</div>`
-            : A}
-
-          <div class="task-meta">
-            <span
-              class="priority-badge"
-              style="background-color: ${priorityColor(task.priority)}"
-            >
-              ${tr[task.priority] ?? task.priority}
-            </span>
-            <span style="color: ${iconColor}">
-              ${relativeDueDate(task.due_date, language)}
-            </span>
-            <span>${frequencyLabel(task.frequency, task.custom_days_interval, task.weekdays, language)}</span>
+        <div class="header">
+          <div class="header-icon" aria-hidden="true"><ha-icon icon="mdi:wrench-outline"></ha-icon></div>
+          <div class="header-text">
+            <h2 class="title">${title}</h2>
+            <div class="summary">${this._renderSummary(open)}</div>
           </div>
-
-          ${this._renderEntityChips(task)}
         </div>
-
-        ${task.status !== "completed"
-            ? b `
-              <ha-icon-button
-                class="complete-btn"
-                .label=${tr.markAsDone}
-                .path=${"M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"}
-                ?disabled=${isCompleting}
-                @click=${() => this._completeTask(task.task_id)}
-              ></ha-icon-button>
-            `
-            : A}
-      </div>
+        ${shown.map((task) => this._renderTask(task))}
+        ${open.length > 0 ? b `
+          <div class="footer">
+            <a href=${PANEL_PATH} @click=${this._openPanel}>${tr.viewAll(open.length)}</a>
+          </div>
+        ` : A}
+      </ha-card>
     `;
     }
 };
@@ -622,7 +713,7 @@ window.customCards = window.customCards || [];
 window.customCards.push({
     type: "intellikeep-card",
     name: "IntelliKeep Card",
-    description: "Compact list of due and overdue IntelliKeep tasks.",
+    description: "Overdue and upcoming IntelliKeep tasks, completed with one click.",
     documentationURL: "https://github.com/henriquekraemer/intellikeep",
 });
 

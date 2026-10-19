@@ -4,17 +4,17 @@ import {
   HomeAssistant,
   IntelliKeepCardConfig,
   Task,
+  TaskPriority,
   TaskStatus,
 } from "./types";
 import { cardStyles } from "./styles";
 import { t } from "./translations";
-import {
-  priorityColor,
-  relativeDueDate,
-  statusColor,
-  statusIcon,
-  frequencyLabel,
-} from "./utils";
+import { daysUntil, errorText, formatRelativeDue, formatShortDate, urgencyOf } from "./utils";
+
+/** The IntelliKeep panel; "View all" opens it. */
+const PANEL_PATH = "/intellikeep";
+const DEFAULT_MAX_TASKS = 3;
+const PRIORITIES: TaskPriority[] = ["critical", "high", "medium", "low"];
 
 /** Editor label in the frontend's language. getConfigForm is static, so there is no `hass` to read it from. */
 function configLabel(name: string): string | undefined {
@@ -29,6 +29,11 @@ function configLabel(name: string): string | undefined {
   return labels[name];
 }
 
+/**
+ * Dashboard card: a header with how many tasks are overdue and due today,
+ * the next open tasks with a checkbox that completes them (with Undo), and
+ * a link to the panel.
+ */
 @customElement("intellikeep-card")
 export class IntelliKeepCard extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
@@ -60,13 +65,18 @@ export class IntelliKeepCard extends LitElement {
     };
   }
 
+  // No title: the card then shows its default one in the user's language
   static getStubConfig() {
     return {
-      title: "IntelliKeep",
-      max_tasks: 5,
-      show_linked_entities: true,
+      max_tasks: DEFAULT_MAX_TASKS,
+      show_linked_entities: false,
       show_description: false,
     };
+  }
+
+  /** Height in 50px units, for masonry dashboards: header, one per row, footer. */
+  getCardSize(): number {
+    return 2 + (this.config?.max_tasks ?? DEFAULT_MAX_TASKS);
   }
 
   protected firstUpdated(_changedProperties: PropertyValues): void {
@@ -104,55 +114,71 @@ export class IntelliKeepCard extends LitElement {
     }
   }
 
-  private get _filteredTasks(): Task[] {
-    let tasks = [...this._tasks];
-
-    if (this.config.filter_status?.length) {
-      tasks = tasks.filter((t) =>
-        this.config.filter_status!.includes(t.status as TaskStatus)
-      );
-    }
-
-    if (this.config.filter_priority?.length) {
-      tasks = tasks.filter((t) =>
-        this.config.filter_priority!.includes(t.priority)
-      );
-    }
-
-    // Sort: overdue first, then by due date
-    tasks.sort((a, b) => {
-      const order: Record<string, number> = {
-        overdue: 0,
-        due: 1,
-        pending: 2,
-        snoozed: 3,
-        completed: 4,
-      };
-      const statusDiff = (order[a.status] ?? 5) - (order[b.status] ?? 5);
-      if (statusDiff !== 0) return statusDiff;
-      if (!a.due_date) return 1;
-      if (!b.due_date) return -1;
-      return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-    });
-
-    const max = this.config.max_tasks ?? 10;
-    return tasks.slice(0, max);
+  /** Open tasks (or the configured statuses and priorities), most urgent first. */
+  private get _openTasks(): Task[] {
+    const statuses = this.config.filter_status;
+    const priorities = this.config.filter_priority;
+    const dueTime = (task: Task) => (task.due_date ? Date.parse(task.due_date) : Infinity);
+    return this._tasks
+      .filter((task) => (statuses?.length ? statuses.includes(task.status as TaskStatus) : task.status !== "completed"))
+      .filter((task) => !priorities?.length || priorities.includes(task.priority))
+      .sort((a, b) =>
+        dueTime(a) - dueTime(b)
+        || PRIORITIES.indexOf(a.priority) - PRIORITIES.indexOf(b.priority)
+        || a.task_number - b.task_number);
   }
 
-  private async _completeTask(taskId: string) {
-    this._completing = new Set([...this._completing, taskId]);
+  private _toast(message: string, action?: { text: string; action: () => void }, duration = 4000) {
+    this.dispatchEvent(new CustomEvent("hass-notification", {
+      detail: { message, action, duration },
+      bubbles: true,
+      composed: true,
+    }));
+  }
+
+  private _setCompleting(taskId: string, busy: boolean) {
+    const next = new Set(this._completing);
+    if (busy) next.add(taskId);
+    else next.delete(taskId);
+    this._completing = next;
+  }
+
+  private async _completeTask(task: Task) {
+    const tr = t(this.hass.language);
+    this._setCompleting(task.task_id, true);
     try {
       await this.hass.callService("intellikeep", "complete_task", {
-        task_id: taskId,
+        task_id: task.task_id,
+        completed_by: this.hass.user?.name ?? "",
       });
+      this._toast(tr.taskCompleted, { text: tr.undoAction, action: () => void this._reopenTask(task) }, 8000);
+    } catch (err) {
+      this._toast(tr.actionFailed(errorText(err)));
     } finally {
-      this._completing = new Set(
-        [...this._completing].filter((id) => id !== taskId)
-      );
+      this._setCompleting(task.task_id, false);
     }
   }
 
-  private _resolveLinkedLabel(entry: string): string {
+  private async _reopenTask(task: Task) {
+    try {
+      await this.hass.callService("intellikeep", "reopen_task", {
+        task_id: task.task_id,
+        performed_by: this.hass.user?.name ?? "",
+      });
+    } catch (err) {
+      this._toast(t(this.hass.language).actionFailed(errorText(err)));
+    }
+  }
+
+  /** Same-tab navigation inside Home Assistant; modified clicks keep the browser's handling. */
+  private _openPanel(e: MouseEvent) {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    history.pushState(null, "", PANEL_PATH);
+    window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+  }
+
+  private _linkedLabel(entry: string): string {
     if (entry.startsWith("area:")) {
       const areaId = entry.slice(5);
       return this.hass.areas?.[areaId]?.name ?? areaId;
@@ -168,112 +194,85 @@ export class IntelliKeepCard extends LitElement {
     return entry;
   }
 
-  private _renderEntityChips(task: Task) {
-    if (!this.config.show_linked_entities || task.linked_entity_ids.length === 0) {
-      return nothing;
-    }
+  private _renderSummary(tasks: Task[]) {
+    const tr = t(this.hass?.language);
+    if (this._loading) return tr.loading;
+    if (tasks.length === 0) return tr.allClear;
+    const overdue = tasks.filter((task) => urgencyOf(task, this.hass) === "overdue").length;
+    const today = tasks.filter((task) => urgencyOf(task, this.hass) === "today").length;
+    const parts = [
+      overdue ? html`<span class="overdue">${tr.overdueCount(overdue)}</span>` : null,
+      today ? html`<span class="today">${tr.dueTodayCount(today)}</span>` : null,
+    ].filter((part) => part !== null);
+    if (parts.length === 0) return tr.openCount(tasks.length);
+    return parts.map((part, i) => html`${i > 0 ? " · " : ""}${part}`);
+  }
 
+  private _renderChip(task: Task) {
+    const tr = t(this.hass?.language);
+    if (!task.due_date) return nothing;
+    const urgency = urgencyOf(task, this.hass);
+    if (urgency === "overdue") {
+      const days = -daysUntil(new Date(task.due_date), this.hass);
+      return html`<span class="chip overdue">${days > 0 ? tr.daysOverdue(days) : tr.overdue}</span>`;
+    }
+    if (urgency === "today") {
+      return html`<span class="chip today">${formatRelativeDue(task.due_date, this.hass)}</span>`;
+    }
+    return html`<span class="chip">${formatShortDate(task.due_date, this.hass)}</span>`;
+  }
+
+  private _renderTask(task: Task) {
+    const tr = t(this.hass?.language);
+    const completing = this._completing.has(task.task_id);
+    const description = this.config.show_description ? task.description : "";
+    const links = this.config.show_linked_entities
+      ? task.linked_entity_ids.map((entry) => this._linkedLabel(entry)).join(", ")
+      : "";
     return html`
-      <div class="entity-chips">
-        ${task.linked_entity_ids.map((entry) => html`
-          <span class="entity-chip">
-            <ha-icon icon="mdi:devices" style="--mdc-icon-size:12px"></ha-icon>
-            ${this._resolveLinkedLabel(entry)}
-          </span>
-        `)}
+      <div class="row">
+        <button
+          class="check"
+          role="checkbox"
+          aria-checked=${completing ? "true" : "false"}
+          aria-label=${tr.markComplete(task.name)}
+          ?disabled=${completing || task.status === "completed"}
+          @click=${() => this._completeTask(task)}
+        >
+          <span class="box">${completing ? html`<ha-icon icon="mdi:check"></ha-icon>` : nothing}</span>
+        </button>
+        <div class="text">
+          <div class="name">${task.name}</div>
+          ${description ? html`<div class="secondary">${description}</div>` : nothing}
+          ${links ? html`<div class="secondary">${links}</div>` : nothing}
+        </div>
+        ${this._renderChip(task)}
       </div>
     `;
   }
 
   protected render() {
-    const title = this.config?.title ?? "IntelliKeep";
-    const tasks = this._filteredTasks;
     const tr = t(this.hass?.language);
+    const title = this.config?.title || tr.defaultTitle;
+    const open = this._openTasks;
+    const shown = open.slice(0, this.config.max_tasks ?? DEFAULT_MAX_TASKS);
 
     return html`
       <ha-card>
-        <div class="card-header">
-          <span>
-            <ha-icon icon="mdi:clipboard-check-multiple-outline"></ha-icon>
-            ${title}
-          </span>
-          ${tasks.length > 0
-            ? html`<span style="font-size:13px;color:var(--secondary-text-color);">
-                ${tr.taskCount(tasks.length)}
-              </span>`
-            : nothing}
-        </div>
-
-        ${this._loading
-          ? html`<div class="empty-state">${tr.loading}</div>`
-          : tasks.length === 0
-          ? html`
-              <div class="empty-state">
-                <ha-icon icon="mdi:check-all"></ha-icon>
-                ${tr.allClear}
-              </div>
-            `
-          : html`
-              <div class="task-list">
-                ${tasks.map((task, i) => html`
-                  ${i > 0 ? html`<div class="divider"></div>` : nothing}
-                  ${this._renderTask(task)}
-                `)}
-              </div>
-            `}
-      </ha-card>
-    `;
-  }
-
-  private _renderTask(task: Task) {
-    const isCompleting = this._completing.has(task.task_id);
-    const iconColor = statusColor(task.status as TaskStatus);
-    const language = this.hass?.language;
-    const tr = t(language);
-
-    return html`
-      <div class="task-item">
-        <ha-icon
-          class="task-status-icon"
-          icon=${statusIcon(task.status as TaskStatus)}
-          style="color: ${iconColor}"
-        ></ha-icon>
-
-        <div class="task-body">
-          <div class="task-name">${task.name}</div>
-
-          ${this.config.show_description && task.description
-            ? html`<div class="task-description">${task.description}</div>`
-            : nothing}
-
-          <div class="task-meta">
-            <span
-              class="priority-badge"
-              style="background-color: ${priorityColor(task.priority)}"
-            >
-              ${tr[task.priority] ?? task.priority}
-            </span>
-            <span style="color: ${iconColor}">
-              ${relativeDueDate(task.due_date, language)}
-            </span>
-            <span>${frequencyLabel(task.frequency, task.custom_days_interval, task.weekdays, language)}</span>
+        <div class="header">
+          <div class="header-icon" aria-hidden="true"><ha-icon icon="mdi:wrench-outline"></ha-icon></div>
+          <div class="header-text">
+            <h2 class="title">${title}</h2>
+            <div class="summary">${this._renderSummary(open)}</div>
           </div>
-
-          ${this._renderEntityChips(task)}
         </div>
-
-        ${task.status !== "completed"
-          ? html`
-              <ha-icon-button
-                class="complete-btn"
-                .label=${tr.markAsDone}
-                .path=${"M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"}
-                ?disabled=${isCompleting}
-                @click=${() => this._completeTask(task.task_id)}
-              ></ha-icon-button>
-            `
-          : nothing}
-      </div>
+        ${shown.map((task) => this._renderTask(task))}
+        ${open.length > 0 ? html`
+          <div class="footer">
+            <a href=${PANEL_PATH} @click=${this._openPanel}>${tr.viewAll(open.length)}</a>
+          </div>
+        ` : nothing}
+      </ha-card>
     `;
   }
 }
@@ -292,6 +291,6 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "intellikeep-card",
   name: "IntelliKeep Card",
-  description: "Compact list of due and overdue IntelliKeep tasks.",
+  description: "Overdue and upcoming IntelliKeep tasks, completed with one click.",
   documentationURL: "https://github.com/henriquekraemer/intellikeep",
 });
