@@ -52,4 +52,4 @@ PANEL_URL = DOMAIN
 PANEL_TITLE = "IntelliKeep"
 PANEL_ICON = "intellikeep:icon"
 
-VERSION = "1.1.1"
+VERSION = "2.0.0"
