@@ -76,9 +76,10 @@ Key modules:
 - **`storage.py`** — Wraps HA's `Store` API. Maintains a sequential `task_number` counter that never resets (persists across deletions).
 - **`coordinator.py`** — `DataUpdateCoordinator` refreshing every 5 minutes for sensor entities.
 - **`services.py`** — Registers HA services (`create_task`, `complete_task`, `reopen_task`, `update_task`, `delete_task`, `add_task_note`, `delete_task_note`, `load_sample_data`, `delete_all_data`).
-- **`websocket_api.py`** — WebSocket commands used by the panel and card (`get_tasks`, `get_task`, `subscribe`, `get_version`).
+- **`websocket_api.py`** — WebSocket commands used by the panel and card (`get_tasks`, `get_task`, `subscribe`, `get_version`, and `get_repeats`, the future repeats of recurring tasks that `TaskManager.get_future_repeats` projects for the panel calendar).
 - **`notifications.py`** — Hourly background task; deduplicates within a session (resets on HA restart).
 - **`sensor.py`** — Three sensor entities: `tasks_due_today`, `tasks_overdue`, `next_due_task`.
+- **`todo.py`** / **`calendar.py`** — `todo.intellikeep_tasks` (open tasks plus the last 30 days of completions; checking completes, unchecking reopens, completed items can't be deleted) and the read-only `calendar.intellikeep_tasks` (open tasks on their due dates; local midnight means all day). Both read `coordinator.data["all_tasks"]`; `entity.py` holds their shared base and due-date helpers.
 - **`config_flow.py`** — Single-instance config flow. Options: `instance_name`, `notify_days_before_default`, `notification_service`.
 - **`runtime_data.py`** — Type-safe dataclass bundling runtime objects stored on the config entry.
 - **`seed.py`** — Generates sample tasks for demo via `load_sample_data` service.
