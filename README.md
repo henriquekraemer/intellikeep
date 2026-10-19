@@ -1,6 +1,6 @@
 # IntelliKeep
 
-<img width="933" height="256" alt="intellikeep_banner" src="https://github.com/user-attachments/assets/3d579c40-5bbd-4730-872f-45f464456593" />
+<img width="933" height="256" alt="IntelliKeep on a phone and a desktop" src="https://raw.githubusercontent.com/intellilar/intellikeep/main/.github/images/banner.png" />
 
 [![Documentation](https://img.shields.io/badge/docs-intellikeep.intellilar.com-blue)](https://intellikeep.intellilar.com)
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange)](https://hacs.xyz)
@@ -28,6 +28,20 @@ IntelliKeep is a free, open-source Home Assistant integration for keeping track 
 - A to-do list (`todo.intellikeep_tasks`) for Home Assistant's To-do lists and a calendar (`calendar.intellikeep_tasks`) for its Calendar, calendar cards and calendar triggers
 - Responsive panel that works on desktop and mobile and follows the Home Assistant UI
 - A Lovelace card for showing due and overdue tasks on a dashboard
+
+---
+
+## Screenshots
+
+| Tasks | Calendar |
+|:---:|:---:|
+| ![Open tasks grouped into Overdue, Today, This week and Later, each with a checkbox, priority and due date](https://raw.githubusercontent.com/intellilar/intellikeep/main/.github/images/tasks-desktop.png) | ![Month view with past completions, open tasks and the future repeats of recurring tasks as dashed outlines](https://raw.githubusercontent.com/intellilar/intellikeep/main/.github/images/calendar-desktop.png) |
+| **Task dialog** | **History** |
+| ![Task dialog with name, icon, priority, due date and time, and how often it repeats](https://raw.githubusercontent.com/intellilar/intellikeep/main/.github/images/dialog-desktop.png) | ![Completion history with who did each task and whether it was on time or late](https://raw.githubusercontent.com/intellilar/intellikeep/main/.github/images/history-desktop.png) |
+
+| On a phone | | Dashboard card |
+|:---:|:---:|:---:|
+| <img width="240" alt="Task list on a phone" src="https://raw.githubusercontent.com/intellilar/intellikeep/main/.github/images/tasks-mobile.png" /> | <img width="240" alt="Month calendar on a phone with the chosen day's tasks below" src="https://raw.githubusercontent.com/intellilar/intellikeep/main/.github/images/calendar-mobile.png" /> | <img width="320" alt="Dashboard card listing overdue and upcoming tasks" src="https://raw.githubusercontent.com/intellilar/intellikeep/main/.github/images/card.png" /> |
 
 ---
 
