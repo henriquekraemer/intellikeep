@@ -15,6 +15,7 @@ def _due(days: int) -> datetime:
 SAMPLE_TASKS: list[dict] = [
     {
         "name": "Replace HVAC filter",
+        "icon": "mdi:air-filter",
         "description": "Change the air filter on the central A/C unit.",
         "priority": TaskPriority.HIGH,
         "frequency": TaskFrequency.MONTHLY,
@@ -24,6 +25,7 @@ SAMPLE_TASKS: list[dict] = [
     },
     {
         "name": "Clean gutters",
+        "icon": "mdi:weather-pouring",
         "description": "Remove leaves and debris from roof gutters.",
         "priority": TaskPriority.MEDIUM,
         "frequency": TaskFrequency.YEARLY,
@@ -33,6 +35,7 @@ SAMPLE_TASKS: list[dict] = [
     },
     {
         "name": "Test smoke detectors",
+        "icon": "mdi:smoke-detector",
         "description": "Press the test button on every smoke and CO detector.",
         "priority": TaskPriority.CRITICAL,
         "frequency": TaskFrequency.MONTHLY,
@@ -42,6 +45,7 @@ SAMPLE_TASKS: list[dict] = [
     },
     {
         "name": "Service boiler / water heater",
+        "icon": "mdi:water-boiler",
         "description": "Annual inspection and descaling.",
         "priority": TaskPriority.HIGH,
         "frequency": TaskFrequency.YEARLY,
@@ -51,6 +55,7 @@ SAMPLE_TASKS: list[dict] = [
     },
     {
         "name": "Check fire extinguisher",
+        "icon": "mdi:fire-extinguisher",
         "description": "Verify pressure gauge and expiration date.",
         "priority": TaskPriority.CRITICAL,
         "frequency": TaskFrequency.YEARLY,
@@ -60,6 +65,7 @@ SAMPLE_TASKS: list[dict] = [
     },
     {
         "name": "Deep-clean refrigerator coils",
+        "icon": "mdi:fridge-outline",
         "description": "Vacuum the condenser coils at the back or bottom of the fridge.",
         "priority": TaskPriority.LOW,
         "frequency": TaskFrequency.YEARLY,
@@ -69,6 +75,7 @@ SAMPLE_TASKS: list[dict] = [
     },
     {
         "name": "Inspect roof and attic",
+        "icon": "mdi:home-roof",
         "description": "Look for cracked tiles, leaks, or pest activity.",
         "priority": TaskPriority.HIGH,
         "frequency": TaskFrequency.YEARLY,
@@ -78,6 +85,7 @@ SAMPLE_TASKS: list[dict] = [
     },
     {
         "name": "Lubricate garage door",
+        "icon": "mdi:garage",
         "description": "Apply lubricant to hinges, rollers, and tracks.",
         "priority": TaskPriority.LOW,
         "frequency": TaskFrequency.MONTHLY,

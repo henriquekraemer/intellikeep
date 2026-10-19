@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import calendar
 import logging
-from datetime import datetime, timedelta
+from dataclasses import replace
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from homeassistant.const import WEEKDAYS
@@ -12,6 +13,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import EVENT_TASK_UPDATED
 from .models import (
+    ScheduleAnchor,
     Task,
     TaskActivity,
     TaskActivityType,
@@ -19,19 +21,25 @@ from .models import (
     TaskFrequency,
     TaskNote,
     TaskStatus,
+    migrate_legacy_interval,
     normalize_weekdays,
 )
 from .storage import IntelliKeepStorage
 
 _LOGGER = logging.getLogger(__name__)
 
+# Repeats projected per task at most: close to three years of a daily task
+_MAX_PROJECTED_REPEATS = 1000
+
 _TRACKED_FIELD_LABELS: dict[str, str] = {
     "name": "name",
     "description": "description",
     "priority": "priority",
     "frequency": "frequency",
-    "custom_days_interval": "interval",
+    "repeat_interval": "repeat every",
+    "schedule_anchor": "next due from",
     "weekdays": "weekdays",
+    "icon": "icon",
     "due_date": "due date",
     "notify_days_before": "notify before",
     "notify_on_overdue": "notify overdue",
@@ -49,6 +57,28 @@ def _fmt_val(val: object) -> str:
     if isinstance(val, bool):
         return "yes" if val else "no"
     return str(val)
+
+
+def _add_periods(start: datetime, frequency: TaskFrequency, count: int) -> datetime:
+    """``start`` moved by ``count`` days, weeks, months or years.
+
+    Month ends clamp (Jan 31 + 1 month = Feb 28). With a local ``start`` the
+    wall-clock time is kept across DST changes.
+    """
+    match frequency:
+        case TaskFrequency.DAILY | TaskFrequency.CUSTOM:
+            return start + timedelta(days=count)
+        case TaskFrequency.WEEKLY:
+            return start + timedelta(weeks=count)
+        case TaskFrequency.MONTHLY:
+            months = count
+        case TaskFrequency.YEARLY:
+            months = 12 * count
+        case _:
+            return start
+    month_index = start.month - 1 + months
+    year, month = start.year + month_index // 12, month_index % 12 + 1
+    return start.replace(year=year, month=month, day=min(start.day, calendar.monthrange(year, month)[1]))
 
 
 def _fmt_weekdays(val: list[str]) -> str:
@@ -93,11 +123,21 @@ class TaskManager:
     # CRUD
     # ------------------------------------------------------------------
 
-    async def async_create_task(self, **kwargs: Any) -> Task:
-        kwargs.setdefault("task_number", self._storage.next_task_number())
+    @staticmethod
+    def _normalize_fields(kwargs: dict[str, Any], task: Task | None = None) -> dict[str, Any]:
+        """Clean up create/update input in place: legacy interval, weekdays, interval floor, empty icon."""
+        migrate_legacy_interval(kwargs, task.frequency if task else None)
         if "weekdays" in kwargs:
             kwargs["weekdays"] = normalize_weekdays(kwargs["weekdays"])
-        task = Task(**kwargs)
+        if "repeat_interval" in kwargs:
+            kwargs["repeat_interval"] = max(1, int(kwargs["repeat_interval"] or 1))
+        if "icon" in kwargs:
+            kwargs["icon"] = (kwargs["icon"] or "").strip() or None
+        return kwargs
+
+    async def async_create_task(self, **kwargs: Any) -> Task:
+        kwargs.setdefault("task_number", self._storage.next_task_number())
+        task = Task(**self._normalize_fields(kwargs))
         self._storage.upsert_task(task)
         await self._storage.async_save()
         self._fire_task_updated(task.task_id, "created")
@@ -109,8 +149,7 @@ class TaskManager:
         if task is None:
             _LOGGER.warning("Update called for unknown task_id: %s", task_id)
             return None
-        if "weekdays" in kwargs:
-            kwargs["weekdays"] = normalize_weekdays(kwargs["weekdays"])
+        self._normalize_fields(kwargs, task)
         changes: list[str] = []
         for field_name, label in _TRACKED_FIELD_LABELS.items():
             if field_name not in kwargs:
@@ -191,8 +230,10 @@ class TaskManager:
                     description=task.description,
                     priority=task.priority,
                     frequency=task.frequency,
-                    custom_days_interval=task.custom_days_interval,
+                    repeat_interval=task.repeat_interval,
+                    schedule_anchor=task.schedule_anchor,
                     weekdays=list(task.weekdays),
+                    icon=task.icon,
                     due_date=next_due,
                     linked_entity_ids=list(task.linked_entity_ids),
                     notify_days_before=task.notify_days_before,
@@ -202,6 +243,7 @@ class TaskManager:
                     task_number=self._storage.next_task_number(),
                 )
                 self._storage.upsert_task(next_task)
+                execution.next_task_id = next_task.task_id
                 _LOGGER.debug(
                     "Created next occurrence %s for recurring task %s (due %s, root %s)",
                     next_task.task_id, task_id, next_due.isoformat(), root_id,
@@ -271,6 +313,17 @@ class TaskManager:
         if task is None:
             _LOGGER.warning("Reopen called for unknown task_id: %s", task_id)
             return None
+        # Reopening takes back the last completion: its record goes, and so does the
+        # occurrence it created, unless that one was already edited, noted or completed
+        spawned: Task | None = None
+        if not task.enabled and task.executions:
+            execution = task.executions.pop()
+            candidate = self._storage.get_task(execution.next_task_id) if execution.next_task_id else None
+            if candidate is not None and candidate.enabled and not (
+                candidate.executions or candidate.notes or candidate.activities
+            ):
+                spawned = candidate
+                self._storage.delete_task(candidate.task_id)
         task.enabled = True
         task.last_completed_at = None
         task.updated_at = dt_util.utcnow()
@@ -282,6 +335,8 @@ class TaskManager:
         self._storage.upsert_task(task)
         await self._storage.async_save()
         self._fire_task_updated(task_id, "reopened")
+        if spawned is not None:
+            self._fire_task_updated(spawned.task_id, "deleted")
         _LOGGER.debug("Reopened task %s", task_id)
         return task
 
@@ -385,60 +440,109 @@ class TaskManager:
             for t in self._storage.get_all_tasks()
         ]
 
+    def get_future_repeats(self, start: datetime, end: datetime) -> list[tuple[Task, datetime]]:
+        """Due dates the open recurring tasks repeat on from ``start`` to ``end``.
+
+        Only the open occurrence of a task is stored, so the ones after it are
+        projected the way completing builds them, each assumed done on its due
+        date. That is exact for tasks counted from their due date and an estimate
+        for tasks counted from completion.
+        """
+        now = dt_util.utcnow()
+        repeats: list[tuple[Task, datetime]] = []
+        for task in self._storage.get_all_tasks():
+            if not task.enabled or task.due_date is None or task.frequency == TaskFrequency.ONE_TIME:
+                continue
+            due = dt_util.as_utc(task.due_date)
+            for _ in range(_MAX_PROJECTED_REPEATS):
+                done_at = self._assumed_completion(task, due, now)
+                next_due = self._calculate_next_due(replace(task, due_date=due, last_completed_at=done_at))
+                if next_due <= due or next_due >= end:
+                    break
+                if next_due >= start:
+                    repeats.append((task, next_due))
+                due = next_due
+        return repeats
+
     # ------------------------------------------------------------------
     # Scheduling
     # ------------------------------------------------------------------
 
     def _calculate_next_due(self, task: Task) -> datetime:
-        """Calculate next due date based on task frequency."""
-        base = task.last_completed_at or dt_util.utcnow()
-        match task.frequency:
-            case TaskFrequency.DAILY:
-                return base + timedelta(days=1)
-            case TaskFrequency.WEEKLY:
-                if task.weekdays:
-                    return self._next_weekday_due(task, base)
-                return base + timedelta(weeks=1)
-            case TaskFrequency.MONTHLY:
-                month = base.month % 12 + 1
-                year = base.year + (1 if base.month == 12 else 0)
-                # Handle months shorter than current day (e.g. Jan 31 → Feb 28)
-                last_day = calendar.monthrange(year, month)[1]
-                day = min(base.day, last_day)
-                return base.replace(year=year, month=month, day=day)
-            case TaskFrequency.YEARLY:
-                # Handle Feb 29 when the next year is not a leap year
-                next_year = base.year + 1
-                last_day = calendar.monthrange(next_year, base.month)[1]
-                return base.replace(year=next_year, day=min(base.day, last_day))
-            case TaskFrequency.CUSTOM:
-                interval = task.custom_days_interval or 30
-                return base + timedelta(days=interval)
-            case _:
-                return base
+        """Next due date of a recurring task: ``repeat_interval`` periods on.
+
+        Counted from the completion, or with ``schedule_anchor`` "due_date" from
+        the task's own due date, skipping the periods already past so a late
+        completion doesn't schedule something that is overdue at once. Calendar
+        math runs in Home Assistant's local time zone.
+        """
+        done_at = dt_util.as_utc(task.last_completed_at or dt_util.utcnow())
+        if task.frequency == TaskFrequency.WEEKLY and task.weekdays:
+            return self._next_weekday_due(task, done_at)
+        step = max(1, task.repeat_interval)
+        if task.schedule_anchor == ScheduleAnchor.DUE_DATE and task.due_date:
+            start = dt_util.as_local(task.due_date)
+            periods = step
+            # Always from the due date itself (not the previous candidate) so month ends don't drift
+            while (candidate := _add_periods(start, task.frequency, periods)) <= done_at:
+                periods += step
+            return dt_util.as_utc(candidate)
+        return dt_util.as_utc(_add_periods(dt_util.as_local(done_at), task.frequency, step))
 
     @staticmethod
-    def _next_weekday_due(task: Task, now: datetime) -> datetime:
+    def _assumed_completion(task: Task, due: datetime, now: datetime) -> datetime:
+        """When a projection assumes the occurrence due at ``due`` gets done.
+
+        On its due date, or now when it is overdue. A task counted from
+        completion takes its time of day from the completion, so an overdue one
+        is assumed done today at its due time instead.
+        """
+        if due >= now:
+            return due
+        if task.schedule_anchor == ScheduleAnchor.DUE_DATE or (
+            task.frequency == TaskFrequency.WEEKLY and task.weekdays
+        ):
+            return now
+        today = dt_util.as_local(now).date()
+        return dt_util.as_utc(
+            datetime.combine(today, dt_util.as_local(due).time(), tzinfo=dt_util.DEFAULT_TIME_ZONE)
+        )
+
+    @staticmethod
+    def _next_weekday_due(task: Task, done_at: datetime) -> datetime:
         """Next due date for a weekly task pinned to specific weekdays.
 
-        Anchors on the later of the current due date and ``now``, so completing
-        early does not re-schedule the occurrence that was just done, then picks
-        the first selected weekday strictly after that anchor. The original due
+        Takes the next selected weekday of the same Monday-first week, or the
+        first selected weekday ``repeat_interval`` weeks on. Counts from the
+        later of the due date and the completion, so completing early does not
+        re-schedule the occurrence that was just done; with ``schedule_anchor``
+        "due_date" it steps from the due date instead and skips slots already
+        past, which keeps the fortnightly (or longer) rhythm. The original due
         time of day is kept so the schedule does not drift towards completion
         times. Weekday math runs in Home Assistant's local timezone.
         """
-        allowed = {WEEKDAYS.index(code) for code in task.weekdays if code in WEEKDAYS}
+        allowed = sorted({WEEKDAYS.index(code) for code in task.weekdays if code in WEEKDAYS})
+        step = max(1, task.repeat_interval)
         if not allowed:
-            return now + timedelta(weeks=1)
+            return done_at + timedelta(weeks=step)
 
-        now_utc = dt_util.as_utc(now)
         due_utc = dt_util.as_utc(task.due_date) if task.due_date else None
-        anchor_local = dt_util.as_local(max(now_utc, due_utc) if due_utc else now_utc)
-        time_of_day = (dt_util.as_local(due_utc) if due_utc else anchor_local).time()
+        time_of_day = dt_util.as_local(due_utc or done_at).time()
 
-        candidate = anchor_local.date() + timedelta(days=1)
-        while candidate.weekday() not in allowed:
-            candidate += timedelta(days=1)
+        def next_slot(day: date) -> date:
+            later = [d for d in allowed if d > day.weekday()]
+            if later:
+                return day + timedelta(days=later[0] - day.weekday())
+            week_start = day - timedelta(days=day.weekday())
+            return week_start + timedelta(weeks=step, days=allowed[0])
 
-        next_local = datetime.combine(candidate, time_of_day, tzinfo=dt_util.DEFAULT_TIME_ZONE)
-        return dt_util.as_utc(next_local)
+        def at(day: date) -> datetime:
+            return dt_util.as_utc(datetime.combine(day, time_of_day, tzinfo=dt_util.DEFAULT_TIME_ZONE))
+
+        if task.schedule_anchor == ScheduleAnchor.DUE_DATE and due_utc:
+            slot = next_slot(dt_util.as_local(due_utc).date())
+            while at(slot) <= done_at:
+                slot = next_slot(slot)
+            return at(slot)
+        anchor = max(done_at, due_utc) if due_utc else done_at
+        return at(next_slot(dt_util.as_local(anchor).date()))

@@ -42,6 +42,8 @@ async def async_get_config_entry_diagnostics(
                 "task_number": task.task_number,
                 "priority": str(task.priority),
                 "frequency": str(task.frequency),
+                "repeat_interval": task.repeat_interval,
+                "schedule_anchor": str(task.schedule_anchor),
                 "weekdays": list(task.weekdays),
                 "due_date": task.due_date.isoformat() if task.due_date else None,
                 "notify_days_before": task.notify_days_before,

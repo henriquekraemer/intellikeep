@@ -30,7 +30,9 @@ create_task:
             - critical
     frequency:
       name: Frequency
-      description: How often the task repeats.
+      description: >-
+        How often the task repeats; the unit of Repeat Every. "custom" with Custom Interval
+        (days) from earlier versions still works and is stored as daily.
       default: one_time
       selector:
         select:
@@ -40,17 +42,33 @@ create_task:
             - weekly
             - monthly
             - yearly
-            - custom
-    custom_days_interval:
-      name: Custom Interval (days)
-      description: Days between occurrences when frequency is "custom".
+    repeat_interval:
+      name: Repeat Every
+      description: Repeats every N days, weeks, months or years, following Frequency.
+      default: 1
       selector:
         number:
           min: 1
           max: 3650
           step: 1
           mode: box
-          unit_of_measurement: days
+    schedule_anchor:
+      name: Count Next Due Date From
+      description: >-
+        completion: the next occurrence is counted from when the task gets done, so a late
+        completion moves it too. due_date: it is counted from the task's due date, keeping a
+        fixed calendar.
+      default: completion
+      selector:
+        select:
+          options:
+            - completion
+            - due_date
+    icon:
+      name: Icon
+      description: Icon shown next to the task.
+      selector:
+        icon:
     weekdays:
       name: Weekdays
       description: Days of the week the task repeats on when frequency is "weekly". Leave empty to repeat every 7 days from the last completion.
@@ -116,7 +134,10 @@ complete_task:
 
 reopen_task:
   name: Reopen Task
-  description: Reopen a completed IntelliKeep task, marking it as pending again.
+  description: >-
+    Reopen a completed IntelliKeep task, marking it as pending again. The completion is undone:
+    its record leaves the history, and for a recurring task the next occurrence it created is
+    removed unless it was already edited, noted or completed.
   fields:
     task_id:
       name: Task ID
@@ -163,7 +184,26 @@ update_task:
       name: Frequency
       selector:
         select:
-          options: [one_time, daily, weekly, monthly, yearly, custom]
+          options: [one_time, daily, weekly, monthly, yearly]
+    repeat_interval:
+      name: Repeat Every
+      description: Repeats every N days, weeks, months or years, following Frequency.
+      selector:
+        number:
+          min: 1
+          max: 3650
+          step: 1
+          mode: box
+    schedule_anchor:
+      name: Count Next Due Date From
+      description: completion (from when it gets done) or due_date (fixed calendar).
+      selector:
+        select:
+          options: [completion, due_date]
+    icon:
+      name: Icon
+      selector:
+        icon:
     weekdays:
       name: Weekdays
       description: Days of the week the task repeats on when frequency is "weekly". Leave empty to repeat every 7 days from the last completion.

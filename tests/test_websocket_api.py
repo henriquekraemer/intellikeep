@@ -168,6 +168,29 @@ class TestRegisteredWebsocketCommands:
         connection.subscriptions[4]()
         unsubscribe.assert_called_once()
 
+    def test_get_repeats_returns_projected_due_dates(
+        self, websocket_commands, runtime_data, mock_hass
+    ):
+        commands, _ = websocket_commands
+        due = datetime(2025, 1, 15, 10, 0, tzinfo=timezone.utc)
+        task = make_task(name="Monthly", frequency=TaskFrequency.MONTHLY, due_date=due)
+        runtime_data.storage.upsert_task(task)
+        connection = MagicMock()
+
+        with patch(
+            "custom_components.intellikeep.task_manager.dt_util.utcnow",
+            return_value=due - timedelta(days=1),
+        ):
+            commands["ws_get_repeats"](
+                mock_hass,
+                connection,
+                {"id": 6, "start": due, "end": datetime(2025, 3, 1, tzinfo=timezone.utc)},
+            )
+
+        connection.send_result.assert_called_once_with(
+            6, {"repeats": [{"task_id": task.task_id, "due_date": "2025-02-15T10:00:00+00:00"}]}
+        )
+
     def test_get_version_returns_version(self, websocket_commands, mock_hass):
         commands, _ = websocket_commands
         connection = MagicMock()
@@ -185,7 +208,7 @@ class TestRegisteredWebsocketCommands:
             async_register_websocket_commands(mock_hass)
             async_register_websocket_commands(mock_hass)
 
-        assert register_command.call_count == 4
+        assert register_command.call_count == 5
 
     def test_runtime_data_lookup_fails_when_not_configured(self, mock_hass):
         with pytest.raises(ValueError, match="not configured"):

@@ -29,6 +29,11 @@
     }
   },
   "entity": {
+    "calendar": {
+      "tasks": {
+        "name": "Tareas"
+      }
+    },
     "sensor": {
       "tasks_due_today": {
         "name": "Tareas con vencimiento hoy"
@@ -38,6 +43,11 @@
       },
       "next_due_task": {
         "name": "Próxima tarea a vencer"
+      }
+    },
+    "todo": {
+      "tasks": {
+        "name": "Tareas"
       }
     }
   },
@@ -53,6 +63,9 @@
     },
     "invalid_weekdays": {
       "message": "Día(s) de la semana no válido(s): {weekdays}. Use mon, tue, wed, thu, fri, sat o sun."
+    },
+    "cannot_delete_completed": {
+      "message": "Las tareas completadas guardan su historial y salen de esta lista 30 días después de completarse. Para eliminar una, use el panel de IntelliKeep."
     }
   },
   "options": {

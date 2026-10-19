@@ -1,5 +1,10 @@
 {
   "entity": {
+    "calendar": {
+      "tasks": {
+        "default": "mdi:calendar-check-outline"
+      }
+    },
     "sensor": {
       "tasks_due_today": {
         "default": "mdi:clipboard-check-outline"
@@ -9,6 +14,11 @@
       },
       "next_due_task": {
         "default": "mdi:calendar-clock"
+      }
+    },
+    "todo": {
+      "tasks": {
+        "default": "mdi:clipboard-list-outline"
       }
     }
   }

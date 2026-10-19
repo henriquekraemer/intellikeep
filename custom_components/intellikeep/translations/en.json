@@ -29,6 +29,11 @@
     }
   },
   "entity": {
+    "calendar": {
+      "tasks": {
+        "name": "Tasks"
+      }
+    },
     "sensor": {
       "tasks_due_today": {
         "name": "Tasks Due Today"
@@ -38,6 +43,11 @@
       },
       "next_due_task": {
         "name": "Next Due Task"
+      }
+    },
+    "todo": {
+      "tasks": {
+        "name": "Tasks"
       }
     }
   },
@@ -53,6 +63,9 @@
     },
     "invalid_weekdays": {
       "message": "Invalid weekday value(s): {weekdays}. Use mon, tue, wed, thu, fri, sat or sun."
+    },
+    "cannot_delete_completed": {
+      "message": "Completed tasks keep their history and leave this list 30 days after completion. To delete one, use the IntelliKeep panel."
     }
   },
   "options": {

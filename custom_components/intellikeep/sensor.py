@@ -4,10 +4,10 @@ from __future__ import annotations
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, SENSOR_NEXT_DUE, SENSOR_TASKS_DUE, SENSOR_TASKS_OVERDUE
+from .const import SENSOR_NEXT_DUE, SENSOR_TASKS_DUE, SENSOR_TASKS_OVERDUE
 from .coordinator import IntelliKeepCoordinator
+from .entity import IntelliKeepEntity
 from .runtime_data import IntelliKeepConfigEntry, IntelliKeepRuntimeData
 
 PARALLEL_UPDATES = 0
@@ -29,21 +29,8 @@ async def async_setup_entry(
     )
 
 
-class _IntelliKeepSensorBase(CoordinatorEntity[IntelliKeepCoordinator], SensorEntity):
-    _attr_has_entity_name = True
-
-    def __init__(self, coordinator: IntelliKeepCoordinator, entry: IntelliKeepConfigEntry) -> None:
-        super().__init__(coordinator)
-        self._entry = entry
-
-    @property
-    def device_info(self) -> dict[str, object]:
-        return {
-            "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": self._entry.title,
-            "manufacturer": "Intellilar",
-            "model": "IntelliKeep",
-        }
+class _IntelliKeepSensorBase(IntelliKeepEntity, SensorEntity):
+    pass
 
 
 class IntelliKeepDueCountSensor(_IntelliKeepSensorBase):
@@ -110,5 +97,6 @@ class IntelliKeepNextDueSensor(_IntelliKeepSensorBase):
             "priority": str(task.priority),
             "linked_entity_ids": task.linked_entity_ids,
             "frequency": str(task.frequency),
+            "repeat_interval": task.repeat_interval,
             "weekdays": list(task.weekdays),
         }
