@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- New icon and logo: a house whose outline ends in a cycle arrow, with a gear and wrench inside. Both come in light and dark versions, each also at @2x for high-resolution screens, and the sidebar icon uses the same design.
+
 ## [2.0.0] - 2026-10-19
 
 ### Upgrading from 1.x
