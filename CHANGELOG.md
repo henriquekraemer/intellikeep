@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file.
 - The device's manufacturer, the license and the README credit Henrique Kraemer instead of Intellilar.
 - The README is shorter and links to the documentation site for the details.
 - The action editor shows `performed_by` for `reopen_task` and `notify_on_overdue` for `update_task`. Both fields already worked.
+- The manifest files IntelliKeep under Productivity & information, Calendars & to-dos, the category that HACS and the Home Assistant Marketplace show it in.
+- `hacs.json` drops `render_readme`, which HACS no longer reads.
 
 ### Fixed
 

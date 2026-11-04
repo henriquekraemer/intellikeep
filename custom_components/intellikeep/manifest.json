@@ -4,6 +4,9 @@
   "after_dependencies": [
     "notify"
   ],
+  "categories": [
+    "productivity_information.calendars_todos"
+  ],
   "codeowners": [
     "@henriquekraemer"
   ],
