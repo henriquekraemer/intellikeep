@@ -714,7 +714,7 @@ window.customCards.push({
     type: "intellikeep-card",
     name: "IntelliKeep Card",
     description: "Overdue and upcoming IntelliKeep tasks, completed with one click.",
-    documentationURL: "https://github.com/henriquekraemer/intellikeep",
+    documentationURL: "https://henriquekraemer.github.io/intellikeep-doc/lovelace-card",
 });
 
 export { IntelliKeepCard };

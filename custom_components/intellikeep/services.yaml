@@ -1,41 +1,32 @@
+# Names and descriptions of the actions and their fields live in
+# translations/*.json (and strings.json), under "services".
+
 load_sample_data:
-  name: Load Sample Data
-  description: Populate IntelliKeep with sample home maintenance tasks for testing and demonstration.
 
 create_task:
-  name: Create Task
-  description: Create a new IntelliKeep maintenance task.
   fields:
     name:
-      name: Name
-      description: Task name.
       required: true
       selector:
         text:
     description:
-      name: Description
-      description: Optional task description.
       selector:
         text:
     priority:
-      name: Priority
-      description: Task priority level.
       default: medium
       selector:
         select:
+          translation_key: priority
           options:
             - low
             - medium
             - high
             - critical
     frequency:
-      name: Frequency
-      description: >-
-        How often the task repeats; the unit of Repeat Every. "custom" with Custom Interval
-        (days) from earlier versions still works and is stored as daily.
       default: one_time
       selector:
         select:
+          translation_key: frequency
           options:
             - one_time
             - daily
@@ -43,8 +34,6 @@ create_task:
             - monthly
             - yearly
     repeat_interval:
-      name: Repeat Every
-      description: Repeats every N days, weeks, months or years, following Frequency.
       default: 1
       selector:
         number:
@@ -53,28 +42,21 @@ create_task:
           step: 1
           mode: box
     schedule_anchor:
-      name: Count Next Due Date From
-      description: >-
-        completion: the next occurrence is counted from when the task gets done, so a late
-        completion moves it too. due_date: it is counted from the task's due date, keeping a
-        fixed calendar.
       default: completion
       selector:
         select:
+          translation_key: schedule_anchor
           options:
             - completion
             - due_date
     icon:
-      name: Icon
-      description: Icon shown next to the task.
       selector:
         icon:
     weekdays:
-      name: Weekdays
-      description: Days of the week the task repeats on when frequency is "weekly". Leave empty to repeat every 7 days from the last completion.
       selector:
         select:
           multiple: true
+          translation_key: weekdays
           options:
             - mon
             - tue
@@ -84,19 +66,13 @@ create_task:
             - sat
             - sun
     due_date:
-      name: Due Date
-      description: When the task is due.
       selector:
         datetime:
     linked_entity_ids:
-      name: Linked Entities
-      description: Home Assistant entity IDs associated with this task.
       selector:
         entity:
           multiple: true
     notify_days_before:
-      name: Notify Days Before
-      description: How many days before due date to send a reminder.
       default: 1
       selector:
         number:
@@ -104,90 +80,64 @@ create_task:
           max: 365
           unit_of_measurement: days
     notify_on_overdue:
-      name: Notify When Overdue
-      description: Send a notification when the task becomes overdue.
       default: true
       selector:
         boolean:
 
 complete_task:
-  name: Complete Task
-  description: Mark an IntelliKeep task as completed.
   fields:
     task_id:
-      name: Task ID
-      description: The unique ID of the task to complete.
       required: true
       selector:
         text:
     completed_by:
-      name: Completed By
-      description: Name or identifier of who completed the task.
       selector:
         text:
     notes:
-      name: Notes
-      description: Optional completion notes.
       selector:
         text:
           multiline: true
 
 reopen_task:
-  name: Reopen Task
-  description: >-
-    Reopen a completed IntelliKeep task, marking it as pending again. The completion is undone:
-    its record leaves the history, and for a recurring task the next occurrence it created is
-    removed unless it was already edited, noted or completed.
   fields:
     task_id:
-      name: Task ID
-      description: The unique ID of the task to reopen.
       required: true
+      selector:
+        text:
+    performed_by:
       selector:
         text:
 
 delete_task:
-  name: Delete Task
-  description: Permanently delete an IntelliKeep task.
   fields:
     task_id:
-      name: Task ID
-      description: The unique ID of the task to delete.
       required: true
       selector:
         text:
 
 update_task:
-  name: Update Task
-  description: Update fields of an existing IntelliKeep task.
   fields:
     task_id:
-      name: Task ID
-      description: The unique ID of the task to update.
       required: true
       selector:
         text:
     name:
-      name: Name
       selector:
         text:
     description:
-      name: Description
       selector:
         text:
     priority:
-      name: Priority
       selector:
         select:
+          translation_key: priority
           options: [low, medium, high, critical]
     frequency:
-      name: Frequency
       selector:
         select:
+          translation_key: frequency
           options: [one_time, daily, weekly, monthly, yearly]
     repeat_interval:
-      name: Repeat Every
-      description: Repeats every N days, weeks, months or years, following Frequency.
       selector:
         number:
           min: 1
@@ -195,94 +145,66 @@ update_task:
           step: 1
           mode: box
     schedule_anchor:
-      name: Count Next Due Date From
-      description: completion (from when it gets done) or due_date (fixed calendar).
       selector:
         select:
+          translation_key: schedule_anchor
           options: [completion, due_date]
     icon:
-      name: Icon
       selector:
         icon:
     weekdays:
-      name: Weekdays
-      description: Days of the week the task repeats on when frequency is "weekly". Leave empty to repeat every 7 days from the last completion.
       selector:
         select:
           multiple: true
-          options:
-            - mon
-            - tue
-            - wed
-            - thu
-            - fri
-            - sat
-            - sun
+          translation_key: weekdays
+          options: [mon, tue, wed, thu, fri, sat, sun]
     due_date:
-      name: Due Date
       selector:
         datetime:
     linked_entity_ids:
-      name: Linked Entities
       selector:
         entity:
           multiple: true
     notify_days_before:
-      name: Notify Days Before
       selector:
         number:
           min: 0
           max: 365
+          unit_of_measurement: days
+    notify_on_overdue:
+      selector:
+        boolean:
     enabled:
-      name: Enabled
       selector:
         boolean:
     updated_by:
-      name: Updated By
-      description: Name or identifier of who made the update.
       selector:
         text:
 
 add_task_note:
-  name: Add Task Note
-  description: Add a note to an existing IntelliKeep task.
   fields:
     task_id:
-      name: Task ID
-      description: The unique ID of the task to add a note to.
       required: true
       selector:
         text:
     content:
-      name: Content
-      description: The text content of the note.
       required: true
       selector:
         text:
           multiline: true
     added_by:
-      name: Added By
-      description: Name or identifier of who added the note.
       selector:
         text:
 
 delete_task_note:
-  name: Delete Task Note
-  description: Delete a specific note from an IntelliKeep task.
   fields:
     task_id:
-      name: Task ID
-      description: The unique ID of the task that owns the note.
       required: true
       selector:
         text:
     note_id:
-      name: Note ID
-      description: The unique ID of the note to delete.
       required: true
       selector:
         text:
 
 delete_all_data:
-  name: Delete All Data
-  description: Permanently delete all IntelliKeep tasks, notes and execution history.

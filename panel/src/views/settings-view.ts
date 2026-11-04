@@ -5,6 +5,32 @@ import { t } from "../translations";
 import { deleteAllData } from "../api";
 import "../components/confirm-dialog";
 
+const ACTIONS = [
+  "create_task",
+  "update_task",
+  "complete_task",
+  "reopen_task",
+  "delete_task",
+  "add_task_note",
+  "delete_task_note",
+  "load_sample_data",
+  "delete_all_data",
+].map((action) => `intellikeep.${action}`);
+
+const EVENTS = ["intellikeep_task_notification", "intellikeep_task_updated"];
+
+/** Entity IDs with the default instance name, for when the entity registry isn't available. */
+const DEFAULT_ENTITY_IDS = [
+  "calendar.intellikeep_tasks",
+  "sensor.intellikeep_next_due_task",
+  "sensor.intellikeep_tasks_due_today",
+  "sensor.intellikeep_tasks_overdue",
+  "todo.intellikeep_tasks",
+];
+
+/** HA's Store API saves under .storage/<key>, without an extension. */
+const STORAGE_FILE = ".storage/intellikeep";
+
 @customElement("ik-settings-view")
 export class IkSettingsView extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
@@ -24,14 +50,26 @@ export class IkSettingsView extends LitElement {
     p { color: var(--secondary-text-color); font-size: 14px; line-height: 1.5; }
     .info-row {
       display: flex;
-      align-items: center;
+      align-items: baseline;
       gap: 10px;
       padding: 10px 0;
       border-bottom: 1px solid var(--divider-color);
     }
-    .info-row:last-child { border-bottom: none; }
-    .info-label { font-size: 13px; color: var(--secondary-text-color); min-width: 160px; }
-    .info-value { font-size: 14px; color: var(--primary-text-color); font-weight: 500; }
+    .info-row:last-child,
+    .info-row:has(+ .danger-zone) { border-bottom: none; }
+    .info-label { font-size: 13px; color: var(--secondary-text-color); min-width: 160px; flex-shrink: 0; }
+    .info-value {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 12px;
+      min-width: 0;
+      font-size: 13px;
+      color: var(--primary-text-color);
+    }
+    .info-value code {
+      font-family: var(--ha-font-family-code, var(--code-font-family, monospace));
+      overflow-wrap: anywhere;
+    }
     .toggle-row {
       display: flex;
       align-items: center;
@@ -111,6 +149,24 @@ export class IkSettingsView extends LitElement {
     .btn-danger:disabled { opacity: 0.6; cursor: default; }
   `;
 
+  /** IntelliKeep's entity IDs as registered, so a renamed instance or entity shows its real ID. */
+  private get _entityIds(): string[] {
+    const ids = Object.values(this.hass?.entities ?? {})
+      .filter((entity) => entity.platform === "intellikeep")
+      .map((entity) => entity.entity_id)
+      .sort();
+    return ids.length ? ids : DEFAULT_ENTITY_IDS;
+  }
+
+  private _renderInfoRow(label: string, values: string[]) {
+    return html`
+      <div class="info-row">
+        <span class="info-label">${label}</span>
+        <span class="info-value">${values.map((value) => html`<code>${value}</code>`)}</span>
+      </div>
+    `;
+  }
+
   render() {
     const tr = t(this.hass?.language);
     return html`
@@ -132,29 +188,19 @@ export class IkSettingsView extends LitElement {
               <span class="slider"></span>
             </label>
           </div>
-          <div class="info-row">
-            <span class="info-label">Available services</span>
-            <span class="info-value">intellikeep.create_task, intellikeep.complete_task, intellikeep.delete_task, intellikeep.update_task</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">HA Event</span>
-            <span class="info-value">intellikeep_task_notification</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Storage location</span>
-            <span class="info-value">.storage/intellikeep.json</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Sensors</span>
-            <span class="info-value">sensor.tasks_due_today · sensor.tasks_overdue · sensor.next_due_task</span>
-          </div>
-          <div class="danger-zone">
-            <h4>Danger zone</h4>
-            <button class="btn-danger" ?disabled=${this._deletingAll} @click=${() => { this._showDeleteAllConfirm = true; }}>
-              <ha-icon icon="mdi:delete-sweep"></ha-icon>
-              ${tr.deleteAllBtn}
-            </button>
-          </div>
+          ${this._renderInfoRow(tr.infoActions, ACTIONS)}
+          ${this._renderInfoRow(tr.infoEvents, EVENTS)}
+          ${this._renderInfoRow(tr.infoEntities, this._entityIds)}
+          ${this._renderInfoRow(tr.infoStorage, [STORAGE_FILE])}
+          ${this.hass?.user?.is_admin ? html`
+            <div class="danger-zone">
+              <h4>${tr.dangerZone}</h4>
+              <button class="btn-danger" ?disabled=${this._deletingAll} @click=${() => { this._showDeleteAllConfirm = true; }}>
+                <ha-icon icon="mdi:delete-sweep"></ha-icon>
+                ${tr.deleteAllBtn}
+              </button>
+            </div>
+          ` : ""}
         </div>
         <ik-confirm-dialog
           .heading=${tr.deleteAllHeading}

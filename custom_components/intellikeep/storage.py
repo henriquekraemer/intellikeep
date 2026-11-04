@@ -14,7 +14,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class IntelliKeepStorage:
-    """Manages persistence via HA's Store (.storage/intellikeep.json)."""
+    """Manages persistence via HA's Store (.storage/intellikeep, no extension)."""
 
     def __init__(self, hass: HomeAssistant) -> None:
         self._store: Store[dict[str, Any]] = Store(

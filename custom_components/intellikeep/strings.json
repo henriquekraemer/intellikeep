@@ -78,5 +78,245 @@
         }
       }
     }
+  },
+  "selector": {
+    "priority": {
+      "options": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "critical": "Critical"
+      }
+    },
+    "frequency": {
+      "options": {
+        "one_time": "Does not repeat",
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly",
+        "yearly": "Yearly"
+      }
+    },
+    "schedule_anchor": {
+      "options": {
+        "completion": "Completion date",
+        "due_date": "Original due date"
+      }
+    },
+    "weekdays": {
+      "options": {
+        "mon": "Monday",
+        "tue": "Tuesday",
+        "wed": "Wednesday",
+        "thu": "Thursday",
+        "fri": "Friday",
+        "sat": "Saturday",
+        "sun": "Sunday"
+      }
+    }
+  },
+  "services": {
+    "load_sample_data": {
+      "name": "Load sample data",
+      "description": "Adds sample home maintenance tasks, for trying IntelliKeep out."
+    },
+    "create_task": {
+      "name": "Create task",
+      "description": "Creates an IntelliKeep maintenance task.",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "Task name."
+        },
+        "description": {
+          "name": "Description",
+          "description": "Optional details about the task."
+        },
+        "priority": {
+          "name": "Priority",
+          "description": "How important the task is."
+        },
+        "frequency": {
+          "name": "Frequency",
+          "description": "How often the task repeats: the unit of Repeat every. The value \"custom\" from version 1.x, with custom_days_interval, still works and is saved as daily."
+        },
+        "repeat_interval": {
+          "name": "Repeat every",
+          "description": "Repeats every N days, weeks, months or years, in the unit set by Frequency."
+        },
+        "schedule_anchor": {
+          "name": "Count next due date from",
+          "description": "Completion date: a late completion moves the next one too. Original due date: keeps a fixed calendar."
+        },
+        "icon": {
+          "name": "Icon",
+          "description": "Icon shown next to the task."
+        },
+        "weekdays": {
+          "name": "Weekdays",
+          "description": "Days of the week a weekly task repeats on. With no days, it repeats every 7 days after each completion."
+        },
+        "due_date": {
+          "name": "Due date",
+          "description": "When the task is due."
+        },
+        "linked_entity_ids": {
+          "name": "Linked entities",
+          "description": "Home Assistant entities the task belongs to. The area and device filters in the panel use them."
+        },
+        "notify_days_before": {
+          "name": "Notify days before",
+          "description": "How many days before the due date the reminder is sent."
+        },
+        "notify_on_overdue": {
+          "name": "Notify when overdue",
+          "description": "Send a notification when the task becomes overdue."
+        }
+      }
+    },
+    "complete_task": {
+      "name": "Complete task",
+      "description": "Marks a task as done. A recurring task gets its next occurrence.",
+      "fields": {
+        "task_id": {
+          "name": "Task ID",
+          "description": "ID of the task to complete."
+        },
+        "completed_by": {
+          "name": "Completed by",
+          "description": "Who completed the task."
+        },
+        "notes": {
+          "name": "Notes",
+          "description": "Optional notes about the completion."
+        }
+      }
+    },
+    "reopen_task": {
+      "name": "Reopen task",
+      "description": "Reopens a completed task and undoes the completion: its record leaves the history, and for a recurring task the next occurrence it created is removed unless it was already edited, noted or completed.",
+      "fields": {
+        "task_id": {
+          "name": "Task ID",
+          "description": "ID of the task to reopen."
+        },
+        "performed_by": {
+          "name": "Reopened by",
+          "description": "Who reopened the task, shown in the activity log."
+        }
+      }
+    },
+    "delete_task": {
+      "name": "Delete task",
+      "description": "Permanently deletes a task, with its notes and history.",
+      "fields": {
+        "task_id": {
+          "name": "Task ID",
+          "description": "ID of the task to delete."
+        }
+      }
+    },
+    "update_task": {
+      "name": "Update task",
+      "description": "Changes fields of an existing task. Fields left out keep their value.",
+      "fields": {
+        "task_id": {
+          "name": "Task ID",
+          "description": "ID of the task to update."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Task name."
+        },
+        "description": {
+          "name": "Description",
+          "description": "Optional details about the task."
+        },
+        "priority": {
+          "name": "Priority",
+          "description": "How important the task is."
+        },
+        "frequency": {
+          "name": "Frequency",
+          "description": "How often the task repeats: the unit of Repeat every. The value \"custom\" from version 1.x, with custom_days_interval, still works and is saved as daily."
+        },
+        "repeat_interval": {
+          "name": "Repeat every",
+          "description": "Repeats every N days, weeks, months or years, in the unit set by Frequency."
+        },
+        "schedule_anchor": {
+          "name": "Count next due date from",
+          "description": "Completion date: a late completion moves the next one too. Original due date: keeps a fixed calendar."
+        },
+        "icon": {
+          "name": "Icon",
+          "description": "Icon shown next to the task."
+        },
+        "weekdays": {
+          "name": "Weekdays",
+          "description": "Days of the week a weekly task repeats on. With no days, it repeats every 7 days after each completion."
+        },
+        "due_date": {
+          "name": "Due date",
+          "description": "When the task is due."
+        },
+        "linked_entity_ids": {
+          "name": "Linked entities",
+          "description": "Home Assistant entities the task belongs to. The area and device filters in the panel use them."
+        },
+        "notify_days_before": {
+          "name": "Notify days before",
+          "description": "How many days before the due date the reminder is sent."
+        },
+        "notify_on_overdue": {
+          "name": "Notify when overdue",
+          "description": "Send a notification when the task becomes overdue."
+        },
+        "enabled": {
+          "name": "Enabled",
+          "description": "Off closes the task without recording a completion, on opens it again. To complete a task, use Complete task."
+        },
+        "updated_by": {
+          "name": "Updated by",
+          "description": "Who made the change, shown in the activity log."
+        }
+      }
+    },
+    "add_task_note": {
+      "name": "Add task note",
+      "description": "Adds a note to a task.",
+      "fields": {
+        "task_id": {
+          "name": "Task ID",
+          "description": "ID of the task to add the note to."
+        },
+        "content": {
+          "name": "Content",
+          "description": "Text of the note."
+        },
+        "added_by": {
+          "name": "Added by",
+          "description": "Who added the note."
+        }
+      }
+    },
+    "delete_task_note": {
+      "name": "Delete task note",
+      "description": "Deletes a note from a task.",
+      "fields": {
+        "task_id": {
+          "name": "Task ID",
+          "description": "ID of the task that has the note."
+        },
+        "note_id": {
+          "name": "Note ID",
+          "description": "ID of the note to delete."
+        }
+      }
+    },
+    "delete_all_data": {
+      "name": "Delete all data",
+      "description": "Permanently deletes every IntelliKeep task, note and completion record. Admins only."
+    }
   }
 }
