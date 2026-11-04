@@ -79,5 +79,245 @@
         }
       }
     }
+  },
+  "selector": {
+    "priority": {
+      "options": {
+        "low": "Baja",
+        "medium": "Media",
+        "high": "Alta",
+        "critical": "Crítica"
+      }
+    },
+    "frequency": {
+      "options": {
+        "one_time": "No se repite",
+        "daily": "Diaria",
+        "weekly": "Semanal",
+        "monthly": "Mensual",
+        "yearly": "Anual"
+      }
+    },
+    "schedule_anchor": {
+      "options": {
+        "completion": "Fecha de finalización",
+        "due_date": "Fecha de vencimiento original"
+      }
+    },
+    "weekdays": {
+      "options": {
+        "mon": "Lunes",
+        "tue": "Martes",
+        "wed": "Miércoles",
+        "thu": "Jueves",
+        "fri": "Viernes",
+        "sat": "Sábado",
+        "sun": "Domingo"
+      }
+    }
+  },
+  "services": {
+    "load_sample_data": {
+      "name": "Cargar datos de ejemplo",
+      "description": "Agrega tareas de mantenimiento de ejemplo para probar IntelliKeep."
+    },
+    "create_task": {
+      "name": "Crear tarea",
+      "description": "Crea una tarea de mantenimiento en IntelliKeep.",
+      "fields": {
+        "name": {
+          "name": "Nombre",
+          "description": "Nombre de la tarea."
+        },
+        "description": {
+          "name": "Descripción",
+          "description": "Detalles opcionales de la tarea."
+        },
+        "priority": {
+          "name": "Prioridad",
+          "description": "La importancia de la tarea."
+        },
+        "frequency": {
+          "name": "Frecuencia",
+          "description": "Cada cuánto se repite la tarea: la unidad de Repetir cada. El valor \"custom\" de la versión 1.x, con custom_days_interval, sigue funcionando y se guarda como diaria."
+        },
+        "repeat_interval": {
+          "name": "Repetir cada",
+          "description": "Se repite cada N días, semanas, meses o años, en la unidad de la Frecuencia."
+        },
+        "schedule_anchor": {
+          "name": "Contar el próximo vencimiento desde la",
+          "description": "Fecha de finalización: si se completa tarde, la siguiente también se retrasa. Fecha de vencimiento original: mantiene un calendario fijo."
+        },
+        "icon": {
+          "name": "Icono",
+          "description": "Icono que se muestra junto a la tarea."
+        },
+        "weekdays": {
+          "name": "Días de la semana",
+          "description": "Días en que se repite una tarea semanal. Sin ningún día, se repite cada 7 días después de cada finalización."
+        },
+        "due_date": {
+          "name": "Fecha de vencimiento",
+          "description": "Cuándo vence la tarea."
+        },
+        "linked_entity_ids": {
+          "name": "Entidades vinculadas",
+          "description": "Entidades de Home Assistant asociadas a la tarea. Los filtros de área y dispositivo del panel usan estos vínculos."
+        },
+        "notify_days_before": {
+          "name": "Avisar días antes",
+          "description": "Cuántos días antes del vencimiento se envía el recordatorio."
+        },
+        "notify_on_overdue": {
+          "name": "Notificar cuando esté vencida",
+          "description": "Envía una notificación cuando la tarea queda vencida."
+        }
+      }
+    },
+    "complete_task": {
+      "name": "Completar tarea",
+      "description": "Marca una tarea como completada. Una tarea recurrente recibe su próxima ocurrencia.",
+      "fields": {
+        "task_id": {
+          "name": "ID de la tarea",
+          "description": "ID de la tarea a completar."
+        },
+        "completed_by": {
+          "name": "Completada por",
+          "description": "Quién completó la tarea."
+        },
+        "notes": {
+          "name": "Notas",
+          "description": "Notas opcionales sobre la finalización."
+        }
+      }
+    },
+    "reopen_task": {
+      "name": "Reabrir tarea",
+      "description": "Reabre una tarea completada y deshace la finalización: el registro sale del historial y, en una tarea recurrente, se elimina la siguiente ocurrencia que creó, salvo que ya se haya editado, tenga notas o esté completada.",
+      "fields": {
+        "task_id": {
+          "name": "ID de la tarea",
+          "description": "ID de la tarea a reabrir."
+        },
+        "performed_by": {
+          "name": "Reabierta por",
+          "description": "Quién reabrió la tarea, mostrado en el registro de actividad."
+        }
+      }
+    },
+    "delete_task": {
+      "name": "Eliminar tarea",
+      "description": "Elimina una tarea de forma permanente, con sus notas e historial.",
+      "fields": {
+        "task_id": {
+          "name": "ID de la tarea",
+          "description": "ID de la tarea a eliminar."
+        }
+      }
+    },
+    "update_task": {
+      "name": "Actualizar tarea",
+      "description": "Cambia campos de una tarea existente. Los campos que no se envían conservan su valor.",
+      "fields": {
+        "task_id": {
+          "name": "ID de la tarea",
+          "description": "ID de la tarea a actualizar."
+        },
+        "name": {
+          "name": "Nombre",
+          "description": "Nombre de la tarea."
+        },
+        "description": {
+          "name": "Descripción",
+          "description": "Detalles opcionales de la tarea."
+        },
+        "priority": {
+          "name": "Prioridad",
+          "description": "La importancia de la tarea."
+        },
+        "frequency": {
+          "name": "Frecuencia",
+          "description": "Cada cuánto se repite la tarea: la unidad de Repetir cada. El valor \"custom\" de la versión 1.x, con custom_days_interval, sigue funcionando y se guarda como diaria."
+        },
+        "repeat_interval": {
+          "name": "Repetir cada",
+          "description": "Se repite cada N días, semanas, meses o años, en la unidad de la Frecuencia."
+        },
+        "schedule_anchor": {
+          "name": "Contar el próximo vencimiento desde la",
+          "description": "Fecha de finalización: si se completa tarde, la siguiente también se retrasa. Fecha de vencimiento original: mantiene un calendario fijo."
+        },
+        "icon": {
+          "name": "Icono",
+          "description": "Icono que se muestra junto a la tarea."
+        },
+        "weekdays": {
+          "name": "Días de la semana",
+          "description": "Días en que se repite una tarea semanal. Sin ningún día, se repite cada 7 días después de cada finalización."
+        },
+        "due_date": {
+          "name": "Fecha de vencimiento",
+          "description": "Cuándo vence la tarea."
+        },
+        "linked_entity_ids": {
+          "name": "Entidades vinculadas",
+          "description": "Entidades de Home Assistant asociadas a la tarea. Los filtros de área y dispositivo del panel usan estos vínculos."
+        },
+        "notify_days_before": {
+          "name": "Avisar días antes",
+          "description": "Cuántos días antes del vencimiento se envía el recordatorio."
+        },
+        "notify_on_overdue": {
+          "name": "Notificar cuando esté vencida",
+          "description": "Envía una notificación cuando la tarea queda vencida."
+        },
+        "enabled": {
+          "name": "Activa",
+          "description": "Desactivada, cierra la tarea sin registrar una finalización; activada, la abre de nuevo. Para completar una tarea, usa Completar tarea."
+        },
+        "updated_by": {
+          "name": "Actualizada por",
+          "description": "Quién hizo el cambio, mostrado en el registro de actividad."
+        }
+      }
+    },
+    "add_task_note": {
+      "name": "Agregar nota",
+      "description": "Agrega una nota a una tarea.",
+      "fields": {
+        "task_id": {
+          "name": "ID de la tarea",
+          "description": "ID de la tarea que recibe la nota."
+        },
+        "content": {
+          "name": "Contenido",
+          "description": "Texto de la nota."
+        },
+        "added_by": {
+          "name": "Agregada por",
+          "description": "Quién agregó la nota."
+        }
+      }
+    },
+    "delete_task_note": {
+      "name": "Eliminar nota",
+      "description": "Elimina una nota de una tarea.",
+      "fields": {
+        "task_id": {
+          "name": "ID de la tarea",
+          "description": "ID de la tarea que tiene la nota."
+        },
+        "note_id": {
+          "name": "ID de la nota",
+          "description": "ID de la nota a eliminar."
+        }
+      }
+    },
+    "delete_all_data": {
+      "name": "Eliminar todos los datos",
+      "description": "Elimina de forma permanente todas las tareas, notas e historial de ejecuciones de IntelliKeep. Solo administradores."
+    }
   }
 }

@@ -1,7 +1,7 @@
 """IntelliKeep — Home Maintenance System for Home Assistant.
 
-An Intellilar product. Manages one-time and recurring maintenance tasks,
-linked to HA entities, with notifications and execution history.
+Manages one-time and recurring maintenance tasks, linked to HA entities,
+with notifications and execution history.
 """
 from __future__ import annotations
 
@@ -69,6 +69,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: IntelliKeepConfigEntry) 
     notification_manager = NotificationManager(
         hass, task_manager, notification_service or None
     )
+    await notification_manager.async_load()
     notification_manager.start()
 
     notify_days_before_default = entry.options.get(

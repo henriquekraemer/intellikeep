@@ -25,7 +25,7 @@ class IntelliKeepEntity(CoordinatorEntity[IntelliKeepCoordinator]):
         return {
             "identifiers": {(DOMAIN, self._entry.entry_id)},
             "name": self._entry.title,
-            "manufacturer": "Intellilar",
+            "manufacturer": "Henrique Kraemer",
             "model": "IntelliKeep",
         }
 

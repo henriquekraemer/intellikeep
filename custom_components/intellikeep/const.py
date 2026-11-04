@@ -4,6 +4,8 @@ from __future__ import annotations
 DOMAIN = "intellikeep"
 STORAGE_VERSION = 1
 STORAGE_KEY = DOMAIN
+# Which reminders were already sent, so a restart doesn't send them again
+NOTIFICATIONS_STORAGE_KEY = f"{DOMAIN}.notifications"
 
 # Config entry keys
 CONF_INSTANCE_NAME = "instance_name"

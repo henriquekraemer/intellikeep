@@ -77,7 +77,7 @@ Key modules:
 - **`coordinator.py`** — `DataUpdateCoordinator` refreshing every 5 minutes for sensor entities.
 - **`services.py`** — Registers HA services (`create_task`, `complete_task`, `reopen_task`, `update_task`, `delete_task`, `add_task_note`, `delete_task_note`, `load_sample_data`, `delete_all_data`).
 - **`websocket_api.py`** — WebSocket commands used by the panel and card (`get_tasks`, `get_task`, `subscribe`, `get_version`, and `get_repeats`, the future repeats of recurring tasks that `TaskManager.get_future_repeats` projects for the panel calendar).
-- **`notifications.py`** — Hourly background task; deduplicates within a session (resets on HA restart).
+- **`notifications.py`** — Hourly background task. Sends each reminder once per task, kind (approaching/overdue) and due date; what was sent is saved in its own Store (`.storage/intellikeep.notifications`), so restarts don't resend. Texts are in `MESSAGES` (en/pt/es), picked by Home Assistant's server language.
 - **`sensor.py`** — Three sensor entities: `tasks_due_today`, `tasks_overdue`, `next_due_task`.
 - **`todo.py`** / **`calendar.py`** — `todo.intellikeep_tasks` (open tasks plus the last 30 days of completions; checking completes, unchecking reopens, completed items can't be deleted) and the read-only `calendar.intellikeep_tasks` (open tasks on their due dates; local midnight means all day). Both read `coordinator.data["all_tasks"]`; `entity.py` holds their shared base and due-date helpers.
 - **`config_flow.py`** — Single-instance config flow. Options: `instance_name`, `notify_days_before_default`, `notification_service`.
@@ -99,7 +99,12 @@ The frontend is decoupled from business logic; it communicates exclusively throu
 
 ### Translations
 
-Two separate systems: the backend uses `strings.json` + `translations/{en,es,pt}.json` (config flow, services, sensor names), while the panel has its own translation table in `panel/src/translations.ts`. User-visible string changes usually touch both.
+Two separate systems: the backend uses `strings.json` + `translations/{en,es,pt,pt-BR}.json` (config flow, actions and their select options, entity names, exceptions), while the panel has its own translation table in `panel/src/translations.ts`. User-visible string changes usually touch both.
+
+- `services.yaml` holds only the schema; action and field names and descriptions live under `services` in the translations, and select options under `selector` (via `translation_key`).
+- Home Assistant reads `<language>.json` with only an English fallback, so "Português (Brasil)" needs `pt-BR.json`: keep it identical to `pt.json`.
+- `tests/test_translations.py` checks that every locale has the same keys as `en.json`, that `strings.json` matches `en.json`, and that every action, field and select option in `services.yaml` is translated.
+- Reminder texts are not in the translation files (Home Assistant has no category for them): they are in `notifications.py`.
 
 ## Key Implementation Details
 

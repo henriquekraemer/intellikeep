@@ -87,6 +87,8 @@ export interface HomeAssistant {
   };
   callService(domain: string, service: string, data?: Record<string, unknown>): Promise<void>;
   states: Record<string, { state: string; attributes: Record<string, unknown> }>;
+  /** Entity registry display entries, keyed by entity ID. */
+  entities?: Record<string, { entity_id: string; platform?: string }>;
   themes: unknown;
   user: { id: string; name: string; is_admin: boolean };
   language: string;

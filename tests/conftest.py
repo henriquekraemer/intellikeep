@@ -20,6 +20,7 @@ from custom_components.intellikeep.task_manager import TaskManager
 def mock_hass():
     hass = MagicMock()
     hass.data = {}
+    hass.config.language = "en"
     hass.http = MagicMock()
     hass.http.async_register_static_paths = AsyncMock()
     hass.services = MagicMock()

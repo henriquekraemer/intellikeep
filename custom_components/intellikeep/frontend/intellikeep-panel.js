@@ -242,15 +242,18 @@ const messages = {
         activityReopened: "Reopened",
         activityNoteAdded: "Note added",
         activityNoteDeleted: "Note deleted",
-        settingsHeading: "IntelliKeep Settings",
-        settingsBody: "To change integration settings, go to Settings → Devices & Services → IntelliKeep → Configure.",
         rowsPerPage: "Rows per page:",
         of: "of",
         animationsLabel: "Task animations",
         animationsDesc: "Enable transitions and slide-out effects when completing, deleting, reopening or navigating tasks.",
+        dangerZone: "Danger zone",
         deleteAllBtn: "Delete all data",
         deleteAllHeading: "Delete all data?",
         deleteAllBody: "This will permanently delete all tasks, notes and execution history. This action cannot be undone.",
+        infoActions: "Actions",
+        infoEvents: "Events",
+        infoEntities: "Entities",
+        infoStorage: "Storage file",
         calendarNavTab: "Calendar",
         calendarWeek: "Week",
         calendarMonth: "Month",
@@ -445,15 +448,18 @@ const messages = {
         activityReopened: "Reaberto",
         activityNoteAdded: "Nota adicionada",
         activityNoteDeleted: "Nota excluída",
-        settingsHeading: "Configurações do IntelliKeep",
-        settingsBody: "Para alterar as configurações da integração, acesse Configurações → Dispositivos e Serviços → IntelliKeep → Configurar.",
         rowsPerPage: "Linhas por página:",
         of: "de",
         animationsLabel: "Animações de tarefas",
         animationsDesc: "Habilita transições e efeitos de saída ao concluir, excluir, reabrir ou navegar entre tarefas.",
-        deleteAllBtn: "Deletar todos os dados",
-        deleteAllHeading: "Deletar todos os dados?",
-        deleteAllBody: "Isso irá apagar permanentemente todas as tarefas, notas e histórico de execuções. Esta ação não pode ser desfeita.",
+        dangerZone: "Zona de perigo",
+        deleteAllBtn: "Excluir todos os dados",
+        deleteAllHeading: "Excluir todos os dados?",
+        deleteAllBody: "Isso vai excluir permanentemente todas as tarefas, notas e histórico de execuções. Esta ação não pode ser desfeita.",
+        infoActions: "Ações",
+        infoEvents: "Eventos",
+        infoEntities: "Entidades",
+        infoStorage: "Arquivo de dados",
         calendarNavTab: "Calendário",
         calendarWeek: "Semana",
         calendarMonth: "Mês",
@@ -648,15 +654,18 @@ const messages = {
         activityReopened: "Reabierto",
         activityNoteAdded: "Nota agregada",
         activityNoteDeleted: "Nota eliminada",
-        settingsHeading: "Configuración de IntelliKeep",
-        settingsBody: "Para cambiar la configuración de la integración, ve a Configuración → Dispositivos y servicios → IntelliKeep → Configurar.",
         rowsPerPage: "Filas por página:",
         of: "de",
         animationsLabel: "Animaciones de tareas",
         animationsDesc: "Activa transiciones y efectos de salida al completar, eliminar, reabrir o navegar entre tareas.",
+        dangerZone: "Zona de peligro",
         deleteAllBtn: "Eliminar todos los datos",
         deleteAllHeading: "¿Eliminar todos los datos?",
         deleteAllBody: "Se eliminarán permanentemente todas las tareas, notas e historial de ejecuciones. Esta acción no se puede deshacer.",
+        infoActions: "Acciones",
+        infoEvents: "Eventos",
+        infoEntities: "Entidades",
+        infoStorage: "Archivo de datos",
         calendarNavTab: "Calendario",
         calendarWeek: "Semana",
         calendarMonth: "Mes",
@@ -5186,12 +5195,50 @@ IkTaskHistoryView = __decorate([
     t$3("ik-task-history-view")
 ], IkTaskHistoryView);
 
+const ACTIONS = [
+    "create_task",
+    "update_task",
+    "complete_task",
+    "reopen_task",
+    "delete_task",
+    "add_task_note",
+    "delete_task_note",
+    "load_sample_data",
+    "delete_all_data",
+].map((action) => `intellikeep.${action}`);
+const EVENTS = ["intellikeep_task_notification", "intellikeep_task_updated"];
+/** Entity IDs with the default instance name, for when the entity registry isn't available. */
+const DEFAULT_ENTITY_IDS = [
+    "calendar.intellikeep_tasks",
+    "sensor.intellikeep_next_due_task",
+    "sensor.intellikeep_tasks_due_today",
+    "sensor.intellikeep_tasks_overdue",
+    "todo.intellikeep_tasks",
+];
+/** HA's Store API saves under .storage/<key>, without an extension. */
+const STORAGE_FILE = ".storage/intellikeep";
 let IkSettingsView = class IkSettingsView extends i$3 {
     constructor() {
         super(...arguments);
         this.enableAnimations = true;
         this._showDeleteAllConfirm = false;
         this._deletingAll = false;
+    }
+    /** IntelliKeep's entity IDs as registered, so a renamed instance or entity shows its real ID. */
+    get _entityIds() {
+        const ids = Object.values(this.hass?.entities ?? {})
+            .filter((entity) => entity.platform === "intellikeep")
+            .map((entity) => entity.entity_id)
+            .sort();
+        return ids.length ? ids : DEFAULT_ENTITY_IDS;
+    }
+    _renderInfoRow(label, values) {
+        return b `
+      <div class="info-row">
+        <span class="info-label">${label}</span>
+        <span class="info-value">${values.map((value) => b `<code>${value}</code>`)}</span>
+      </div>
+    `;
     }
     render() {
         const tr = t(this.hass?.language);
@@ -5214,29 +5261,19 @@ let IkSettingsView = class IkSettingsView extends i$3 {
               <span class="slider"></span>
             </label>
           </div>
-          <div class="info-row">
-            <span class="info-label">Available services</span>
-            <span class="info-value">intellikeep.create_task, intellikeep.complete_task, intellikeep.delete_task, intellikeep.update_task</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">HA Event</span>
-            <span class="info-value">intellikeep_task_notification</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Storage location</span>
-            <span class="info-value">.storage/intellikeep.json</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Sensors</span>
-            <span class="info-value">sensor.tasks_due_today · sensor.tasks_overdue · sensor.next_due_task</span>
-          </div>
-          <div class="danger-zone">
-            <h4>Danger zone</h4>
-            <button class="btn-danger" ?disabled=${this._deletingAll} @click=${() => { this._showDeleteAllConfirm = true; }}>
-              <ha-icon icon="mdi:delete-sweep"></ha-icon>
-              ${tr.deleteAllBtn}
-            </button>
-          </div>
+          ${this._renderInfoRow(tr.infoActions, ACTIONS)}
+          ${this._renderInfoRow(tr.infoEvents, EVENTS)}
+          ${this._renderInfoRow(tr.infoEntities, this._entityIds)}
+          ${this._renderInfoRow(tr.infoStorage, [STORAGE_FILE])}
+          ${this.hass?.user?.is_admin ? b `
+            <div class="danger-zone">
+              <h4>${tr.dangerZone}</h4>
+              <button class="btn-danger" ?disabled=${this._deletingAll} @click=${() => { this._showDeleteAllConfirm = true; }}>
+                <ha-icon icon="mdi:delete-sweep"></ha-icon>
+                ${tr.deleteAllBtn}
+              </button>
+            </div>
+          ` : ""}
         </div>
         <ik-confirm-dialog
           .heading=${tr.deleteAllHeading}
@@ -5270,14 +5307,26 @@ IkSettingsView.styles = i$6 `
     p { color: var(--secondary-text-color); font-size: 14px; line-height: 1.5; }
     .info-row {
       display: flex;
-      align-items: center;
+      align-items: baseline;
       gap: 10px;
       padding: 10px 0;
       border-bottom: 1px solid var(--divider-color);
     }
-    .info-row:last-child { border-bottom: none; }
-    .info-label { font-size: 13px; color: var(--secondary-text-color); min-width: 160px; }
-    .info-value { font-size: 14px; color: var(--primary-text-color); font-weight: 500; }
+    .info-row:last-child,
+    .info-row:has(+ .danger-zone) { border-bottom: none; }
+    .info-label { font-size: 13px; color: var(--secondary-text-color); min-width: 160px; flex-shrink: 0; }
+    .info-value {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 12px;
+      min-width: 0;
+      font-size: 13px;
+      color: var(--primary-text-color);
+    }
+    .info-value code {
+      font-family: var(--ha-font-family-code, var(--code-font-family, monospace));
+      overflow-wrap: anywhere;
+    }
     .toggle-row {
       display: flex;
       align-items: center;

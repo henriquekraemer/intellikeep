@@ -35,12 +35,14 @@ async def test_async_setup_entry_stores_runtime_data(mock_hass, mock_config_entr
                             coordinator.async_config_entry_first_refresh = AsyncMock()
                             coordinator_cls.return_value = coordinator
                             notification_manager = MagicMock()
+                            notification_manager.async_load = AsyncMock()
                             notif_cls.return_value = notification_manager
 
                             result = await async_setup_entry(mock_hass, mock_config_entry)
 
     assert result is True
     assert isinstance(mock_config_entry.runtime_data, IntelliKeepRuntimeData)
+    notification_manager.async_load.assert_awaited_once()
     notification_manager.start.assert_called_once()
     mock_hass.config_entries.async_forward_entry_setups.assert_awaited_once()
 

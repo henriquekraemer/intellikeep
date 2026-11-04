@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- The actions are translated: in Portuguese and Spanish, the action editor shows their names, fields and options (priority, frequency, count from, weekdays) in the user's language.
+- Reminders are written in Home Assistant's language (English, Portuguese or Spanish), and so are the title and message of the `intellikeep_task_notification` event.
+
+### Changed
+
+- The integration's documentation link and the card picker's documentation link open the [documentation site](https://henriquekraemer.github.io/intellikeep-doc/), and the issue tracker and the README point to `henriquekraemer/intellikeep`.
+- The device's manufacturer, the license and the README credit Henrique Kraemer instead of Intellilar.
+- The README is shorter and links to the documentation site for the details.
+- The action editor shows `performed_by` for `reopen_task` and `notify_on_overdue` for `update_task`. Both fields already worked.
+
+### Fixed
+
+- Restarting Home Assistant no longer sends the same reminders again: which reminders were sent is saved, in `.storage/intellikeep.notifications`. A task whose due date changes gets a reminder for the new date.
+- Home Assistant set to Português (Brasil) showed the setup, the options and the sensor names in English, since it reads `pt-BR.json` and IntelliKeep only had `pt.json`.
+- The panel's Settings shows Delete all data to admins only. The action is admin-only, so the button failed for everyone else. The Danger zone heading is translated too.
+- The panel's Settings lists every action and both events, the IntelliKeep entity IDs as they are registered, and the storage file as `.storage/intellikeep`, with the labels in the user's language. It showed four of the nine actions, sensor IDs without the `intellikeep_` prefix, and `.storage/intellikeep.json`, all in English.
+- Portuguese: the Settings button and its confirmation say "Excluir todos os dados", like the rest of the panel, instead of "Deletar".
+
 ## [2.0.1] - 2026-11-04
 
 ### Changed
@@ -136,7 +158,7 @@ The panel and the dashboard card were redesigned, and a few things work differen
 
 ### Added
 
-- **Calendar view** with Week and Month modes ([#7](https://github.com/intellilar/intellikeep/issues/7)).
+- **Calendar view** with Week and Month modes ([#7](https://github.com/henriquekraemer/intellikeep/issues/7)).
   - New Calendar tab in the main navigation, alongside Tasks and History.
   - Month and Week grids fill available screen height, with scroll when tasks overflow.
   - Navigate between periods with forward/back arrows and jump to today with a single tap.
@@ -144,7 +166,7 @@ The panel and the dashboard card were redesigned, and a few things work differen
   - Calendar supports the same area, device, and priority filters as the task list.
   - On mobile, tapping a task navigates directly to its edit form; on desktop a modal opens.
   - Calendar mode, current period, and active filters are persisted in `localStorage` and restored on return.
-- **History view filtering** by Area and/or Device ([#15](https://github.com/intellilar/intellikeep/issues/15)).
+- **History view filtering** by Area and/or Device ([#15](https://github.com/henriquekraemer/intellikeep/issues/15)).
   - Reusable `ik-link-filter` component extracted and shared between task list and history views.
   - History view supports configurable visible columns with distinct desktop and mobile presets.
   - CSV export and print actions added to the history view.
@@ -160,7 +182,7 @@ The panel and the dashboard card were redesigned, and a few things work differen
 
 ### Added
 
-- Task filtering by Area and/or Device in the panel task list view ([#6](https://github.com/intellilar/intellikeep/issues/6)).
+- Task filtering by Area and/or Device in the panel task list view ([#6](https://github.com/henriquekraemer/intellikeep/issues/6)).
   - Toggle button (`mdi:filter`) in the filter bar to show/hide the area/device filter controls.
   - Searchable area and device pickers; selecting an area narrows the device picker to devices in that area.
   - Active filters shown as removable chips; individual removal and bulk clear supported.
@@ -169,11 +191,11 @@ The panel and the dashboard card were redesigned, and a few things work differen
 
 ### Changed
 
-- Integration quality raised to Gold / Platinum on the Home Assistant Quality Scale ([#9](https://github.com/intellilar/intellikeep/issues/9)).
+- Integration quality raised to Gold / Platinum on the Home Assistant Quality Scale ([#9](https://github.com/henriquekraemer/intellikeep/issues/9)).
 
 ### Fixed
 
-- HACS displayed "Icon not available" for IntelliKeep due to missing brands entry; branding assets now registered correctly ([#5](https://github.com/intellilar/intellikeep/issues/5)).
+- HACS displayed "Icon not available" for IntelliKeep due to missing brands entry; branding assets now registered correctly ([#5](https://github.com/henriquekraemer/intellikeep/issues/5)).
 - `VERSION` constant in `const.py` was `"1.0.0"`, inconsistent with `manifest.json`; both now track the same release version.
 
 ## [0.0.1] - 2026-04-06

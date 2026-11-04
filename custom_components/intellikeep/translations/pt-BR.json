@@ -1,0 +1,323 @@
+{
+  "title": "IntelliKeep",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configuração do IntelliKeep",
+        "description": "Configure seu sistema de manutenção doméstica IntelliKeep.",
+        "data": {
+          "instance_name": "Nome da Instância",
+          "notify_days_before_default": "Antecedência Padrão para Notificações (dias)",
+          "notification_service": "Serviço de Notificação (opcional)"
+        },
+        "data_description": {
+          "notification_service": "ex: notify.mobile_app_meu_celular — deixe vazio para usar apenas notificações persistentes"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigurar IntelliKeep",
+        "description": "Atualize as configurações da instância do IntelliKeep.",
+        "data": {
+          "instance_name": "Nome da Instância",
+          "notify_days_before_default": "Antecedência Padrão para Notificações (dias)",
+          "notification_service": "Serviço de Notificação (opcional)"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Apenas uma instância do IntelliKeep é permitida."
+    }
+  },
+  "entity": {
+    "calendar": {
+      "tasks": {
+        "name": "Tarefas"
+      }
+    },
+    "sensor": {
+      "tasks_due_today": {
+        "name": "Tarefas com Vencimento Hoje"
+      },
+      "tasks_overdue": {
+        "name": "Tarefas Atrasadas"
+      },
+      "next_due_task": {
+        "name": "Próxima Tarefa a Vencer"
+      }
+    },
+    "todo": {
+      "tasks": {
+        "name": "Tarefas"
+      }
+    }
+  },
+  "exceptions": {
+    "not_configured": {
+      "message": "Configure o IntelliKeep antes de usar suas ações."
+    },
+    "task_not_found": {
+      "message": "A tarefa {task_id} não foi encontrada."
+    },
+    "task_note_not_found": {
+      "message": "A nota {note_id} da tarefa {task_id} não foi encontrada."
+    },
+    "invalid_weekdays": {
+      "message": "Dia(s) da semana inválido(s): {weekdays}. Use mon, tue, wed, thu, fri, sat ou sun."
+    },
+    "cannot_delete_completed": {
+      "message": "Tarefas concluídas guardam o histórico e saem desta lista 30 dias depois de concluídas. Para excluir uma, use o painel do IntelliKeep."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opções do IntelliKeep",
+        "data": {
+          "instance_name": "Nome da Instância",
+          "notify_days_before_default": "Antecedência Padrão para Notificações (dias)",
+          "notification_service": "Serviço de Notificação (opcional)"
+        }
+      }
+    }
+  },
+  "selector": {
+    "priority": {
+      "options": {
+        "low": "Baixa",
+        "medium": "Média",
+        "high": "Alta",
+        "critical": "Crítica"
+      }
+    },
+    "frequency": {
+      "options": {
+        "one_time": "Não repete",
+        "daily": "Diária",
+        "weekly": "Semanal",
+        "monthly": "Mensal",
+        "yearly": "Anual"
+      }
+    },
+    "schedule_anchor": {
+      "options": {
+        "completion": "Data de conclusão",
+        "due_date": "Data de vencimento original"
+      }
+    },
+    "weekdays": {
+      "options": {
+        "mon": "Segunda-feira",
+        "tue": "Terça-feira",
+        "wed": "Quarta-feira",
+        "thu": "Quinta-feira",
+        "fri": "Sexta-feira",
+        "sat": "Sábado",
+        "sun": "Domingo"
+      }
+    }
+  },
+  "services": {
+    "load_sample_data": {
+      "name": "Carregar dados de exemplo",
+      "description": "Adiciona tarefas de manutenção de exemplo, para experimentar o IntelliKeep."
+    },
+    "create_task": {
+      "name": "Criar tarefa",
+      "description": "Cria uma tarefa de manutenção no IntelliKeep.",
+      "fields": {
+        "name": {
+          "name": "Nome",
+          "description": "Nome da tarefa."
+        },
+        "description": {
+          "name": "Descrição",
+          "description": "Detalhes opcionais da tarefa."
+        },
+        "priority": {
+          "name": "Prioridade",
+          "description": "A importância da tarefa."
+        },
+        "frequency": {
+          "name": "Frequência",
+          "description": "Com que frequência a tarefa se repete: a unidade de Repetir a cada. O valor \"custom\" da versão 1.x, com custom_days_interval, ainda funciona e é salvo como diária."
+        },
+        "repeat_interval": {
+          "name": "Repetir a cada",
+          "description": "Repete a cada N dias, semanas, meses ou anos, na unidade da Frequência."
+        },
+        "schedule_anchor": {
+          "name": "Contar o próximo vencimento a partir da",
+          "description": "Data de conclusão: concluída com atraso, a próxima também atrasa. Data de vencimento original: mantém um calendário fixo."
+        },
+        "icon": {
+          "name": "Ícone",
+          "description": "Ícone exibido ao lado da tarefa."
+        },
+        "weekdays": {
+          "name": "Dias da semana",
+          "description": "Dias em que uma tarefa semanal se repete. Sem nenhum dia, repete a cada 7 dias após cada conclusão."
+        },
+        "due_date": {
+          "name": "Data de vencimento",
+          "description": "Quando a tarefa vence."
+        },
+        "linked_entity_ids": {
+          "name": "Entidades vinculadas",
+          "description": "Entidades do Home Assistant ligadas à tarefa. Os filtros de área e dispositivo do painel usam esses vínculos."
+        },
+        "notify_days_before": {
+          "name": "Avisar dias antes",
+          "description": "Quantos dias antes do vencimento o lembrete é enviado."
+        },
+        "notify_on_overdue": {
+          "name": "Notificar quando atrasada",
+          "description": "Envia uma notificação quando a tarefa fica atrasada."
+        }
+      }
+    },
+    "complete_task": {
+      "name": "Concluir tarefa",
+      "description": "Marca uma tarefa como concluída. Uma tarefa recorrente ganha a próxima ocorrência.",
+      "fields": {
+        "task_id": {
+          "name": "ID da tarefa",
+          "description": "ID da tarefa a concluir."
+        },
+        "completed_by": {
+          "name": "Concluída por",
+          "description": "Quem concluiu a tarefa."
+        },
+        "notes": {
+          "name": "Observações",
+          "description": "Observações opcionais sobre a conclusão."
+        }
+      }
+    },
+    "reopen_task": {
+      "name": "Reabrir tarefa",
+      "description": "Reabre uma tarefa concluída e desfaz a conclusão: o registro sai do histórico e, numa tarefa recorrente, a próxima ocorrência criada por ela é removida, a menos que já tenha sido editada, anotada ou concluída.",
+      "fields": {
+        "task_id": {
+          "name": "ID da tarefa",
+          "description": "ID da tarefa a reabrir."
+        },
+        "performed_by": {
+          "name": "Reaberta por",
+          "description": "Quem reabriu a tarefa, mostrado no registro de atividades."
+        }
+      }
+    },
+    "delete_task": {
+      "name": "Excluir tarefa",
+      "description": "Exclui uma tarefa permanentemente, com as notas e o histórico.",
+      "fields": {
+        "task_id": {
+          "name": "ID da tarefa",
+          "description": "ID da tarefa a excluir."
+        }
+      }
+    },
+    "update_task": {
+      "name": "Atualizar tarefa",
+      "description": "Altera campos de uma tarefa existente. Os campos não enviados mantêm o valor.",
+      "fields": {
+        "task_id": {
+          "name": "ID da tarefa",
+          "description": "ID da tarefa a atualizar."
+        },
+        "name": {
+          "name": "Nome",
+          "description": "Nome da tarefa."
+        },
+        "description": {
+          "name": "Descrição",
+          "description": "Detalhes opcionais da tarefa."
+        },
+        "priority": {
+          "name": "Prioridade",
+          "description": "A importância da tarefa."
+        },
+        "frequency": {
+          "name": "Frequência",
+          "description": "Com que frequência a tarefa se repete: a unidade de Repetir a cada. O valor \"custom\" da versão 1.x, com custom_days_interval, ainda funciona e é salvo como diária."
+        },
+        "repeat_interval": {
+          "name": "Repetir a cada",
+          "description": "Repete a cada N dias, semanas, meses ou anos, na unidade da Frequência."
+        },
+        "schedule_anchor": {
+          "name": "Contar o próximo vencimento a partir da",
+          "description": "Data de conclusão: concluída com atraso, a próxima também atrasa. Data de vencimento original: mantém um calendário fixo."
+        },
+        "icon": {
+          "name": "Ícone",
+          "description": "Ícone exibido ao lado da tarefa."
+        },
+        "weekdays": {
+          "name": "Dias da semana",
+          "description": "Dias em que uma tarefa semanal se repete. Sem nenhum dia, repete a cada 7 dias após cada conclusão."
+        },
+        "due_date": {
+          "name": "Data de vencimento",
+          "description": "Quando a tarefa vence."
+        },
+        "linked_entity_ids": {
+          "name": "Entidades vinculadas",
+          "description": "Entidades do Home Assistant ligadas à tarefa. Os filtros de área e dispositivo do painel usam esses vínculos."
+        },
+        "notify_days_before": {
+          "name": "Avisar dias antes",
+          "description": "Quantos dias antes do vencimento o lembrete é enviado."
+        },
+        "notify_on_overdue": {
+          "name": "Notificar quando atrasada",
+          "description": "Envia uma notificação quando a tarefa fica atrasada."
+        },
+        "enabled": {
+          "name": "Ativa",
+          "description": "Desligada, fecha a tarefa sem registrar conclusão; ligada, abre de novo. Para concluir uma tarefa, use Concluir tarefa."
+        },
+        "updated_by": {
+          "name": "Atualizada por",
+          "description": "Quem fez a alteração, mostrado no registro de atividades."
+        }
+      }
+    },
+    "add_task_note": {
+      "name": "Adicionar nota",
+      "description": "Adiciona uma nota a uma tarefa.",
+      "fields": {
+        "task_id": {
+          "name": "ID da tarefa",
+          "description": "ID da tarefa que recebe a nota."
+        },
+        "content": {
+          "name": "Conteúdo",
+          "description": "Texto da nota."
+        },
+        "added_by": {
+          "name": "Adicionada por",
+          "description": "Quem adicionou a nota."
+        }
+      }
+    },
+    "delete_task_note": {
+      "name": "Excluir nota",
+      "description": "Exclui uma nota de uma tarefa.",
+      "fields": {
+        "task_id": {
+          "name": "ID da tarefa",
+          "description": "ID da tarefa que tem a nota."
+        },
+        "note_id": {
+          "name": "ID da nota",
+          "description": "ID da nota a excluir."
+        }
+      }
+    },
+    "delete_all_data": {
+      "name": "Excluir todos os dados",
+      "description": "Exclui permanentemente todas as tarefas, notas e histórico de execuções do IntelliKeep. Somente administradores."
+    }
+  }
+}
