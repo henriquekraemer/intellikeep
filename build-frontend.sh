@@ -5,7 +5,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-NODE_IMAGE="node:20-alpine"
+NODE_IMAGE="node:24-alpine"
 TARGET="${1:-all}"
 
 _build() {
