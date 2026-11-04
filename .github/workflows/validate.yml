@@ -20,22 +20,22 @@ jobs:
     name: Build Frontend
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build Lovelace card
-        uses: docker://node:20-alpine
+        uses: docker://node:24-alpine
         with:
           entrypoint: sh
           args: -c "cd /github/workspace/lovelace-card && npm ci --prefer-offline && npm run build"
 
       - name: Build Panel
-        uses: docker://node:20-alpine
+        uses: docker://node:24-alpine
         with:
           entrypoint: sh
           args: -c "cd /github/workspace/panel && npm ci --prefer-offline && npm run build"
 
       - name: Upload built artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-dist
           path: custom_components/intellikeep/frontend/*.js
@@ -45,10 +45,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Download built artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: frontend-dist
           path: custom_components/intellikeep/frontend/
