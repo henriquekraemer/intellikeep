@@ -3,7 +3,7 @@
 <img width="933" height="256" alt="IntelliKeep on a phone and a desktop" src="https://raw.githubusercontent.com/henriquekraemer/intellikeep/main/.github/images/banner.png" />
 
 [![Documentation](https://img.shields.io/badge/docs-henriquekraemer.github.io-blue)](https://henriquekraemer.github.io/intellikeep-doc/)
-[![HACS](https://img.shields.io/badge/HACS-Custom-orange)](https://hacs.xyz)
+[![HACS](https://img.shields.io/badge/HACS-Default-41BDF5)](https://hacs.xyz)
 [![Tests](https://github.com/henriquekraemer/intellikeep/actions/workflows/tests.yml/badge.svg)](https://github.com/henriquekraemer/intellikeep/actions/workflows/tests.yml)
 [![Validate](https://github.com/henriquekraemer/intellikeep/actions/workflows/validate.yml/badge.svg)](https://github.com/henriquekraemer/intellikeep/actions/workflows/validate.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -51,13 +51,16 @@ IntelliKeep is a free, open-source Home Assistant integration for keeping track 
 
 IntelliKeep needs Home Assistant 2026.1 or later.
 
-1. Open HACS, go to Integrations, then Custom repositories
-2. Add `https://github.com/henriquekraemer/intellikeep` with the category **Integration**
-3. Install **IntelliKeep**
-4. Restart Home Assistant
-5. Go to **Settings → Devices & services → Add integration** and search for **IntelliKeep**
+[![Open IntelliKeep in the Marketplace of your Home Assistant instance.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=henriquekraemer&repository=intellikeep&category=integration)
 
-The IntelliKeep panel then shows up in the sidebar. To install without HACS, see [Manual installation](https://henriquekraemer.github.io/intellikeep-doc/installation/manual). Coming from 1.x? See [Upgrading from 1.x](https://henriquekraemer.github.io/intellikeep-doc/installation/upgrading).
+The button opens IntelliKeep in the Marketplace, or in HACS before Home Assistant 2026.11. To find it yourself:
+
+- **Home Assistant 2026.11 or later:** go to **Settings → Marketplace**, search for **IntelliKeep** and select **Install**.
+- **Earlier versions:** open HACS, search for **IntelliKeep**, download it and restart Home Assistant.
+
+If the setup page doesn't open after the installation, go to **Settings → Devices & services → Add integration** and search for **IntelliKeep**.
+
+The IntelliKeep panel then shows up in the sidebar. To install without HACS or the Marketplace, see [Manual installation](https://henriquekraemer.github.io/intellikeep-doc/installation/manual). Coming from 1.x? See [Upgrading from 1.x](https://henriquekraemer.github.io/intellikeep-doc/installation/upgrading).
 
 ---
 
