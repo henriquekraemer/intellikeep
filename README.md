@@ -91,7 +91,7 @@ The backend tests and the frontend build run in Docker, so you don't need Python
 
 The built bundles are committed, since HACS installs straight from the repository: rebuild and commit them after any frontend change. See [Building the frontend](https://henriquekraemer.github.io/intellikeep-doc/development/building) and [Running tests](https://henriquekraemer.github.io/intellikeep-doc/development/testing) for the details.
 
-Found a bug or have an idea? [Open an issue](https://github.com/henriquekraemer/intellikeep/issues).
+Have a question or an idea? Ask in [Discussions](https://github.com/henriquekraemer/intellikeep/discussions). Found a bug? [Open an issue](https://github.com/henriquekraemer/intellikeep/issues).
 
 ---
 

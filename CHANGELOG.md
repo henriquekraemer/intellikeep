@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - CI and `build-frontend.sh` build the card and panel on Node 24, and the workflows use the current major versions of the GitHub actions, which run on Node 24. Node 20 is end of life, and GitHub warned about the actions that still targeted it.
 - IntelliKeep is in the HACS default list, so the README installs it from the Marketplace (Home Assistant 2026.11 or later) or from HACS, with a button that opens it there, instead of adding it as a custom repository. The HACS badge says Default.
+- Questions and ideas go to [GitHub Discussions](https://github.com/henriquekraemer/intellikeep/discussions) and issues are for bugs: the README says so, and opening a new issue offers links to Discussions and the documentation.
 
 ## [2.1.0] - 2026-11-04
 
