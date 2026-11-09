@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions and help
+    url: https://github.com/henriquekraemer/intellikeep/discussions/categories/q-a
+    about: Ask how to set up or use IntelliKeep.
+  - name: Ideas
+    url: https://github.com/henriquekraemer/intellikeep/discussions/categories/ideas
+    about: Suggest a feature or an improvement.
+  - name: Documentation
+    url: https://henriquekraemer.github.io/intellikeep-doc/
+    about: Installation, features, actions and automations.
