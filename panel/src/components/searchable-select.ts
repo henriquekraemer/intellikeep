@@ -95,6 +95,14 @@ export class IkSearchableSelect extends LitElement {
     this._open = true;
   }
 
+  private _onKeydown(e: KeyboardEvent) {
+    if (e.key !== "Escape" || !this._open) return;
+    // Only the list closes, not a task dialog around it; with the list closed, Escape goes on as usual
+    e.stopPropagation();
+    this._open = false;
+    this._search = "";
+  }
+
   private _select(item: SelectItem) {
     this._open = false;
     this._search = "";
@@ -126,6 +134,7 @@ export class IkSearchableSelect extends LitElement {
           ?disabled=${this.disabled}
           @focus=${this._onFocus}
           @input=${this._onInput}
+          @keydown=${this._onKeydown}
           @blur=${this._onBlur}
         />
         ${this.value ? html`<button class="clear-btn" @mousedown=${this._clear}><ha-icon icon="mdi:close"></ha-icon></button>` : nothing}
