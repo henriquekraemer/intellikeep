@@ -157,7 +157,11 @@ export class IkMenu extends LitElement {
       case "ArrowUp": focus(index - 1); break;
       case "Home": focus(0); break;
       case "End": focus(items.length - 1); break;
-      case "Escape": this._close(); break;
+      case "Escape":
+        // Only the menu closes, not a task dialog around it
+        e.stopPropagation();
+        this._close();
+        break;
       case "Tab": this._close(false); return;
       default: return;
     }

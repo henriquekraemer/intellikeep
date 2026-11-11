@@ -357,10 +357,12 @@ export class IntelliKeepPanel extends LitElement {
     const top = this._modalStack[this._modalStack.length - 1];
     const task = top === "__new__" ? null : (this._tasks.find((t) => t.task_id === top) ?? null);
     const close = () => { this._modalStack = []; };
+    // Clicking the backdrop doesn't close the form, so a stray click can't lose what was typed.
+    // It doesn't take the focus out of the form either, or Escape would stop closing it.
     return html`
       <div
         class="modal-overlay"
-        @click=${(e: MouseEvent) => { if (e.target === e.currentTarget) close(); }}
+        @mousedown=${(e: MouseEvent) => { if (e.target === e.currentTarget) e.preventDefault(); }}
         @keydown=${(e: KeyboardEvent) => { if (e.key === "Escape") close(); }}
       >
         <div class="modal-container task-dialog" role="dialog" aria-modal="true" aria-label=${task?.name ?? tr.newTaskTitle} tabindex="-1">

@@ -1078,6 +1078,8 @@ let IkMenu = class IkMenu extends i$3 {
                 focus(items.length - 1);
                 break;
             case "Escape":
+                // Only the menu closes, not a task dialog around it
+                e.stopPropagation();
                 this._close();
                 break;
             case "Tab":
@@ -1716,6 +1718,14 @@ let IkSearchableSelect = class IkSearchableSelect extends i$3 {
         this._search = e.target.value;
         this._open = true;
     }
+    _onKeydown(e) {
+        if (e.key !== "Escape" || !this._open)
+            return;
+        // Only the list closes, not a task dialog around it; with the list closed, Escape goes on as usual
+        e.stopPropagation();
+        this._open = false;
+        this._search = "";
+    }
     _select(item) {
         this._open = false;
         this._search = "";
@@ -1746,6 +1756,7 @@ let IkSearchableSelect = class IkSearchableSelect extends i$3 {
           ?disabled=${this.disabled}
           @focus=${this._onFocus}
           @input=${this._onInput}
+          @keydown=${this._onKeydown}
           @blur=${this._onBlur}
         />
         ${this.value ? b `<button class="clear-btn" @mousedown=${this._clear}><ha-icon icon="mdi:close"></ha-icon></button>` : A}
@@ -6703,11 +6714,13 @@ let IntelliKeepPanel = class IntelliKeepPanel extends i$3 {
         const top = this._modalStack[this._modalStack.length - 1];
         const task = top === "__new__" ? null : (this._tasks.find((t) => t.task_id === top) ?? null);
         const close = () => { this._modalStack = []; };
+        // Clicking the backdrop doesn't close the form, so a stray click can't lose what was typed.
+        // It doesn't take the focus out of the form either, or Escape would stop closing it.
         return b `
       <div
         class="modal-overlay"
-        @click=${(e) => { if (e.target === e.currentTarget)
-            close(); }}
+        @mousedown=${(e) => { if (e.target === e.currentTarget)
+            e.preventDefault(); }}
         @keydown=${(e) => { if (e.key === "Escape")
             close(); }}
       >
